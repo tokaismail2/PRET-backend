@@ -14,7 +14,6 @@ export enum MaterialType {
   TEXTILES = 'textiles',
   OTHER = 'other',
 }
-
 export enum OrderStatus {
   PENDING = 'pending',
   ACCEPTED = 'accepted',
