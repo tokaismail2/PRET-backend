@@ -23,7 +23,6 @@ export enum OrderStatus {
   CANCELLED = 'cancelled',
   REJECTED = 'rejected',
 }
-
 @Schema({ timestamps: true })
 export class Order {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
