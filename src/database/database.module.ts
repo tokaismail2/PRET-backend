@@ -8,7 +8,7 @@ import { User, UserSchema, Order, OrderSchema } from '../models';
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
-        const mongoUri = configService.get<string>('MONGO_URI')?.trim() || 'mongodb://localhost:27017/';
+        const mongoUri = configService.get<string>('MONGO_URI')?.trim();
         
         if (!mongoUri) {
           throw new Error(
