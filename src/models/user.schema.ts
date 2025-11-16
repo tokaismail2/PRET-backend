@@ -24,8 +24,14 @@ export class User {
   @Prop({ required: true, unique: true, lowercase: true, trim: true })
   email: string;
 
-  @Prop({ required: true })
-  password: string;
+  @Prop({ required: function() { return !this.authProvider || this.authProvider === 'email'; } })
+  password?: string;
+
+  @Prop({ enum: ['email', 'google'], default: 'email' })
+  authProvider?: 'email' | 'google';
+
+  @Prop()
+  googleId?: string;
 
   @Prop({ required: true })
   name: string;
