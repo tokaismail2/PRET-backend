@@ -4,13 +4,8 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "devCommand": "npm run start:dev",
-  "functions": {
-    "api/index.ts": {
-      "runtime": "nodejs20.x"
-    }
-  },
   "routes": [
-    { "src": "/(.*)", "dest": "/api/index.ts" }
+    { "src": "/(.*)", "dest": "/api/index" }
   ]
 }
 
