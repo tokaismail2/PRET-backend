@@ -7,6 +7,8 @@ import { GoogleSignupDto } from './dto/google-signup.dto';
 import { ForgetPasswordRequestDto } from './dto/forget-password-request.dto';
 import { VerifyResetCodeDto } from './dto/verify-reset-code.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { VerifyPhoneDto } from './dto/verify-phone.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -68,5 +70,17 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return await this.authService.resetPassword(resetPasswordDto);
+  }
+
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
+    return await this.authService.verifyEmail(verifyEmailDto);
+  }
+
+  @Post('verify-phone')
+  @HttpCode(HttpStatus.OK)
+  async verifyPhone(@Body() verifyPhoneDto: VerifyPhoneDto) {
+    return await this.authService.verifyPhone(verifyPhoneDto);
   }
 }

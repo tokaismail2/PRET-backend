@@ -18,6 +18,9 @@ import { EmailService } from '../email/email.service';
 import { ForgetPasswordRequestDto } from './dto/forget-password-request.dto';
 import { VerifyResetCodeDto } from './dto/verify-reset-code.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { VerifyPhoneDto } from './dto/verify-phone.dto';
+
 
 interface ResetCodeData {
   code: string;
@@ -26,10 +29,28 @@ interface ResetCodeData {
   verified: boolean;
 }
 
+interface EmailVerificationCodeData {
+  code: string;
+  expiresAt: Date;
+  email: string;
+  verified: boolean;
+}
+
+interface PhoneVerificationCodeData {
+  code: string;
+  expiresAt: Date;
+  phone: string;
+  verified: boolean;
+}
+
 @Injectable()
 export class AuthService {
   // In-memory store for reset codes (consider using Redis in production)
   private resetCodes = new Map<string, ResetCodeData>();
+  // In-memory store for email verification codes (consider using Redis in production)
+  private emailVerificationCodes = new Map<string, EmailVerificationCodeData>();
+  // In-memory store for phone verification codes (consider using Redis in production)
+  private phoneVerificationCodes = new Map<string, PhoneVerificationCodeData>();
 
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
@@ -38,16 +59,30 @@ export class AuthService {
     private emailService: EmailService,
   ) {
     // Clean up expired codes every 5 minutes
-    setInterval(() => this.cleanupExpiredCodes(), 5 * 60 * 1000);
+    setInterval(() => {
+      this.cleanupExpiredCodes();
+      this.cleanupExpiredEmailVerificationCodes();
+      this.cleanupExpiredPhoneVerificationCodes();
+    }, 5 * 60 * 1000);
   }
 
   async register(registerDto: RegisterDto): Promise<Omit<User, 'password'>> {
-    // Check if user already exists
-    const existingUser = await this.userModel.findOne({
+    // Check if user already exists by email
+    const existingUserByEmail = await this.userModel.findOne({
       email: registerDto.email,
     });
-    if (existingUser) {
+    if (existingUserByEmail) {
       throw new ConflictException('User with this email already exists');
+    }
+
+    // Check if phone already exists (if provided)
+    if (registerDto.phone) {
+      const existingUserByPhone = await this.userModel.findOne({
+        phone: registerDto.phone.trim(),
+      });
+      if (existingUserByPhone) {
+        throw new ConflictException('User with this phone number already exists');
+      }
     }
 
     const role = registerDto.role || UserRole.GENERATOR;
@@ -88,6 +123,48 @@ export class AuthService {
     const newUser = new this.userModel(userData);
 
     const savedUser = await newUser.save();
+
+    // Determine verification method (default to email if not specified)
+    const verificationMethod = registerDto.verificationMethod || 'email';
+
+    if (verificationMethod === 'phone') {
+      // Phone verification
+      if (!savedUser.phone) {
+        throw new BadRequestException('Phone number is required for phone verification');
+      }
+
+      // Use static code for phone verification
+      const verificationCode = '123456';
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+      
+      // Store verification code
+      this.phoneVerificationCodes.set(savedUser.phone.trim(), {
+        code: verificationCode,
+        expiresAt,
+        phone: savedUser.phone.trim(),
+        verified: false,
+      });
+
+      // Note: In a real application, you would send SMS here
+      // For now, we just store the code (static code "123456")
+    } else {
+      // Email verification
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+      
+      // Store verification code
+      this.emailVerificationCodes.set(savedUser.email.toLowerCase().trim(), {
+        code: verificationCode,
+        expiresAt,
+        email: savedUser.email.toLowerCase().trim(),
+        verified: false,
+      });
+
+      // Send verification code to email
+      await this.emailService.sendEmailVerificationCode(savedUser.email, verificationCode);
+    }
 
     // Return user without password
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -304,9 +381,9 @@ export class AuthService {
     // Generate 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     
-    // Set expiration to 30 minutes
+    // Set expiration to 5 minutes
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 30);
+    expiresAt.setMinutes(expiresAt.getMinutes() + 5);
     
     // Store code with email
     this.resetCodes.set(email, {
@@ -404,13 +481,71 @@ export class AuthService {
     };
   }
 
-  private maskEmail(email: string): string {
-    const [localPart, domain] = email.split('@');
-    if (localPart.length <= 3) {
-      return `${localPart[0]}***@${domain}`;
+  async verifyEmail(verifyEmailDto: VerifyEmailDto): Promise<{ message: string }> {
+    const email = verifyEmailDto.email.toLowerCase().trim();
+    const code = verifyEmailDto.code;
+
+    const user = await this.userModel.findOne({ email });
+    if (!user) {
+      throw new BadRequestException('User not found');
     }
-    const visiblePart = localPart.substring(0, 3);
-    return `${visiblePart}***@${domain}`;
+
+    const verificationData = this.emailVerificationCodes.get(email);
+
+    if (!verificationData) {
+      throw new BadRequestException('Invalid or expired verification code');
+    }
+
+    if (verificationData.expiresAt < new Date()) {
+      this.emailVerificationCodes.delete(email);
+      throw new BadRequestException('Verification code has expired');
+    }
+
+    if (verificationData.code !== code) {
+      throw new BadRequestException('Invalid verification code');
+    }
+
+    // Mark code as verified
+    verificationData.verified = true;
+    this.emailVerificationCodes.set(email, verificationData);
+
+
+    return {
+      message: 'Email verified successfully',
+    };
+  }
+
+  async verifyPhone(verifyPhoneDto: VerifyPhoneDto): Promise<{ message: string }> {
+    const phone = verifyPhoneDto.phone.trim();
+    const code = verifyPhoneDto.code;
+
+    const user = await this.userModel.findOne({ phone });
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    const verificationData = this.phoneVerificationCodes.get(phone);
+
+    if (!verificationData) {
+      throw new BadRequestException('Invalid or expired verification code');
+    }
+
+    if (verificationData.expiresAt < new Date()) {
+      this.phoneVerificationCodes.delete(phone);
+      throw new BadRequestException('Verification code has expired');
+    }
+
+    if (verificationData.code !== code) {
+      throw new BadRequestException('Invalid verification code');
+    }
+
+    // Mark code as verified
+    verificationData.verified = true;
+    this.phoneVerificationCodes.set(phone, verificationData);
+
+    return {
+      message: 'Phone verified successfully',
+    };
   }
 
   private cleanupExpiredCodes(): void {
@@ -418,6 +553,24 @@ export class AuthService {
     for (const [email, data] of this.resetCodes.entries()) {
       if (data.expiresAt < now) {
         this.resetCodes.delete(email);
+      }
+    }
+  }
+
+  private cleanupExpiredEmailVerificationCodes(): void {
+    const now = new Date();
+    for (const [email, data] of this.emailVerificationCodes.entries()) {
+      if (data.expiresAt < now) {
+        this.emailVerificationCodes.delete(email);
+      }
+    }
+  }
+
+  private cleanupExpiredPhoneVerificationCodes(): void {
+    const now = new Date();
+    for (const [phone, data] of this.phoneVerificationCodes.entries()) {
+      if (data.expiresAt < now) {
+        this.phoneVerificationCodes.delete(phone);
       }
     }
   }

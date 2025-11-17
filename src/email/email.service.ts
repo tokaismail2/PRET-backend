@@ -110,8 +110,46 @@ export class EmailService {
           <div style="background-color: #ecf0f1; padding: 20px; text-align: center; margin: 20px 0; border-radius: 5px;">
             <h1 style="color: #2c3e50; letter-spacing: 5px; font-size: 32px; margin: 0;">${code}</h1>
           </div>
-          <p style="color: #7f8c8d;">This code will expire in 30 minutes.</p>
-          <p style="color: #7f8c8d;">If you didn't request this password reset, please ignore this email.</p>
+          <p style="color: #7f8c8d;">This code will expire in 5 minutes.</p>
+        </div>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to send email: ${errorMessage}`);
+    }
+  }
+
+  async sendEmailVerificationCode(email: string, code: string): Promise<void> {
+    const smtpUser = this.configService.get<string>('SMTP_USER');
+    const smtpPass = this.configService.get<string>('SMTP_PASS');
+    const emailUsername = this.configService.get<string>('EMAIL_USERNAME');
+    const emailPassword = this.configService.get<string>('EMAIL_PASSWORD');
+
+    if (!(smtpUser && smtpPass) && !(emailUsername && emailPassword)) {
+      throw new Error('SMTP credentials are not configured. Please set SMTP_USER/SMTP_PASS or EMAIL_USERNAME/EMAIL_PASSWORD environment variables.');
+    }
+
+    const mailOptions = {
+      from:
+        this.configService.get<string>('SMTP_FROM') ||
+        this.configService.get<string>('FROM_EMAIL') ||
+        smtpUser ||
+        emailUsername ||
+        '',
+      to: email,
+      subject: 'Email Verification Code',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2c3e50;">Email Verification</h2>
+          <p>Thank you for registering! Please use the code below to verify your email address:</p>
+          <div style="background-color: #ecf0f1; padding: 20px; text-align: center; margin: 20px 0; border-radius: 5px;">
+            <h1 style="color: #2c3e50; letter-spacing: 5px; font-size: 32px; margin: 0;">${code}</h1>
+          </div>
+          <p style="color: #7f8c8d;">This code will expire in 5 minutes.</p>
         </div>
       `,
     };

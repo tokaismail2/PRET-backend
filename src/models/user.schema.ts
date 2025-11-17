@@ -36,7 +36,7 @@ export class User {
   @Prop({ required: true })
   name: string;
 
-  @Prop()
+  @Prop({ unique: true, sparse: true, trim: true })
   phone?: string;
 
   @Prop({ required: true, enum: UserRole, default: UserRole.GENERATOR })

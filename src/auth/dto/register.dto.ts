@@ -4,6 +4,7 @@ import {
   MinLength,
   IsOptional,
   IsEnum,
+  IsIn,
   IsObject,
   ValidateNested,
   ValidateIf,
@@ -73,4 +74,10 @@ export class RegisterDto {
   @ValidateNested()
   @Type(() => AddressDto)
   address?: AddressDto;
+
+  @IsOptional()
+  @IsIn(['email', 'phone'], {
+    message: 'Verification method must be either "email" or "phone"',
+  })
+  verificationMethod?: 'email' | 'phone';
 }
