@@ -76,6 +76,9 @@ export class User {
   @Prop()
   profilePicture?: string;
 
+  @Prop()
+  logo?: string;
+
   createdAt?: Date;
   updatedAt?: Date;
 }

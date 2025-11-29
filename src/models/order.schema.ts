@@ -46,6 +46,9 @@ export class Order {
   @Prop({ min: 0 })
   totalPrice?: number;
 
+  @Prop({ type: [String], default: [] })
+  photos?: string[]; // URLs to photos (up to 3)
+
   @Prop({
     required: true,
     enum: OrderStatus,
