@@ -18,6 +18,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/user.decorator';
 import { ImageKitService } from '../imagekit/imagekit.service';
 import { MulterFile } from '../common/types/multer-file.type';
+import { multerConfig } from '../common/config/multer.config';
 
 @Controller('donations')
 export class DonationsController {
@@ -29,7 +30,7 @@ export class DonationsController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
-  @UseInterceptors(FilesInterceptor('photos', 3))
+  @UseInterceptors(FilesInterceptor('photos', 3, multerConfig))
   async createDonation(
     @CurrentUser() user: any,
     @Body() body: any,

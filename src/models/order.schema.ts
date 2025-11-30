@@ -16,12 +16,12 @@ export enum MaterialType {
 }
 export enum OrderStatus {
   PENDING = 'pending',
-  ACCEPTED = 'accepted',
-  IN_TRANSIT = 'in-transit',
-  DELIVERED = 'delivered',
+  ACTIVE = 'active',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
   REJECTED = 'rejected',
+  ACCEPTED = 'accepted',  
+  
 }
 @Schema({ timestamps: true })
 export class Order {

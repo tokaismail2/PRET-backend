@@ -10,6 +10,7 @@ import {
   UseInterceptors,
   UploadedFiles,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { OrdersService } from './orders.service';
@@ -18,6 +19,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/user.decorator';
 import { ImageKitService } from '../imagekit/imagekit.service';
 import { MulterFile } from '../common/types/multer-file.type';
+import { multerConfig } from '../common/config/multer.config';
+import { OrderStatus } from '../models/order.schema';
 
 @Controller('orders')
 export class OrdersController {
@@ -29,7 +32,7 @@ export class OrdersController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
-  @UseInterceptors(FilesInterceptor('photos', 3))
+  @UseInterceptors(FilesInterceptor('photos', 3, multerConfig))
   async createOrder(
     @CurrentUser() user: any,
     @Body() body: any,
@@ -97,8 +100,22 @@ export class OrdersController {
   @Get()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async getMyOrders(@CurrentUser() user: any) {
-    const orders = await this.ordersService.getOrdersByUser(user.userId);
+  async getMyOrders(
+    @CurrentUser() user: any,
+    @Query('status') status?: string,
+  ) {
+    let statusEnum: OrderStatus | undefined;
+    if (status) {
+      statusEnum = Object.values(OrderStatus).find(
+        (s) => s.toLowerCase() === status.toLowerCase(),
+      ) as OrderStatus;
+      if (!statusEnum) {
+        throw new BadRequestException(
+          `Invalid status. Valid values: ${Object.values(OrderStatus).join(', ')}`,
+        );
+      }
+    }
+    const orders = await this.ordersService.getOrdersByUser(user.userId, statusEnum);
     return {
       message: 'Orders retrieved successfully',
       orders,

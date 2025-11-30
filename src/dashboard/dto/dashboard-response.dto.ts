@@ -7,7 +7,7 @@ export class SummaryStatisticsDto {
   mealsDonated: number; // this month
 }
 
-export class UpcomingPickupDto {
+export class PendingPickupDto {
   id: string;
   type: 'order' | 'donation';
   scheduledDate: Date;
@@ -45,7 +45,7 @@ export class RecentActivityDto {
 
 export class DashboardResponseDto {
   summary: SummaryStatisticsDto;
-  upcomingPickups: UpcomingPickupDto[];
+  pendingPickups: PendingPickupDto[];
   topRecycledMaterials: TopRecycledMaterialsDto;
   monthlyRecycling: MonthlyRecyclingDto;
   recentActivity: RecentActivityDto[];

@@ -55,16 +55,20 @@ export class OrdersService {
     const savedOrder = await order.save();
     return savedOrder;
   }
-
-  async getOrdersByUser(userId: string) {
+  async getOrdersByUser(userId: string, status?: OrderStatus) {
     const user = await this.userModel.findById(userId);
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
+    const query: any = { buyer: userId };
+    if (status) {
+      query.status = status;
+    }
+
     const orders = await this.orderModel
-      .find({ buyer: userId })
+      .find(query)
       .populate('seller', 'name email phone')
       .sort({ createdAt: -1 })
       .exec();

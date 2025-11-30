@@ -11,7 +11,7 @@ import { User, UserDocument } from '../models/user.schema';
 import {
   DashboardResponseDto,
   SummaryStatisticsDto,
-  UpcomingPickupDto,
+  PendingPickupDto,
   TopRecycledMaterialsDto,
   MaterialBreakdownDto,
   MonthlyRecyclingDto,
@@ -66,8 +66,8 @@ export class DashboardService {
       endOfLastMonth,
     );
 
-    // Get upcoming pickups
-    const upcomingPickups = this.getUpcomingPickups(allOrders, allDonations);
+    // Get pending pickups
+    const pendingPickups = this.getPendingPickups(allOrders, allDonations);
 
     // Get top recycled materials
     const topRecycledMaterials = this.getTopRecycledMaterials(
@@ -88,7 +88,7 @@ export class DashboardService {
 
     return {
       summary,
-      upcomingPickups,
+      pendingPickups,
       topRecycledMaterials,
       monthlyRecycling,
       recentActivity,
@@ -126,13 +126,11 @@ export class DashboardService {
     // Review status (in progress items)
     const inProgressOrders = allOrders.filter(
       (order) =>
-        order.status === OrderStatus.ACCEPTED ||
-        order.status === OrderStatus.IN_TRANSIT,
+        order.status === OrderStatus.ACTIVE 
     ).length;
     const inProgressDonations = allDonations.filter(
       (donation) =>
-        donation.status === DonationStatus.ACCEPTED ||
-        donation.status === DonationStatus.PICKED_UP,
+        donation.status === DonationStatus.COMPLETED
     ).length;
     const reviewStatus = inProgressOrders + inProgressDonations;
 
@@ -182,22 +180,15 @@ export class DashboardService {
     };
   }
 
-  private getUpcomingPickups(
+  private getPendingPickups(
     orders: OrderDocument[],
     donations: DonationDocument[],
-  ): UpcomingPickupDto[] {
-    const upcoming: UpcomingPickupDto[] = [];
+  ): PendingPickupDto[] {
+    const pending: PendingPickupDto[] = [];
 
-    // Add upcoming orders
+    // Add pending orders
     orders
-      .filter(
-        (order) =>
-          order.scheduledPickupDate &&
-          order.scheduledPickupDate >= new Date() &&
-          (order.status === OrderStatus.PENDING ||
-            order.status === OrderStatus.ACCEPTED ||
-            order.status === OrderStatus.IN_TRANSIT),
-      )
+      .filter((order) => order.status === OrderStatus.PENDING)
       .forEach((order) => {
         const materialTypeName = this.getMaterialDisplayName(order.materialType);
         let description = '';
@@ -208,37 +199,30 @@ export class DashboardService {
           description = `${materialTypeName} waste collection`;
         }
         
-        upcoming.push({
+        pending.push({
           id: order._id.toString(),
           type: 'order',
-          scheduledDate: order.scheduledPickupDate!,
+          scheduledDate: order.scheduledPickupDate || order.createdAt || new Date(),
           description,
           status: order.status,
         });
       });
 
-    // Add upcoming donations
+    // Add pending donations
     donations
-      .filter(
-        (donation) =>
-          donation.scheduledPickupDate &&
-          donation.scheduledPickupDate >= new Date() &&
-          (donation.status === DonationStatus.PENDING ||
-            donation.status === DonationStatus.ACCEPTED ||
-            donation.status === DonationStatus.PICKED_UP),
-      )
+      .filter((donation) => donation.status === DonationStatus.PENDING)
       .forEach((donation) => {
-        upcoming.push({
+        pending.push({
           id: donation._id.toString(),
           type: 'donation',
-          scheduledDate: donation.scheduledPickupDate!,
+          scheduledDate: donation.scheduledPickupDate || donation.createdAt || new Date(),
           description: 'Food Donations',
           status: donation.status,
         });
       });
 
     // Sort by scheduled date and return top 5
-    return upcoming
+    return pending
       .sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime())
       .slice(0, 5);
   }
@@ -370,12 +354,12 @@ export class DashboardService {
       let title = '';
       let description = '';
 
-      if (order.status === OrderStatus.ACCEPTED && order.seller) {
+      if (order.status === OrderStatus.ACTIVE && order.seller) {
         const seller = order.seller as any;
         const orderId = order._id.toString().slice(-4);
         title = `Order #${orderId} accepted`;
         description = `by ${seller.name || 'Factory'}`;
-      } else if (order.status === OrderStatus.IN_TRANSIT) {
+      } else if (order.status === OrderStatus.ACTIVE) {
         title = 'Pickup dispatched';
         description = `for ${materialTypeName.toLowerCase()} containers`;
       } else if (order.status === OrderStatus.PENDING) {
