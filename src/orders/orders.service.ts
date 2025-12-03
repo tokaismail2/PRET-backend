@@ -77,27 +77,33 @@ export class OrdersService {
   }
 
   async getOrderById(orderId: string, userId: string) {
+    userId = userId.toString(); // important
+  
     const order = await this.orderModel
       .findById(orderId)
       .populate('buyer', 'name email phone')
       .populate('seller', 'name email phone')
       .exec();
-
+  
     if (!order) {
       throw new NotFoundException('Order not found');
     }
-
-    // Check if user has access to this order
+  
     const user = await this.userModel.findById(userId);
+  
+    const buyerId = (order.buyer as any)?._id?.toString();
+    const sellerId = (order.seller as any)?._id?.toString();
+  
     if (
       user.role !== UserRole.ADMIN &&
-      order.buyer.toString() !== userId &&
-      order.seller?.toString() !== userId
+      buyerId !== userId &&
+      sellerId !== userId
     ) {
       throw new UnauthorizedException('You do not have access to this order');
     }
-
+  
     return order;
   }
+  
 }
 

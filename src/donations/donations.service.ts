@@ -13,7 +13,7 @@ import {
 } from '../models/donation.schema';
 import { User, UserDocument, UserRole } from '../models/user.schema';
 import { CreateDonationDto } from './dto/create-donation.dto';
-
+import { Types } from 'mongoose';
 @Injectable()
 export class DonationsService {
   constructor(
@@ -77,30 +77,46 @@ export class DonationsService {
     return donations;
   }
 
+
   async getDonationById(donationId: string, userId: string) {
+    userId = userId.toString();
+  
     const donation = await this.donationModel
       .findById(donationId)
       .populate('donor', 'name email phone')
       .populate('charity', 'name email phone')
       .exec();
-
+  
     if (!donation) {
       throw new NotFoundException('Donation not found');
     }
-
-    // Check if user has access to this donation
+  
+    // Extract IDs safely
+    const donorId =
+      donation.donor instanceof Types.ObjectId
+        ? donation.donor.toString()
+        : (donation.donor as any)?._id?.toString();
+  
+    const charityId =
+      donation.charity instanceof Types.ObjectId
+        ? donation.charity.toString()
+        : (donation.charity as any)?._id?.toString();
+  
     const user = await this.userModel.findById(userId);
+  
+    // Allow access if: Admin OR donor OR charity
     if (
       user.role !== UserRole.ADMIN &&
-      donation.donor.toString() !== userId &&
-      donation.charity?.toString() !== userId
+      donorId !== userId &&
+      charityId !== userId
     ) {
       throw new UnauthorizedException(
         'You do not have access to this donation',
       );
     }
-
+  
     return donation;
   }
+  
 }
 

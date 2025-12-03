@@ -114,7 +114,7 @@ export class DonationsController {
   ) {
     const donation = await this.donationsService.getDonationById(
       id,
-      user.userId,
+      user.userId.toString(),
     );
     return {
       message: 'Donation retrieved successfully',

@@ -129,7 +129,7 @@ export class OrdersController {
     @Param('id') id: string,
     @CurrentUser() user: any,
   ) {
-    const order = await this.ordersService.getOrderById(id, user.userId);
+    const order = await this.ordersService.getOrderById(id, user.userId.toString());
     return {
       message: 'Order retrieved successfully',
       order,
