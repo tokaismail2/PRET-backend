@@ -55,6 +55,10 @@ export class RegisterDto {
 
   @IsOptional()
   @IsString()
+  businessName?: string;
+
+  @IsOptional()
+  @IsString()
   phone?: string;
 
   @IsOptional()

@@ -79,7 +79,9 @@ export class User {
 
   @Prop()
   logo?: string;
-
+  
+  @Prop({ required: false })
+  businessName?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
