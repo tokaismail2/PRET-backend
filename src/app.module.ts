@@ -1,3 +1,8 @@
+import { ReportModule } from './report/report.module';
+import { UsersModule } from './user/user.module';
+import {RatingModule  } from "./rating/rating.module";
+import{PaymentModule} from './payment/pyment.module'
+import { MaintenanceModule } from "./maintenance/maintenance.module";
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
@@ -10,6 +15,8 @@ import { DonationsModule } from './donations/donations.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { PaymobModule } from "./paymob/paymob.module";
+
 
 @Module({
   imports: [
@@ -26,6 +33,13 @@ import { AppService } from './app.service';
     OrdersModule,
     DonationsModule,
     DashboardModule,
+    UsersModule,
+    ReportModule,
+    RatingModule,
+    PaymentModule,
+    MaintenanceModule,
+    PaymobModule
+
   ],
   controllers: [AppController],
   providers: [AppService],

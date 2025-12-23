@@ -3,12 +3,12 @@ import {
   ConflictException,
   BadRequestException,
   UnauthorizedException,
-} from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
-import { User, UserDocument, UserRole } from '../models/user.schema';
+  } from '@nestjs/common';
+  import { InjectModel } from '@nestjs/mongoose';
+  import { Model } from 'mongoose';
+  import { JwtService } from '@nestjs/jwt';
+  import * as bcrypt from 'bcrypt';
+  import { User, UserDocument, UserRole } from '../models/user.schema';
 import { RegisterDto } from './dto/register.dto';
 import { LoginEmailDto } from './dto/login-email.dto';
 import { LoginPhoneDto } from './dto/login-phone.dto';
@@ -132,9 +132,9 @@ export class AuthService {
       if (!savedUser.phone) {
         throw new BadRequestException('Phone number is required for phone verification');
       }
-
+      let verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      verificationCode = '123456';
       // Use static code for phone verification
-      const verificationCode = '123456';
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 5);
       

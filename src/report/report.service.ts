@@ -44,11 +44,12 @@ export class ReportService {
   }
 
   // ❌ delete report
-  async delete(reportId: string) {
+  async delete(reportId: string): Promise<{ deletedCount?: number }> {
     const report = await this.reportModel.findById(reportId);
     if (!report) throw new NotFoundException('Report not found');
     return this.reportModel.deleteOne({ _id: reportId });
   }
+
 
   // 🧐 get report by id
   async findById(reportId: string) {
