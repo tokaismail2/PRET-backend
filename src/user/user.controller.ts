@@ -39,7 +39,7 @@ export class UsersController {
   }
 
   // ---------------- GET USER BY ID ----------------
-  @Get(':id')
+  @Get('by-id/:id')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async getUserById(@Param('id') id: string) {
@@ -48,7 +48,7 @@ export class UsersController {
   }
 
   // ---------------- UPDATE USER ----------------
-  @Patch(':id')
+  @Patch('by-id/:id')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async updateUser(
@@ -60,7 +60,7 @@ export class UsersController {
   }
 
   // ---------------- DELETE USER ----------------
-  @Delete(':id')
+  @Delete('by-id/:id')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async deleteUser(@Param('id') id: string) {
