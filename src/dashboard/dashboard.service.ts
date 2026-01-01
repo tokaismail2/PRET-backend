@@ -398,9 +398,6 @@ export class DashboardService {
         const charity = donation.charity as any;
         title = 'Meals donated';
         description = `to ${charity.name || 'City Food Bank'}`;
-      } else if (donation.status === DonationStatus.PICKED_UP) {
-        title = 'Donation picked up';
-        description = `${donation.mealsProvided} meals`;
       } else if (donation.status === DonationStatus.PENDING) {
         title = 'New donation created';
         description = `${donation.mealsProvided} meals`;

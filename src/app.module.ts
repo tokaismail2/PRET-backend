@@ -16,6 +16,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PaymobModule } from "./paymob/paymob.module";
+import {AdminModule  } from "./admin/admin.module";
 
 
 @Module({
@@ -38,7 +39,8 @@ import { PaymobModule } from "./paymob/paymob.module";
     RatingModule,
     PaymentModule,
     MaintenanceModule,
-    PaymobModule
+    PaymobModule,
+    AdminModule
 
   ],
   controllers: [AppController],

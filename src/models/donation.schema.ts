@@ -7,11 +7,9 @@ export type DonationDocument = Donation & Document;
 export enum DonationStatus {
   PENDING = 'pending',
   ACCEPTED = 'accepted',
-  PICKED_UP = 'picked-up',
   DELIVERED = 'delivered',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
-  REJECTED = 'rejected',
 }
 
 @Schema({ timestamps: true })

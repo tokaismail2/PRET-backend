@@ -1,3 +1,4 @@
+import { AuditLog } from './../models/auditLog.schema';
 import {
   Controller,
   Post,
@@ -21,6 +22,7 @@ import { ImageKitService } from '../imagekit/imagekit.service';
 import { MulterFile } from '../common/types/multer-file.type';
 import { multerConfig } from '../common/config/multer.config';
 import { OrderStatus } from '../models/order.schema';
+import { AuditLogInterceptorFactory } from "../common/utils/interceptors/auditLog.interceptor";
 
 @Controller('orders')
 export class OrdersController {
@@ -33,6 +35,7 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(FilesInterceptor('photos', 3, multerConfig))
+  @UseInterceptors(AuditLogInterceptorFactory('create_order'))
   async createOrder(
     @CurrentUser() user: any,
     @Body() body: any,

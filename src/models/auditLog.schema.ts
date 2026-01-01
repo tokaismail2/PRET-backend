@@ -10,7 +10,7 @@ export class AuditLog {
   action: string;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  donor: Types.ObjectId | User;
+  user: Types.ObjectId | User;
 
   createdAt?: Date;
   updatedAt?: Date;

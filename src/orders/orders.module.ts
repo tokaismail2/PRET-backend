@@ -4,6 +4,7 @@ import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 import { Order, OrderSchema } from '../models/order.schema';
 import { User, UserSchema } from '../models/user.schema';
+import { AuditLog, AuditLogSchema } from '../models/auditLog.schema';
 import { ImageKitModule } from '../imagekit/imagekit.module';
 
 @Module({
@@ -11,6 +12,7 @@ import { ImageKitModule } from '../imagekit/imagekit.module';
     MongooseModule.forFeature([
       { name: Order.name, schema: OrderSchema },
       { name: User.name, schema: UserSchema },
+      { name: AuditLog.name, schema: AuditLogSchema },
     ]),
     ImageKitModule,
   ],
@@ -19,4 +21,3 @@ import { ImageKitModule } from '../imagekit/imagekit.module';
   exports: [OrdersService],
 })
 export class OrdersModule {}
-
