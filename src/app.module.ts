@@ -17,10 +17,20 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PaymobModule } from "./paymob/paymob.module";
 import {AdminModule  } from "./admin/admin.module";
+import { WasteModule } from './waste/wasteModel';
+import { MongooseModule } from '@nestjs/mongoose';
+
+
+
 
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }), // مهم عشان يقرأ .env
+    MongooseModule.forRoot(process.env.MONGO_URI),
+  
+    WasteModule,
+    
     ConfigModule.forRoot({
       isGlobal: true, // Make ConfigModule available globally
       envFilePath: ['.env', '.env.local'], // Try multiple .env files

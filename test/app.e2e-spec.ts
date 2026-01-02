@@ -23,3 +23,7 @@ describe('AppController (e2e)', () => {
       .expect('Hello World!');
   });
 });
+function beforeEach(arg0: () => Promise<void>) {
+  throw new Error('Function not implemented.');
+}
+
