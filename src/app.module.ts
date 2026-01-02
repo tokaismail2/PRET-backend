@@ -18,6 +18,7 @@ import { AppService } from './app.service';
 import { PaymobModule } from "./paymob/paymob.module";
 import {AdminModule  } from "./admin/admin.module";
 import { WasteModule } from './waste/wasteModel';
+import { AuditLogModule } from "./audit-log/audit-log.module";
 import { MongooseModule } from '@nestjs/mongoose';
 
 
@@ -50,7 +51,8 @@ import { MongooseModule } from '@nestjs/mongoose';
     PaymentModule,
     MaintenanceModule,
     PaymobModule,
-    AdminModule
+    AdminModule,
+    AuditLogModule
 
   ],
   controllers: [AppController],

@@ -22,20 +22,22 @@ import { ImageKitService } from '../imagekit/imagekit.service';
 import { MulterFile } from '../common/types/multer-file.type';
 import { multerConfig } from '../common/config/multer.config';
 import { OrderStatus } from '../models/order.schema';
-import { AuditLogInterceptorFactory } from "../common/utils/interceptors/auditLog.interceptor";
+import { AuditLogInterceptorFactory } from "../audit-log/audit-log.interceptor";
 
 @Controller('orders')
 export class OrdersController {
   constructor(
     private readonly ordersService: OrdersService,
     private readonly imageKitService: ImageKitService,
-  ) {}
+  ) { }
 
   @Post()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
-  @UseInterceptors(FilesInterceptor('photos', 3, multerConfig))
-  @UseInterceptors(AuditLogInterceptorFactory('create_order'))
+  @UseInterceptors(
+    FilesInterceptor('photos', 3, multerConfig),
+    AuditLogInterceptorFactory('create_order'),
+  )
   async createOrder(
     @CurrentUser() user: any,
     @Body() body: any,
@@ -55,8 +57,8 @@ export class OrdersController {
         notes: body.notes,
         photos: body.photos
           ? (typeof body.photos === 'string'
-              ? JSON.parse(body.photos)
-              : body.photos)
+            ? JSON.parse(body.photos)
+            : body.photos)
           : undefined,
       };
     } catch (error) {
