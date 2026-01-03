@@ -6,7 +6,6 @@ export type UserDocument = User & Document;
 export enum UserRole {
   GENERATOR = 'generator',
   FACTORY = 'factory',
-  DELIVERY_AGENT = 'delivery_agent',
   ADMIN = 'admin',
 }
 

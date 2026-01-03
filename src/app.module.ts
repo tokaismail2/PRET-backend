@@ -1,3 +1,4 @@
+import { Driver } from './models/driver.schema';
 import { ReportModule } from './report/report.module';
 import { UsersModule } from './user/user.module';
 import {RatingModule  } from "./rating/rating.module";
@@ -19,6 +20,7 @@ import { PaymobModule } from "./paymob/paymob.module";
 import {AdminModule  } from "./admin/admin.module";
 import { WasteModule } from './waste/wasteModel';
 import { AuditLogModule } from "./audit-log/audit-log.module";
+import { DriverAuthModule } from "./DriverAuth/driverAuth.module";
 import { MongooseModule } from '@nestjs/mongoose';
 
 
@@ -52,7 +54,8 @@ import { MongooseModule } from '@nestjs/mongoose';
     MaintenanceModule,
     PaymobModule,
     AdminModule,
-    AuditLogModule
+    AuditLogModule,
+    DriverAuthModule
 
   ],
   controllers: [AppController],
