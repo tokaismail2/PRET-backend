@@ -67,7 +67,7 @@ export class AuthService {
     }, 5 * 60 * 1000);
   }
 
-  async register(registerDto: RegisterDto): Promise<{ data: { user: Omit<Driver, 'password'> } }> {
+   async register(registerDto: RegisterDto): Promise<Omit<Driver, 'password'>> {
     // Check if driver already exists by email
     const existingDriverByEmail = await this.driverModel.findOne({
       email: registerDto.email,
@@ -147,7 +147,7 @@ export class AuthService {
     // Return user without password
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = savedUser.toObject();
-    return { data: { user: userWithoutPassword } };
+     return userWithoutPassword;
   }
 
   async loginWithEmail(loginEmailDto: LoginEmailDto) {
@@ -191,7 +191,7 @@ export class AuthService {
 
     const { password, ...userWithoutPassword } = user.toObject();
     return {
-     data: { user: userWithoutPassword, accessToken}
+      user: userWithoutPassword, accessToken
     };
   }
 
@@ -235,7 +235,7 @@ export class AuthService {
 
     const { password, ...userWithoutPassword } = user.toObject();
     return {
-      data: { user: userWithoutPassword, accessToken },
+      user: userWithoutPassword, accessToken
     };
   }
 
