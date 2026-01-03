@@ -6,7 +6,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './driverAuth.controller';
 import { AuthService } from './driverAuth.service';
 import { Driver, DriverSchema } from '../models/driver.schema';
-import { JwtStrategy } from '../DriverAuth/strategies/jwt.strategy';
+import { DriverJwtStrategy } from './strategies/jwtForDriver.strategy';
 import { FirebaseModule } from '../firebase/firebase.module';
 import { EmailModule } from '../email/email.module';
 
@@ -26,7 +26,7 @@ import { EmailModule } from '../email/email.module';
     EmailModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, DriverJwtStrategy],
   exports: [AuthService],
 })
 export class DriverAuthModule {}

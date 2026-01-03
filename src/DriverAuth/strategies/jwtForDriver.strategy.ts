@@ -8,24 +8,34 @@ import { Model } from 'mongoose';
 import { Driver, DriverDocument } from '../../models/driver.schema';
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
+export class DriverJwtStrategy extends PassportStrategy(
+  Strategy,
+  'driver-jwt',
+) {
   constructor(
-    @InjectModel(Driver.name) private driverModel: Model<DriverDocument>,
+    @InjectModel(Driver.name)
+    private driverModel: Model<DriverDocument>,
     private configService: ConfigService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET') || 'your-secret-key-change-in-production',
+      secretOrKey: configService.get('DRIVER_JWT_SECRET') || 'your-driver-secret-key-change-in-production',
     });
   }
 
   async validate(payload: any) {
     const driver = await this.driverModel.findById(payload.sub);
+
     if (!driver || !driver.isActive) {
       throw new UnauthorizedException('Driver not found or inactive');
     }
-    return { userId: driver._id, email: driver.email , phone: driver.phone};
+
+    return {
+      driverId: driver._id,
+      role: 'DRIVER',
+    };
   }
 }
+
+
 
