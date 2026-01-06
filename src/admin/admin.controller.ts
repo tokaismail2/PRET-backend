@@ -6,6 +6,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Get
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -14,12 +15,30 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../models/user.schema';
 import { UpdateOrderDto } from '../admin/dto/update-order.dto';
 
-@Controller('admin/orders')
+@Controller('admin/data')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
+  @Get('/users')
+  async getUsers() {
+    const users = await this.adminService.getUsers();
+    return {
+      success: true,
+      message: 'Users fetched successfully',
+      data: users,
+    };
+  }
 
+  @Get('/drivers')
+  async getDrivers() {
+    const drivers = await this.adminService.getDrivers();
+    return {
+      success: true,
+      message: 'Drivers fetched successfully',
+      data: drivers,
+    };
+  }
   @Put(':orderId')
   @HttpCode(HttpStatus.OK)
   async updateOrder(
@@ -31,9 +50,7 @@ export class AdminController {
       updateDto,
     );
 
-    return {
-      message: 'Order updated successfully',
-      order,
-    };
+    return order;
   }
+
 }

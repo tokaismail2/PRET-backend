@@ -32,7 +32,6 @@ export class DriverJwtStrategy extends PassportStrategy(
 
     return {
       driverId: driver._id,
-      role: 'DRIVER',
     };
   }
 }

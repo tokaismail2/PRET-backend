@@ -17,7 +17,7 @@ import { EmailModule } from '../email/email.module';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'your-secret-key-change-in-production',
+        secret: configService.get<string>('DRIVER_JWT_SECRET') || 'your-driver-secret-key-change-in-production',
         signOptions: { expiresIn: '7d' },
       }),
       inject: [ConfigService],
@@ -29,4 +29,4 @@ import { EmailModule } from '../email/email.module';
   providers: [AuthService, DriverJwtStrategy],
   exports: [AuthService],
 })
-export class DriverAuthModule {}
+export class DriverAuthModule { }

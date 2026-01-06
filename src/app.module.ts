@@ -21,6 +21,7 @@ import {AdminModule  } from "./admin/admin.module";
 import { WasteModule } from './waste/wasteModel';
 import { AuditLogModule } from "./audit-log/audit-log.module";
 import { DriverAuthModule } from "./DriverAuth/driverAuth.module";
+import {WarehouseModule} from "./warehouse/warehouse.module"
 import { MongooseModule } from '@nestjs/mongoose';
 
 
@@ -55,7 +56,8 @@ import { MongooseModule } from '@nestjs/mongoose';
     PaymobModule,
     AdminModule,
     AuditLogModule,
-    DriverAuthModule
+    DriverAuthModule,
+    WarehouseModule
 
   ],
   controllers: [AppController],

@@ -12,17 +12,22 @@ import {
   UploadedFiles,
   BadRequestException,
   Query,
+  ForbiddenException,
+  Put
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/user.decorator';
+import { CurrentDriver } from '../DriverAuth/decorators/driver.decorator';
 import { ImageKitService } from '../imagekit/imagekit.service';
 import { MulterFile } from '../common/types/multer-file.type';
 import { multerConfig } from '../common/config/multer.config';
 import { OrderStatus } from '../models/order.schema';
 import { AuditLogInterceptorFactory } from "../audit-log/audit-log.interceptor";
+import {DriverJwtStrategy} from "../DriverAuth/strategies/jwtForDriver.strategy";
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('orders')
 export class OrdersController {
@@ -140,5 +145,34 @@ export class OrdersController {
       order,
     };
   }
+  @Post(':id/assign-driver')
+  @UseGuards(JwtAuthGuard)
+  async assignDriver(
+    @Param('id') orderId: string,
+    @Body('driverId') driverId: string,
+    @CurrentUser() user: any,
+  ) {
+    // Role check
+    if (!['admin'].includes(user.role)) {
+      throw new ForbiddenException('You are not allowed to assign drivers');
+    }
+
+    // Call Service
+    return this.ordersService.assignDriver(orderId, driverId);
+  }
+
+
+@Put(':id/in-transit')
+@UseGuards(AuthGuard('driver-jwt')) 
+async markInTransit(
+  @Param('id') orderId: string,
+  @CurrentDriver() driver: any,
+) {
+  console.log('Current driver:', driver); 
+  return this.ordersService.markInTransit(orderId, driver.driverId);
+}
+
+
+
 }
 

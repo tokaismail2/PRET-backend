@@ -1,3 +1,4 @@
+import { Driver } from './driver.schema';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { User } from './user.schema';
@@ -21,6 +22,8 @@ export enum OrderStatus {
   CANCELLED = 'cancelled',
   REJECTED = 'rejected',
   ACCEPTED = 'accepted',  
+  ASSIGNED = 'assigned',
+  IN_TRANSIT = 'in_transit',
   
 }
 @Schema({ timestamps: true })
@@ -30,6 +33,9 @@ export class Order {
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   seller?: Types.ObjectId | User;
+  
+  @Prop({ type: Types.ObjectId, ref: 'Driver' })
+  driverId?: Types.ObjectId | Driver;
 
   @Prop({ required: true, enum: MaterialType })
   materialType: MaterialType;
