@@ -8,9 +8,7 @@ import {
   IsObject,
   ValidateNested,
   ValidateIf,
-  IsUppercase,
-  IsNumber,
-  IsLowercase,
+  Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { UserRole } from '../../models/user.schema';
@@ -50,9 +48,10 @@ export class RegisterDto {
   email: string;
 
   @IsString()
-  @MinLength(6, { message: 'Password must be at least 6 characters long' })
-  @IsUppercase({ message: 'Password must contain at least one uppercase letter' })
-  @IsLowercase({ message: 'Password must contain at least one lowercase letter' })
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @Matches(/[0-9]/, { message: 'Password must contain at least one number' })
+  @Matches(/[a-z]/, { message: 'Password must contain at least one lowercase letter' })
+  @Matches(/[A-Z]/, { message: 'Password must contain at least one uppercase letter' })
   password: string;
 
   @IsString()

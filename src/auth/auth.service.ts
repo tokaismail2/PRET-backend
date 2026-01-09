@@ -76,6 +76,7 @@ export class AuthService {
     // Check if user already exists by email
     const existingUserByEmail = await this.userModel.findOne({
       email: registerDto.email.toLowerCase().trim(),
+      isVerified: true,
     });
     if (existingUserByEmail) {
       throw new ConflictException('User with this email already exists');
@@ -85,6 +86,7 @@ export class AuthService {
     if (registerDto.phone) {
       const existingUserByPhone = await this.userModel.findOne({
         phone: registerDto.phone.trim(),
+        isVerified: true,
       });
       if (existingUserByPhone) {
         throw new ConflictException('User with this phone number already exists');
@@ -207,6 +209,7 @@ export class AuthService {
     // Find user by email
     const user = await this.userModel.findOne({
       email: loginEmailDto.email.toLowerCase().trim(),
+      isVerified: true,
     });
 
     if (!user) {
@@ -254,6 +257,7 @@ export class AuthService {
     // Find user by phone
     const user = await this.userModel.findOne({
       phone: loginPhoneDto.phone.trim(),
+      isVerified: true,
     });
 
     if (!user) {
@@ -534,6 +538,8 @@ export class AuthService {
 
     // Mark code as verified
     verificationData.verified = true;
+    user.isVerified = true;
+    await user.save();  
     this.emailVerificationCodes.set(email, verificationData);
 
 
@@ -568,6 +574,8 @@ export class AuthService {
 
     // Mark code as verified
     verificationData.verified = true;
+    user.isVerified = true;
+    await user.save();
     this.phoneVerificationCodes.set(phone, verificationData);
 
     return {
