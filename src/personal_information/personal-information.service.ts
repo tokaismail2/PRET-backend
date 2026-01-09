@@ -39,7 +39,7 @@ export class PersonalInformationService {
     // Update role-specific records
     if (user.role === UserRole.GENERATOR) {
       await this.generatorModel.findOneAndUpdate(
-        { user: userId },
+        { user: userId as any },
         {
           $set: {
             'address.coordinates.latitude': updateLocationDto.latitude,
@@ -49,7 +49,7 @@ export class PersonalInformationService {
       );
     } else if (user.role === UserRole.FACTORY) {
       await this.factoryModel.findOneAndUpdate(
-        { user: userId },
+        { user: userId as any },
         {
           $set: {
             'address.coordinates.latitude': updateLocationDto.latitude,
@@ -59,7 +59,7 @@ export class PersonalInformationService {
       );
     } else if (user.role === UserRole.DRIVER) {
       await this.driverModel.findOneAndUpdate(
-        { user: userId },
+        { user: userId as any },
         {
           $set: {
             latitude: updateLocationDto.latitude,
@@ -92,7 +92,7 @@ export class PersonalInformationService {
     }
 
     // Find generator record to check for old logo and update
-    const generator = await this.generatorModel.findOne({ user: userId });
+    const generator = await this.generatorModel.findOne({ user: userId as any });
     if (!generator) {
       throw new BadRequestException('Generator data not found');
     }

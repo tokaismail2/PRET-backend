@@ -55,11 +55,11 @@ export class UsersService {
     let roleData = null;
 
     if (user.role === UserRole.GENERATOR) {
-      roleData = await this.generatorModel.findOne({ user: userId });
+      roleData = await this.generatorModel.findOne({ user: userId as any });
     } else if (user.role === UserRole.FACTORY) {
-      roleData = await this.factoryModel.findOne({ user: userId });
+      roleData = await this.factoryModel.findOne({ user: userId as any });
     } else if (user.role === UserRole.DRIVER) {
-      roleData = await this.driverModel.findOne({ user: userId });
+      roleData = await this.driverModel.findOne({ user: userId as any });
     }
 
     return {

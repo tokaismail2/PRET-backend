@@ -131,7 +131,7 @@ export class OrdersService {
       throw new BadRequestException('Invalid driver user');
     }
 
-    const driverRecord = await this.driverModel.findOne({ user: driverUserId });
+    const driverRecord = await this.driverModel.findOne({ user: driverUserId as any });
     if (!driverRecord) {
       throw new NotFoundException('Driver role data not found for this user');
     }
