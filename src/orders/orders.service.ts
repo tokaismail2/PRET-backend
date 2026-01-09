@@ -57,11 +57,7 @@ export class OrdersService {
     });
 
     const savedOrder = await order.save();
-    return {
-      success: true,
-      message: 'order created successfully',
-      data: savedOrder,
-    };
+    return savedOrder;
   }
   async getOrdersByUser(userId: string, status?: OrderStatus) {
     const user = await this.userModel.findById(userId);
@@ -81,11 +77,7 @@ export class OrdersService {
       .sort({ createdAt: -1 })
       .exec();
 
-    return {
-      success: true,
-      message: 'orders fetched successfully',
-      data: orders,
-    };
+    return orders;
 
   }
 
@@ -115,11 +107,7 @@ export class OrdersService {
       throw new UnauthorizedException('You do not have access to this order');
     }
 
-    return {
-      success: true,
-      message: 'order fetched successfully',
-      data: order,
-    };
+    return order;
   }
 
 
@@ -153,12 +141,8 @@ export class OrdersService {
     await order.save();
 
     return {
-      success: true,
-      message: 'Driver assigned successfully',
-      data: {
-        order: order,
-        driver: driver,
-      }
+      order: order,
+      driver: driver,
     };
   }
 
@@ -190,11 +174,7 @@ export class OrdersService {
     await order.save();
 
     return {
-      success: true,
-      message: 'Order marked as in transit',
-      data: {
-        order: order,
-      }
+      order: order,
     };
   }
 

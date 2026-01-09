@@ -26,7 +26,7 @@ import { MulterFile } from '../common/types/multer-file.type';
 import { multerConfig } from '../common/config/multer.config';
 import { OrderStatus } from '../models/order.schema';
 import { AuditLogInterceptorFactory } from "../audit-log/audit-log.interceptor";
-import {DriverJwtStrategy} from "../DriverAuth/strategies/jwtForDriver.strategy";
+import { DriverJwtStrategy } from "../DriverAuth/strategies/jwtForDriver.strategy";
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('orders')
@@ -103,7 +103,7 @@ export class OrdersController {
 
     return {
       message: 'Order created successfully',
-      order,
+      data: order,
     };
   }
 
@@ -128,7 +128,7 @@ export class OrdersController {
     const orders = await this.ordersService.getOrdersByUser(user.userId, statusEnum);
     return {
       message: 'Orders retrieved successfully',
-      orders,
+      data: orders,
     };
   }
 
@@ -142,7 +142,7 @@ export class OrdersController {
     const order = await this.ordersService.getOrderById(id, user.userId.toString());
     return {
       message: 'Order retrieved successfully',
-      order,
+      data: order,
     };
   }
   @Post(':id/assign-driver')
@@ -162,15 +162,15 @@ export class OrdersController {
   }
 
 
-@Put(':id/in-transit')
-@UseGuards(AuthGuard('driver-jwt')) 
-async markInTransit(
-  @Param('id') orderId: string,
-  @CurrentDriver() driver: any,
-) {
-  console.log('Current driver:', driver); 
-  return this.ordersService.markInTransit(orderId, driver.driverId);
-}
+  @Put(':id/in-transit')
+  @UseGuards(AuthGuard('driver-jwt'))
+  async markInTransit(
+    @Param('id') orderId: string,
+    @CurrentDriver() driver: any,
+  ) {
+    console.log('Current driver:', driver);
+    return this.ordersService.markInTransit(orderId, driver.driverId);
+  }
 
 
 

@@ -13,14 +13,13 @@ import { UpdateWarehouseDto } from './dto/update-warehouse.dto';
 
 @Controller('warehouses')
 export class WarehouseController {
-  constructor(private readonly warehouseService: WarehouseService) {}
+  constructor(private readonly warehouseService: WarehouseService) { }
 
   @Post()
   async create(@Body() dto: CreateWarehouseDto) {
     const warehouse = await this.warehouseService.create(dto);
 
     return {
-      success: true,
       message: 'Warehouse created successfully',
       data: warehouse,
     };
@@ -35,12 +34,11 @@ export class WarehouseController {
         isActive === 'true'
           ? true
           : isActive === 'false'
-          ? false
-          : undefined,
+            ? false
+            : undefined,
     });
 
     return {
-      success: true,
       message: 'Warehouses fetched successfully',
       data: warehouses,
     };
@@ -51,7 +49,6 @@ export class WarehouseController {
     const warehouse = await this.warehouseService.findOne(id);
 
     return {
-      success: true,
       message: 'Warehouse fetched successfully',
       data: warehouse,
     };
@@ -65,7 +62,6 @@ export class WarehouseController {
     const warehouse = await this.warehouseService.update(id, dto);
 
     return {
-      success: true,
       message: 'Warehouse updated successfully',
       data: warehouse,
     };

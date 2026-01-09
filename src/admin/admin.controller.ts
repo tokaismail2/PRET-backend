@@ -19,12 +19,11 @@ import { UpdateOrderDto } from '../admin/dto/update-order.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(private readonly adminService: AdminService) { }
   @Get('/users')
   async getUsers() {
     const users = await this.adminService.getUsers();
     return {
-      success: true,
       message: 'Users fetched successfully',
       data: users,
     };
@@ -34,7 +33,6 @@ export class AdminController {
   async getDrivers() {
     const drivers = await this.adminService.getDrivers();
     return {
-      success: true,
       message: 'Drivers fetched successfully',
       data: drivers,
     };

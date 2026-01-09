@@ -3,6 +3,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import responseTime from 'response-time';
 import { AppModule } from './app.module';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -19,9 +22,16 @@ async function bootstrap() {
     }),
   );
 
+  // Register global interceptor
+  app.useGlobalInterceptors(new TransformInterceptor());
+
+  // Register global exception filter
+  app.useGlobalFilters(new HttpExceptionFilter());
+
+
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   app.use(responseTime());
-  
+
   const port = parseInt(configService.get('PORT') || '5000', 10);
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);

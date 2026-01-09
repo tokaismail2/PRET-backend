@@ -12,7 +12,7 @@ import { VerifyPhoneDto } from './dto/verify-phone.dto';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
@@ -20,7 +20,7 @@ export class AuthController {
     const user = await this.authService.register(registerDto);
     return {
       message: 'User registered successfully',
-      user,
+      data: user,
     };
   }
 
@@ -30,7 +30,7 @@ export class AuthController {
     const user = await this.authService.loginWithEmail(loginEmailDto);
     return {
       message: 'Login successful',
-      user,
+      data: user,
     };
   }
 
@@ -40,7 +40,7 @@ export class AuthController {
     const user = await this.authService.loginWithPhone(loginPhoneDto);
     return {
       message: 'Login successful',
-      user,
+      data: user,
     };
   }
 
@@ -50,7 +50,7 @@ export class AuthController {
     const result = await this.authService.signUpWithGoogle(googleSignupDto);
     return {
       message: 'Google sign-up successful',
-      ...result,
+      data: result,
     };
   }
 

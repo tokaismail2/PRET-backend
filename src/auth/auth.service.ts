@@ -3,12 +3,12 @@ import {
   ConflictException,
   BadRequestException,
   UnauthorizedException,
-  } from '@nestjs/common';
-  import { InjectModel } from '@nestjs/mongoose';
-  import { Model } from 'mongoose';
-  import { JwtService } from '@nestjs/jwt';
-  import * as bcrypt from 'bcrypt';
-  import { User, UserDocument, UserRole } from '../models/user.schema';
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+import { User, UserDocument, UserRole } from '../models/user.schema';
 import { RegisterDto } from './dto/register.dto';
 import { LoginEmailDto } from './dto/login-email.dto';
 import { LoginPhoneDto } from './dto/login-phone.dto';
@@ -137,7 +137,7 @@ export class AuthService {
       // Use static code for phone verification
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 5);
-      
+
       // Store verification code
       this.phoneVerificationCodes.set(savedUser.phone.trim(), {
         code: verificationCode,
@@ -153,7 +153,7 @@ export class AuthService {
       const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 5);
-      
+
       // Store verification code
       this.emailVerificationCodes.set(savedUser.email.toLowerCase().trim(), {
         code: verificationCode,
@@ -203,10 +203,10 @@ export class AuthService {
     // }
 
     // Generate JWT token
-    const payload = { 
-      sub: (user._id as any).toString(), 
-      email: user.email, 
-      role: user.role 
+    const payload = {
+      sub: (user._id as any).toString(),
+      email: user.email,
+      role: user.role
     };
     const accessToken = this.jwtService.sign(payload);
 
@@ -250,10 +250,10 @@ export class AuthService {
     }
 
     // Generate JWT token
-    const payload = { 
-      sub: (user._id as any).toString(), 
-      email: user.email, 
-      role: user.role 
+    const payload = {
+      sub: (user._id as any).toString(),
+      email: user.email,
+      role: user.role
     };
     const accessToken = this.jwtService.sign(payload);
 
@@ -366,12 +366,12 @@ export class AuthService {
     }
   }
 
-  async requestPasswordReset(forgetPasswordDto: ForgetPasswordRequestDto): Promise<{ message: string}> {
+  async requestPasswordReset(forgetPasswordDto: ForgetPasswordRequestDto): Promise<{ message: string }> {
     const email = forgetPasswordDto.email.toLowerCase().trim();
-    
+
     // Find user by email
     const user = await this.userModel.findOne({ email });
-    
+
     // Don't reveal if user exists or not (security best practice)
     // But we still need to check if user has password (not Google OAuth only)
     if (user && (!user.password || user.authProvider === 'google')) {
@@ -380,11 +380,11 @@ export class AuthService {
 
     // Generate 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    
+
     // Set expiration to 5 minutes
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 5);
-    
+
     // Store code with email
     this.resetCodes.set(email, {
       code,
