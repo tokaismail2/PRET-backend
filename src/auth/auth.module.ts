@@ -6,13 +6,23 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { User, UserSchema } from '../models/user.schema';
+import { Generator, GeneratorSchema } from '../models/generator.schema';
+import { Factory, FactorySchema } from '../models/factory.schema';
+import { Driver, DriverSchema } from '../models/driver.schema';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { FirebaseModule } from '../firebase/firebase.module';
+import { FirebaseService } from '../firebase/firebase.service';
+import { EmailService } from '../email/email.service';
 import { EmailModule } from '../email/email.module';
+import { FirebaseModule } from '../firebase/firebase.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([
+      { name: User.name, schema: UserSchema },
+      { name: Generator.name, schema: GeneratorSchema },
+      { name: Factory.name, schema: FactorySchema },
+      { name: Driver.name, schema: DriverSchema },
+    ]),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -26,7 +36,7 @@ import { EmailModule } from '../email/email.module';
     EmailModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, FirebaseService],
   exports: [AuthService],
 })
 export class AuthModule { }

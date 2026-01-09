@@ -7,16 +7,16 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Order, OrderDocument } from '../models/order.schema';
 import { UpdateOrderDto } from '../orders/dto/update-order.dto';
-import { User , UserDocument } from 'src/models';
-import { Driver , DriverDocument} from 'src/models/driver.schema';
+import { User, UserDocument } from 'src/models';
+import { Driver, DriverDocument } from 'src/models/driver.schema';
 
 @Injectable()
 export class AdminService {
   constructor(
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
-     @InjectModel(Driver.name) private driverModel: Model<DriverDocument>,
-      @InjectModel(User.name) private userModel: Model<UserDocument>,
-  ) {}
+    @InjectModel(Driver.name) private driverModel: Model<DriverDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+  ) { }
 
   async updateOrderById(
     orderId: string,
@@ -32,18 +32,18 @@ export class AdminService {
       throw new NotFoundException('Order not found');
     }
 
-    return { success:true , message :"update order successfully" ,  data:order};
+    return { success: true, message: "update order successfully", data: order };
   }
-  
 
-    async getUsers(): Promise<User[]> {
+
+  async getUsers(): Promise<User[]> {
     return this.userModel.find().exec();
   }
 
   async getDrivers(): Promise<Driver[]> {
-    return this.driverModel.find().exec();
+    return this.driverModel.find().populate('user', 'name email phone profilePicture').exec();
   }
-  
+
 
 
 }

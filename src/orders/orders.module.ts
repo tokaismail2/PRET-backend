@@ -8,7 +8,6 @@ import { Driver, DriverSchema } from '../models/driver.schema';
 import { AuditLog, AuditLogSchema } from '../models/auditLog.schema';
 import { ImageKitModule } from '../imagekit/imagekit.module';
 import { PassportModule } from '@nestjs/passport';
-import { DriverJwtStrategy } from '../DriverAuth/strategies/jwtForDriver.strategy'; // صحح المسار حسب مكان الملف
 
 @Module({
   imports: [
@@ -18,11 +17,11 @@ import { DriverJwtStrategy } from '../DriverAuth/strategies/jwtForDriver.strateg
       { name: Driver.name, schema: DriverSchema },
       { name: AuditLog.name, schema: AuditLogSchema },
     ]),
-    PassportModule.register({ defaultStrategy: 'driver-jwt' }),
+    PassportModule.register({ defaultStrategy: 'jwt' }),
     ImageKitModule,
   ],
   controllers: [OrdersController],
-  providers: [OrdersService, DriverJwtStrategy], // <-- ضيف هنا
+  providers: [OrdersService],
   exports: [OrdersService],
 })
-export class OrdersModule {}
+export class OrdersModule { }

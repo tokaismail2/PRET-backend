@@ -6,17 +6,8 @@ export type UserDocument = User & Document;
 export enum UserRole {
   GENERATOR = 'generator',
   FACTORY = 'factory',
+  DRIVER = 'driver',
   ADMIN = 'admin',
-}
-
-export enum GeneratorType {
-  HOTEL = 'hotel',
-  RESTAURANT = 'restaurant',
-  CAFE = 'cafe',
-  OFFICE = 'office',
-  RESIDENTIAL = 'residential',
-  WAREHOUSE = 'warehouse',
-  OTHER = 'other',
 }
 
 @Schema({ timestamps: true })
@@ -24,7 +15,7 @@ export class User {
   @Prop({ required: true, unique: true, lowercase: true, trim: true })
   email: string;
 
-  @Prop({ required: function() { return !this.authProvider || this.authProvider === 'email'; } })
+  @Prop({ required: function () { return !this.authProvider || this.authProvider === 'email'; } })
   password?: string;
 
   @Prop({ enum: ['email', 'google'], default: 'email' })
@@ -42,45 +33,15 @@ export class User {
   @Prop({ required: true, enum: UserRole, default: UserRole.GENERATOR })
   role: UserRole;
 
-  @Prop({ enum: GeneratorType })
-  generatorType?: GeneratorType;
-
-  @Prop({
-    type: {
-      street: String,
-      city: String,
-      state: String,
-      zipCode: String,
-      country: String,
-      coordinates: {
-        latitude: Number,
-        longitude: Number,
-      },
-    },
-  })
-  address?: {
-    street?: string;
-    city?: string;
-    state?: string;
-    zipCode?: string;
-    country?: string;
-    coordinates?: {
-      latitude?: number;
-      longitude?: number;
-    };
-  };
-
   @Prop({ default: true })
   isActive: boolean;
 
   @Prop()
   profilePicture?: string;
 
-  @Prop()
-  logo?: string;
-  
-  @Prop({ required: false })
-  businessName?: string;
+  @Prop({ select: false })
+  __v: number;
+
   createdAt?: Date;
   updatedAt?: Date;
 }

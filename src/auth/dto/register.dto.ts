@@ -8,9 +8,13 @@ import {
   IsObject,
   ValidateNested,
   ValidateIf,
+  IsUppercase,
+  IsNumber,
+  IsLowercase,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { UserRole, GeneratorType } from '../../models/user.schema';
+import { UserRole } from '../../models/user.schema';
+import { GeneratorType } from '../../models/generator.schema';
 
 class AddressDto {
   @IsOptional()
@@ -47,6 +51,8 @@ export class RegisterDto {
 
   @IsString()
   @MinLength(6, { message: 'Password must be at least 6 characters long' })
+  @IsUppercase({ message: 'Password must contain at least one uppercase letter' })
+  @IsLowercase({ message: 'Password must contain at least one lowercase letter' })
   password: string;
 
   @IsString()
@@ -63,14 +69,14 @@ export class RegisterDto {
 
   @IsOptional()
   @IsEnum(UserRole, {
-    message: 'Role must be one of: generator, factory, admin',
+    message: 'Role must be one of: generator, factory, driver',
   })
   role?: UserRole;
 
   @ValidateIf((o) => o.role === UserRole.GENERATOR)
   @IsEnum(GeneratorType, {
     message:
-      'Generator type must be one of: hotel, restaurant, cafe, office, residential, retail, warehouse, other',
+      'Generator type must be one of: hotel, restaurant, cafe, office, residential, warehouse, other',
   })
   generatorType?: GeneratorType;
 

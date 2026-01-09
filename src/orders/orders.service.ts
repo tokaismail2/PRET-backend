@@ -112,8 +112,8 @@ export class OrdersService {
 
 
 
-  async assignDriver(orderId: string, driverId: string) {
-    if (!Types.ObjectId.isValid(orderId) || !Types.ObjectId.isValid(driverId)) {
+  async assignDriver(orderId: string, driverUserId: string) {
+    if (!Types.ObjectId.isValid(orderId) || !Types.ObjectId.isValid(driverUserId)) {
       throw new BadRequestException('Invalid ID');
     }
 
@@ -126,23 +126,31 @@ export class OrdersService {
       throw new ConflictException(`Order cannot be assigned status is ${order.status}`);
     }
 
-    const driver = await this.driverModel.findById(driverId);
-    if (!driver) {
-      throw new BadRequestException('Invalid driver');
+    const user = await this.userModel.findById(driverUserId);
+    if (!user || user.role !== UserRole.DRIVER) {
+      throw new BadRequestException('Invalid driver user');
+    }
+
+    const driverRecord = await this.driverModel.findOne({ user: driverUserId });
+    if (!driverRecord) {
+      throw new NotFoundException('Driver role data not found for this user');
     }
 
     if (order.driverId) {
       throw new ConflictException('Driver already assigned');
     }
 
-    order.driverId = new Types.ObjectId(driverId);
+    order.driverId = new Types.ObjectId(driverUserId);
     order.status = OrderStatus.ASSIGNED;
 
     await order.save();
 
     return {
       order: order,
-      driver: driver,
+      driver: {
+        ...user.toObject(),
+        ...driverRecord.toObject(),
+      }
     };
   }
 

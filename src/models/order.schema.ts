@@ -21,10 +21,10 @@ export enum OrderStatus {
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
   REJECTED = 'rejected',
-  ACCEPTED = 'accepted',  
+  ACCEPTED = 'accepted',
   ASSIGNED = 'assigned',
   IN_TRANSIT = 'in_transit',
-  
+
 }
 @Schema({ timestamps: true })
 export class Order {
@@ -33,9 +33,9 @@ export class Order {
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   seller?: Types.ObjectId | User;
-  
-  @Prop({ type: Types.ObjectId, ref: 'Driver' })
-  driverId?: Types.ObjectId | Driver;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  driverId?: Types.ObjectId | User;
 
   @Prop({ required: true, enum: MaterialType })
   materialType: MaterialType;

@@ -6,6 +6,9 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument, UserRole } from '../models/user.schema';
+import { Generator, GeneratorDocument } from '../models/generator.schema';
+import { Factory, FactoryDocument } from '../models/factory.schema';
+import { Driver, DriverDocument } from '../models/driver.schema';
 import { UpdateLocationDto } from '../auth/dto/update-location.dto';
 import { ImageKitService } from '../imagekit/imagekit.service';
 
@@ -13,43 +16,60 @@ import { ImageKitService } from '../imagekit/imagekit.service';
 export class PersonalInformationService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Generator.name) private generatorModel: Model<GeneratorDocument>,
+    @InjectModel(Factory.name) private factoryModel: Model<FactoryDocument>,
+    @InjectModel(Driver.name) private driverModel: Model<DriverDocument>,
     private imageKitService: ImageKitService,
-  ) {}
+  ) { }
 
   async updateLocation(
     userId: string,
     updateLocationDto: UpdateLocationDto,
   ): Promise<Omit<User, 'password'>> {
-    // Find user by ID
     const user = await this.userModel.findById(userId);
 
     if (!user) {
       throw new BadRequestException('User not found');
     }
 
-    // Check if user is active
     if (!user.isActive) {
       throw new UnauthorizedException('Account is inactive');
     }
 
-    // Update location coordinates
-    // Initialize address object if it doesn't exist
-    if (!user.address) {
-      user.address = {};
+    // Update role-specific records
+    if (user.role === UserRole.GENERATOR) {
+      await this.generatorModel.findOneAndUpdate(
+        { user: userId },
+        {
+          $set: {
+            'address.coordinates.latitude': updateLocationDto.latitude,
+            'address.coordinates.longitude': updateLocationDto.longitude
+          }
+        }
+      );
+    } else if (user.role === UserRole.FACTORY) {
+      await this.factoryModel.findOneAndUpdate(
+        { user: userId },
+        {
+          $set: {
+            'address.coordinates.latitude': updateLocationDto.latitude,
+            'address.coordinates.longitude': updateLocationDto.longitude
+          }
+        }
+      );
+    } else if (user.role === UserRole.DRIVER) {
+      await this.driverModel.findOneAndUpdate(
+        { user: userId },
+        {
+          $set: {
+            latitude: updateLocationDto.latitude,
+            longitude: updateLocationDto.longitude
+          }
+        }
+      );
     }
 
-    // Update coordinates
-    user.address.coordinates = {
-      latitude: updateLocationDto.latitude,
-      longitude: updateLocationDto.longitude,
-    };
-
-    // Save updated user
-    const updatedUser = await user.save();
-
-    // Return user without password
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...userWithoutPassword } = updatedUser.toObject();
+    const { password, ...userWithoutPassword } = user.toObject();
     return userWithoutPassword;
   }
 
@@ -57,32 +77,31 @@ export class PersonalInformationService {
     userId: string,
     file: any,
   ): Promise<Omit<User, 'password'>> {
-    // Find user by ID
     const user = await this.userModel.findById(userId);
 
     if (!user) {
       throw new BadRequestException('User not found');
     }
 
-    // Check if user is active
     if (!user.isActive) {
       throw new UnauthorizedException('Account is inactive');
     }
 
-    // Check if user is a generator
     if (user.role !== UserRole.GENERATOR) {
       throw new BadRequestException('Only generators can upload logos');
     }
 
+    // Find generator record to check for old logo and update
+    const generator = await this.generatorModel.findOne({ user: userId });
+    if (!generator) {
+      throw new BadRequestException('Generator data not found');
+    }
+
     // Delete old logo if exists
-    if (user.logo) {
+    if (generator.logo) {
       try {
-        // Extract file ID from URL if it's an ImageKit URL
-        // ImageKit URLs typically contain file IDs in the path
-        // For now, we'll just upload the new one and let ImageKit handle cleanup
-        // In production, you might want to track file IDs separately
+        // ... cleanup logic if any ...
       } catch (error) {
-        // Log error but don't fail the upload
         console.warn('Failed to delete old logo:', error);
       }
     }
@@ -94,13 +113,11 @@ export class PersonalInformationService {
       `generator-${userId}-${Date.now()}`,
     );
 
-    // Update user logo
-    user.logo = uploadResult.url;
-    const updatedUser = await user.save();
+    // Update generator logo
+    generator.logo = uploadResult.url;
+    await generator.save();
 
-    // Return user without password
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...userWithoutPassword } = updatedUser.toObject();
+    const { password, ...userWithoutPassword } = user.toObject();
     return userWithoutPassword;
   }
 }

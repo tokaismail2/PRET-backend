@@ -8,12 +8,20 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { User, UserDocument, UserRole } from '../models/user.schema';
+import { Generator, GeneratorDocument } from '../models/generator.schema';
+import { Factory, FactoryDocument } from '../models/factory.schema';
+import { Driver, DriverDocument } from '../models/driver.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Generator.name) private generatorModel: Model<GeneratorDocument>,
+    @InjectModel(Factory.name) private factoryModel: Model<FactoryDocument>,
+    @InjectModel(Driver.name) private driverModel: Model<DriverDocument>,
+  ) { }
 
   // ---------------- CREATE ----------------
   async createUser(createUserDto: CreateUserDto): Promise<User> {
@@ -39,10 +47,25 @@ export class UsersService {
   }
 
   // ---------------- READ BY ID ----------------
-  async getUserById(userId: string): Promise<User> {
+  async getUserById(userId: string): Promise<any> {
     const user = await this.userModel.findById(userId).select('-password');
     if (!user) throw new NotFoundException('User not found');
-    return user;
+
+    const userObj = user.toObject();
+    let roleData = null;
+
+    if (user.role === UserRole.GENERATOR) {
+      roleData = await this.generatorModel.findOne({ user: userId });
+    } else if (user.role === UserRole.FACTORY) {
+      roleData = await this.factoryModel.findOne({ user: userId });
+    } else if (user.role === UserRole.DRIVER) {
+      roleData = await this.driverModel.findOne({ user: userId });
+    }
+
+    return {
+      ...userObj,
+      roleData: roleData ? roleData.toObject() : null
+    };
   }
 
   // ---------------- UPDATE ----------------
@@ -51,14 +74,14 @@ export class UsersService {
     if (!user) throw new NotFoundException('User not found');
 
     // If password is being updated, hash it
-   const updateData: any = { ...updateUserDto };
+    const updateData: any = { ...updateUserDto };
 
-if (updateData.password) {
-  updateData.password = await bcrypt.hash(updateData.password, 10);
-}
+    if (updateData.password) {
+      updateData.password = await bcrypt.hash(updateData.password, 10);
+    }
 
-Object.assign(user, updateData);
-return user.save();
+    Object.assign(user, updateData);
+    return user.save();
 
   }
 

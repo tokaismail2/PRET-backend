@@ -20,13 +20,11 @@ import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/user.decorator';
-import { CurrentDriver } from '../DriverAuth/decorators/driver.decorator';
 import { ImageKitService } from '../imagekit/imagekit.service';
 import { MulterFile } from '../common/types/multer-file.type';
 import { multerConfig } from '../common/config/multer.config';
 import { OrderStatus } from '../models/order.schema';
 import { AuditLogInterceptorFactory } from "../audit-log/audit-log.interceptor";
-import { DriverJwtStrategy } from "../DriverAuth/strategies/jwtForDriver.strategy";
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('orders')
@@ -163,13 +161,13 @@ export class OrdersController {
 
 
   @Put(':id/in-transit')
-  @UseGuards(AuthGuard('driver-jwt'))
+  @UseGuards(JwtAuthGuard)
   async markInTransit(
     @Param('id') orderId: string,
-    @CurrentDriver() driver: any,
+    @CurrentUser() user: any,
   ) {
-    console.log('Current driver:', driver);
-    return this.ordersService.markInTransit(orderId, driver.driverId);
+    console.log('Current user (driver):', user);
+    return this.ordersService.markInTransit(orderId, user.userId);
   }
 
 

@@ -9,6 +9,9 @@ import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User, UserDocument, UserRole } from '../models/user.schema';
+import { Generator, GeneratorDocument, GeneratorType } from '../models/generator.schema';
+import { Factory, FactoryDocument } from '../models/factory.schema';
+import { Driver, DriverDocument } from '../models/driver.schema';
 import { RegisterDto } from './dto/register.dto';
 import { LoginEmailDto } from './dto/login-email.dto';
 import { LoginPhoneDto } from './dto/login-phone.dto';
@@ -54,6 +57,9 @@ export class AuthService {
 
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Generator.name) private generatorModel: Model<GeneratorDocument>,
+    @InjectModel(Factory.name) private factoryModel: Model<FactoryDocument>,
+    @InjectModel(Driver.name) private driverModel: Model<DriverDocument>,
     private jwtService: JwtService,
     private firebaseService: FirebaseService,
     private emailService: EmailService,
@@ -69,7 +75,7 @@ export class AuthService {
   async register(registerDto: RegisterDto): Promise<Omit<User, 'password'>> {
     // Check if user already exists by email
     const existingUserByEmail = await this.userModel.findOne({
-      email: registerDto.email,
+      email: registerDto.email.toLowerCase().trim(),
     });
     if (existingUserByEmail) {
       throw new ConflictException('User with this email already exists');
@@ -87,42 +93,32 @@ export class AuthService {
 
     const role = registerDto.role || UserRole.GENERATOR;
 
-    // Validate generatorType based on role
-    if (role === UserRole.GENERATOR && !registerDto.generatorType) {
-      throw new BadRequestException(
-        'Generator type is required when role is generator',
-      );
-    }
-
-    if (role === UserRole.FACTORY && registerDto.generatorType) {
-      throw new BadRequestException(
-        'Generator type should not be provided when role is factory',
-      );
-    }
+    // Validate role-specific fields
+    this.validateRoleSpecificFields(role, registerDto);
 
     // Hash password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(registerDto.password, saltRounds);
 
-    // Prepare user data
-    const userData: any = {
-      ...registerDto,
+    // Create User record
+    const newUser = new this.userModel({
+      email: registerDto.email.toLowerCase().trim(),
       password: hashedPassword,
+      name: registerDto.name,
+      phone: registerDto.phone?.trim(),
       role,
-    };
-
-    // Only include generatorType if role is generator
-    if (role === UserRole.GENERATOR) {
-      userData.generatorType = registerDto.generatorType;
-    } else {
-      // Explicitly set to undefined to ensure it's not saved
-      userData.generatorType = undefined;
-    }
-
-    // Create new user
-    const newUser = new this.userModel(userData);
+    });
 
     const savedUser = await newUser.save();
+
+    // Create role-specific record
+    try {
+      await this.createRoleSpecificRecord(role, (savedUser._id as any).toString(), registerDto);
+    } catch (error) {
+      // Rollback user creation if role record fails
+      await this.userModel.findByIdAndDelete(savedUser._id);
+      throw error;
+    }
 
     // Determine verification method (default to email if not specified)
     const verificationMethod = registerDto.verificationMethod || 'email';
@@ -132,29 +128,22 @@ export class AuthService {
       if (!savedUser.phone) {
         throw new BadRequestException('Phone number is required for phone verification');
       }
-      let verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-      verificationCode = '123456';
-      // Use static code for phone verification
+      const verificationCode = '123456'; // Static for now as requested in original code
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 5);
 
-      // Store verification code
       this.phoneVerificationCodes.set(savedUser.phone.trim(), {
         code: verificationCode,
         expiresAt,
         phone: savedUser.phone.trim(),
         verified: false,
       });
-
-      // Note: In a real application, you would send SMS here
-      // For now, we just store the code (static code "123456")
     } else {
       // Email verification
       const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 5);
 
-      // Store verification code
       this.emailVerificationCodes.set(savedUser.email.toLowerCase().trim(), {
         code: verificationCode,
         expiresAt,
@@ -162,14 +151,56 @@ export class AuthService {
         verified: false,
       });
 
-      // Send verification code to email
       await this.emailService.sendEmailVerificationCode(savedUser.email, verificationCode);
     }
 
     // Return user without password
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...userWithoutPassword } = savedUser.toObject();
-    return userWithoutPassword;
+    const userObj = savedUser.toObject();
+    delete userObj.password;
+    return userObj;
+  }
+
+  private validateRoleSpecificFields(role: UserRole, dto: RegisterDto) {
+    if (role === UserRole.GENERATOR) {
+      if (!dto.generatorType) throw new BadRequestException('Generator type is required');
+      if (!dto.businessName) throw new BadRequestException('Business name is required');
+      if (!dto.address) throw new BadRequestException('Address is required');
+    } else if (role === UserRole.FACTORY) {
+      if (!dto.address) throw new BadRequestException('Address is required');
+    }
+  }
+
+  private async createRoleSpecificRecord(role: UserRole, userId: string, dto: RegisterDto) {
+    if (role === UserRole.GENERATOR) {
+      const generator = new this.generatorModel({
+        user: userId,
+        generatorType: dto.generatorType,
+        businessName: dto.businessName,
+        address: dto.address,
+      });
+      await generator.save();
+    } else if (role === UserRole.FACTORY) {
+      const factory = new this.factoryModel({
+        user: userId,
+        businessName: dto.businessName,
+        address: dto.address,
+      });
+      await factory.save();
+    } else if (role === UserRole.DRIVER) {
+      const driver = new this.driverModel({
+        user: userId,
+        latitude: dto.address?.coordinates?.latitude,
+        longitude: dto.address?.coordinates?.longitude,
+        address: dto.address ? {
+          street: dto.address.street,
+          city: dto.address.city,
+          state: dto.address.state,
+          zipCode: dto.address.zipCode,
+          country: dto.address.country,
+        } : undefined,
+      });
+      await driver.save();
+    }
   }
 
   async loginWithEmail(loginEmailDto: LoginEmailDto) {
@@ -288,21 +319,6 @@ export class AuthService {
         $or: [{ email: email.toLowerCase().trim() }, { googleId }],
       });
 
-      const role = googleSignupDto.role || UserRole.GENERATOR;
-
-      // Validate generatorType based on role
-      if (role === UserRole.GENERATOR && !googleSignupDto.generatorType) {
-        throw new BadRequestException(
-          'Generator type is required when role is generator',
-        );
-      }
-
-      if (role === UserRole.FACTORY && googleSignupDto.generatorType) {
-        throw new BadRequestException(
-          'Generator type should not be provided when role is factory',
-        );
-      }
-
       if (user) {
         // User exists - update Google info if needed and return login response
         if (!user.googleId) {
@@ -320,26 +336,37 @@ export class AuthService {
         }
       } else {
         // Create new user
-        const userData: any = {
+        const role = googleSignupDto.role || UserRole.GENERATOR;
+
+        // Prepare Register-like object for validation and record creation
+        const registerData: any = {
+          ...googleSignupDto,
+          name,
+          email,
+          role,
+        };
+
+        // Validate role-specific fields
+        this.validateRoleSpecificFields(role, registerData);
+
+        user = new this.userModel({
           email: email.toLowerCase().trim(),
           name,
           googleId,
           authProvider: 'google',
           role,
           isActive: true,
-        };
+          profilePicture: picture,
+        });
 
-        if (picture) {
-          userData.profilePicture = picture;
-        }
-
-        // Only include generatorType if role is generator
-        if (role === UserRole.GENERATOR) {
-          userData.generatorType = googleSignupDto.generatorType;
-        }
-
-        user = new this.userModel(userData);
         await user.save();
+
+        try {
+          await this.createRoleSpecificRecord(role, (user._id as any).toString(), registerData);
+        } catch (error) {
+          await this.userModel.findByIdAndDelete(user._id);
+          throw error;
+        }
       }
 
       // Generate JWT token
