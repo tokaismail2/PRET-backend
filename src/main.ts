@@ -39,9 +39,6 @@ async function bootstrap(): Promise<void> {
   // Middleware
   app.use(responseTime());
 
-  // Global prefix for all routes (optional)
-  const globalPrefix = configService.get<string>('API_PREFIX') || 'api';
-  app.setGlobalPrefix(globalPrefix);
 
   // Get port from config
   const port = configService.get<number>('PORT') || 5000;
@@ -50,7 +47,7 @@ async function bootstrap(): Promise<void> {
   await app.listen(port);
 
   const environment = configService.get<string>('NODE_ENV') || 'development';
-  console.log(`🚀 Application is running on: http://${host}:${port}/${globalPrefix}`);
+  console.log(`🚀 Application is running on: http://${host}:${port}`);
   console.log(`📦 Environment: ${environment}`);
 }
 

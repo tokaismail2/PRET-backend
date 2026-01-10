@@ -42,14 +42,30 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     private getHttpStatus(exception: unknown): number {
-        return exception instanceof HttpException
-            ? exception.getStatus()
-            : HttpStatus.INTERNAL_SERVER_ERROR;
+        if (exception instanceof HttpException) {
+            return exception.getStatus();
+        }
+
+        // Handle Mongoose validation errors
+        if (exception && typeof exception === 'object' && exception.constructor.name === 'ValidationError') {
+            return HttpStatus.BAD_REQUEST;
+        }
+
+        return HttpStatus.INTERNAL_SERVER_ERROR;
     }
 
     private getErrorMessage(exception: unknown): string | string[] {
         if (exception instanceof HttpException) {
             return this.extractHttpExceptionMessage(exception);
+        }
+
+        // Handle Mongoose validation errors
+        if (exception && typeof exception === 'object' && exception.constructor.name === 'ValidationError') {
+            const errors = (exception as any).errors;
+            if (errors) {
+                return Object.values(errors).map((err: any) => err.message);
+            }
+            return (exception as any).message;
         }
 
         if (exception instanceof Error) {
