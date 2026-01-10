@@ -93,7 +93,7 @@ export class AuthService {
       }
     }
 
-    const role = registerDto.role || UserRole.GENERATOR;
+    const role: UserRole = (registerDto.role as unknown as UserRole) || UserRole.GENERATOR;
 
     // Validate role-specific fields
     this.validateRoleSpecificFields(role, registerDto);
@@ -340,7 +340,7 @@ export class AuthService {
         }
       } else {
         // Create new user
-        const role = googleSignupDto.role || UserRole.GENERATOR;
+        const role: UserRole = (googleSignupDto.role as unknown as UserRole) || UserRole.GENERATOR;
 
         // Prepare Register-like object for validation and record creation
         const registerData: any = {
@@ -539,7 +539,7 @@ export class AuthService {
     // Mark code as verified
     verificationData.verified = true;
     user.isVerified = true;
-    await user.save();  
+    await user.save();
     this.emailVerificationCodes.set(email, verificationData);
 
 

@@ -11,7 +11,6 @@ import {
   Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { UserRole } from '../../models/user.schema';
 import { GeneratorType } from '../../models/generator.schema';
 
 class AddressDto {

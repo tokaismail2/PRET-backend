@@ -37,10 +37,10 @@ export class GoogleSignupDto {
   idToken: string;
 
   @IsOptional()
-  @IsEnum(UserRole, {
-    message: 'Role must be one of: generator, factory, driver, admin',
+  @IsEnum(['generator', 'factory', 'driver'], {
+    message: 'Role must be one of: generator, factory, driver',
   })
-  role?: UserRole;
+  role?: 'generator' | 'factory' | 'driver';
 
   @IsOptional()
   @IsEnum(GeneratorType, {
