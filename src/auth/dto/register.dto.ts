@@ -67,12 +67,12 @@ export class RegisterDto {
   phone?: string;
 
   @IsOptional()
-  @IsEnum(UserRole, {
+  @IsEnum(['generator', 'factory', 'driver'], {
     message: 'Role must be one of: generator, factory, driver',
   })
-  role?: UserRole;
+  role?: 'generator' | 'factory' | 'driver';
 
-  @ValidateIf((o) => o.role === UserRole.GENERATOR)
+  @ValidateIf((o) => o.role === 'generator')
   @IsEnum(GeneratorType, {
     message:
       'Generator type must be one of: hotel, restaurant, cafe, office, residential, warehouse, other',
