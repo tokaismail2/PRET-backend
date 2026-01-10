@@ -1,4 +1,4 @@
-import { IsString, IsEmail, IsOptional, MinLength, IsEnum } from 'class-validator';
+import { IsString, IsEmail, IsOptional, MinLength, IsEnum, IsIn } from 'class-validator';
 import { UserRole } from '../../models/user.schema';
 
 export class CreateUserDto {
@@ -13,6 +13,8 @@ export class CreateUserDto {
   readonly password: string;
 
   @IsOptional()
-  @IsEnum(UserRole)
+  @IsIn(['generator', 'factory', 'driver'], {
+    message: 'invailed role',
+  })
   readonly role?: UserRole; // optional, default to USER
 }
