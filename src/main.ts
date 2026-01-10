@@ -6,34 +6,55 @@ import { AppModule } from './app.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
-
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
-  // Get ConfigService to access environment variables
   const configService = app.get(ConfigService);
 
-  // Enable validation pipes globally
+  // Enable CORS if needed
+  app.enableCors({
+    origin: configService.get<string>('CORS_ORIGIN') || '*',
+    credentials: true,
+  });
+
+  // Global validation pipe with enhanced options
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+      disableErrorMessages: configService.get('NODE_ENV') === 'production',
     }),
   );
 
-  // Register global interceptor
+  // Global interceptors
   app.useGlobalInterceptors(new TransformInterceptor());
 
-  // Register global exception filter
+  // Global exception filters
   app.useGlobalFilters(new HttpExceptionFilter());
 
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  // Middleware
   app.use(responseTime());
 
-  const port = parseInt(configService.get('PORT') || '5000', 10);
+  // Global prefix for all routes (optional)
+  const globalPrefix = configService.get<string>('API_PREFIX') || 'api';
+  app.setGlobalPrefix(globalPrefix);
+
+  // Get port from config
+  const port = configService.get<number>('PORT') || 5000;
+  const host = configService.get<string>('HOST') || 'localhost';
+
   await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}`);
+
+  const environment = configService.get<string>('NODE_ENV') || 'development';
+  console.log(`🚀 Application is running on: http://${host}:${port}/${globalPrefix}`);
+  console.log(`📦 Environment: ${environment}`);
 }
-void bootstrap();
+
+bootstrap().catch((error) => {
+  console.error('❌ Error starting application:', error);
+  process.exit(1);
+});

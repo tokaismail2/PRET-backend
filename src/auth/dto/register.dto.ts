@@ -67,7 +67,7 @@ export class RegisterDto {
 
   @IsOptional()
   @IsIn(['generator', 'factory', 'driver'], {
-    message: 'invailed role',
+    message: 'Invalid role. Must be one of: generator, factory, driver',
   })
   role?: 'generator' | 'factory' | 'driver';
 
