@@ -66,7 +66,7 @@ export class RegisterDto {
   phone?: string;
 
   @IsOptional()
-  @IsEnum(['generator', 'factory', 'driver'], {
+  @IsIn(['generator', 'factory', 'driver'], {
     message: 'Role must be one of: generator, factory, driver',
   })
   role?: 'generator' | 'factory' | 'driver';

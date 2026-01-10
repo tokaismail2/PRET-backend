@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsObject, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsObject, ValidateNested, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
 import { UserRole } from '../../models/user.schema';
 import { GeneratorType } from '../../models/generator.schema';
@@ -37,7 +37,7 @@ export class GoogleSignupDto {
   idToken: string;
 
   @IsOptional()
-  @IsEnum(['generator', 'factory', 'driver'], {
+  @IsIn(['generator', 'factory', 'driver'], {
     message: 'Role must be one of: generator, factory, driver',
   })
   role?: 'generator' | 'factory' | 'driver';
