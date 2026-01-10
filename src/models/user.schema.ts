@@ -12,7 +12,7 @@ export enum UserRole {
 
 @Schema({ timestamps: true })
 export class User {
-  @Prop({ required: true, unique: true, lowercase: true, trim: true })
+  @Prop({ required: true, unique: true, lowercase: true, trim: true , sparse: true})
   email: string;
 
   @Prop({ required: function () { return !this.authProvider || this.authProvider === 'email'; } })
