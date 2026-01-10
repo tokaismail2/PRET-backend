@@ -45,10 +45,7 @@ async function bootstrap(): Promise<void> {
   const host = configService.get<string>('HOST') || 'localhost';
 
   await app.listen(port);
-
-  const environment = configService.get<string>('NODE_ENV') || 'development';
   console.log(`🚀 Application is running on: http://${host}:${port}`);
-  console.log(`📦 Environment: ${environment}`);
 }
 
 bootstrap().catch((error) => {

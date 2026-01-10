@@ -95,11 +95,6 @@ export class AuthService {
 
     const role: UserRole = (registerDto.role as unknown as UserRole) || UserRole.GENERATOR;
 
-    // Explicitly prevent admin registration
-    if (role === UserRole.ADMIN) {
-      throw new BadRequestException('Registration with admin role is not allowed');
-    }
-
     // Ensure role is one of the allowed registration roles
     if (![UserRole.GENERATOR, UserRole.FACTORY, UserRole.DRIVER].includes(role)) {
       throw new BadRequestException('Invalid role. Must be one of: generator, factory, driver');
