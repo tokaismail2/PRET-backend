@@ -228,6 +228,16 @@ export class AuthService {
       throw new UnauthorizedException('Please sign in with Google');
     }
 
+    // Verify password
+    // const isPasswordValid = await bcrypt.compare(
+    //   loginEmailDto.password,
+    //   user.password,
+    // );
+
+    // if (!isPasswordValid) {
+    //   throw new UnauthorizedException('Invalid email or password');
+    // }
+
     // 🔹 load profile based on role
     let profile: any = null;
 
@@ -243,6 +253,10 @@ export class AuthService {
       case 'driver':
         profile = await this.driverModel.findOne({ user: user._id as any });
         break;
+      case 'admin':
+        profile = { type: 'admin' };
+        break;
+
     }
 
     if (!profile) {
