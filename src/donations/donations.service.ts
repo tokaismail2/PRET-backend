@@ -52,7 +52,6 @@ export class DonationsService {
       donor: userId,
       mealsProvided: createDonationDto.mealsProvided,
       photos: createDonationDto.photos || [],
-      pickupLocation: createDonationDto.pickupLocation,
       status: DonationStatus.PENDING,
       notes: createDonationDto.notes,
     });

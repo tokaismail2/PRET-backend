@@ -9,9 +9,9 @@ export class WarehouseReceipt {
   warehouse_id: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Order', required: true })
-  waste_order_id: Types.ObjectId;
+  order_id: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true }) // نفترض الدرايفر هو User
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true }) 
   driver_id: Types.ObjectId;
 
   @Prop({ required: true })
@@ -23,11 +23,6 @@ export class WarehouseReceipt {
   @Prop({ required: true })
   total_amount: number;
 
-  @Prop({ required: true })
-  received_at: Date;
-
-  @Prop()
-  notes?: string;
 }
 
 export const WarehouseReceiptSchema = SchemaFactory.createForClass(WarehouseReceipt);

@@ -11,8 +11,6 @@ import {
   ArrayMaxSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { MaterialType } from '../../models/order.schema';
-
 class CoordinatesDto {
   @IsNumber()
   latitude: number;
@@ -21,36 +19,11 @@ class CoordinatesDto {
   longitude: number;
 }
 
-class PickupLocationDto {
-  @IsOptional()
-  @IsString()
-  street?: string;
 
-  @IsOptional()
-  @IsString()
-  city?: string;
-
-  @IsOptional()
-  @IsString()
-  state?: string;
-
-  @IsOptional()
-  @IsString()
-  zipCode?: string;
-
-  @IsOptional()
-  @IsString()
-  country?: string;
-
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => CoordinatesDto)
-  coordinates?: CoordinatesDto;
-}
 
 export class CreateOrderDto {
-  @IsEnum(MaterialType)
-  materialType: MaterialType;
+  @IsString()
+  materialType: string;
 
   @IsNumber()
   @Min(0)
@@ -70,11 +43,6 @@ export class CreateOrderDto {
     message: 'Maximum 3 photos allowed',
   })
   photos?: string[]; // URLs to photos (up to 3)
-
-  @IsObject()
-  @ValidateNested()
-  @Type(() => PickupLocationDto)
-  pickupLocation: PickupLocationDto;
 
   @IsOptional()
   @IsString()

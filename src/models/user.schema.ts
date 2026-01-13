@@ -12,7 +12,7 @@ export enum UserRole {
 
 @Schema({ timestamps: true })
 export class User {
-  @Prop({ required: true, unique: true, lowercase: true, trim: true , sparse: true})
+  @Prop({ required: true, unique: true, lowercase: true, trim: true, sparse: true })
   email: string;
 
   @Prop({ required: function () { return !this.authProvider || this.authProvider === 'email'; } })
@@ -36,7 +36,7 @@ export class User {
   @Prop({ default: true })
   isActive: boolean;
 
-  @Prop({default: false})
+  @Prop({ default: false })
   isVerified: boolean;
 
   @Prop()
@@ -50,3 +50,17 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+//create user wallet after registeration and isVerified is true
+UserSchema.post('save', async function (doc) {
+  if (doc.isVerified) {
+    const WalletModel = doc.model('UserWallet');
+    const existingWallet = await WalletModel.findOne({ userId: doc._id });
+    if (!existingWallet) {
+      await WalletModel.create({
+        userId: doc._id,
+        balance: 0,
+      });
+    }
+  }
+});

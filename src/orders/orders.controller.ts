@@ -12,11 +12,10 @@ import {
   UploadedFiles,
   BadRequestException,
   Query,
-  ForbiddenException,
-  Put
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { OrdersService } from './orders.service';
+import { MaterialService } from '../materialType/material.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/user.decorator';
@@ -25,17 +24,18 @@ import { MulterFile } from '../common/types/multer-file.type';
 import { multerConfig } from '../common/config/multer.config';
 import { OrderStatus } from '../models/order.schema';
 import { AuditLogInterceptorFactory } from "../audit-log/audit-log.interceptor";
-import { AuthGuard } from '@nestjs/passport';
+import { Material } from '../models/material.schema';
 
 @Controller('orders')
 export class OrdersController {
   constructor(
     private readonly ordersService: OrdersService,
     private readonly imageKitService: ImageKitService,
+    private readonly materialService: MaterialService,
   ) { }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)  
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(
     FilesInterceptor('photos', 3, multerConfig),
@@ -49,14 +49,12 @@ export class OrdersController {
     // Parse nested JSON fields from form data
     let createOrderDto: CreateOrderDto;
     try {
+      const material = await this.materialService.findOne(body.materialType);
       createOrderDto = {
         materialType: body.materialType,
         quantity: parseFloat(body.quantity),
         unit: body.unit,
-        price: parseFloat(body.price),
-        pickupLocation: typeof body.pickupLocation === 'string'
-          ? JSON.parse(body.pickupLocation)
-          : body.pickupLocation,
+        price: material.price,
         notes: body.notes,
         photos: body.photos
           ? (typeof body.photos === 'string'
@@ -130,6 +128,32 @@ export class OrdersController {
     };
   }
 
+  @Get('all')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getAllOrders(
+    @CurrentUser() user: any,
+    @Query('status') status?: string,
+    @Query('buyerId') buyerId?: string,
+    @Query('driverId') driverId?: string,
+    @Query('sellerId') sellerId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const orders = await this.ordersService.getAllOrders({
+      status,
+      buyerId,
+      driverId,
+      sellerId,
+      startDate,
+      endDate,
+    });
+    return {
+      message: 'Orders retrieved successfully',
+      data: orders,
+    };
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
@@ -144,33 +168,26 @@ export class OrdersController {
     };
   }
   @Post(':id/assign-driver')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   async assignDriver(
     @Param('id') orderId: string,
-    @Body('driverId') driverId: string,
     @CurrentUser() user: any,
   ) {
-    // Role check
-    if (!['admin'].includes(user.role)) {
-      throw new ForbiddenException('You are not allowed to assign drivers');
-    }
 
-    // Call Service
-    return this.ordersService.assignDriver(orderId, driverId);
+
+    return this.ordersService.assignDriver(orderId, user.userId);
   }
 
-
-  @Put(':id/in-transit')
+  @Post(':id/arrive-at-warehouse')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
-  async markInTransit(
+  async arriveAtWarehouse(
     @Param('id') orderId: string,
+    @Body('warehouseId') warehouseId: string,
     @CurrentUser() user: any,
   ) {
-    console.log('Current user (driver):', user);
-    return this.ordersService.markInTransit(orderId, user.userId);
+    return this.ordersService.arriveToWarehouse(orderId, warehouseId, user.userId);
   }
-
-
-
 }
 

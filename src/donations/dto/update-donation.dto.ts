@@ -7,10 +7,6 @@ export class UpdateDonationDto {
   @IsNumber()
   mealsProvided?: number;
 
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => Object)
-  pickupLocation?: Partial<CreateDonationDto['pickupLocation']>;
 
   @IsOptional()
   @IsString()

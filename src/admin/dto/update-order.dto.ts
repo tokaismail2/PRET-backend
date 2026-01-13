@@ -5,12 +5,9 @@ import {
   IsOptional,
   Min,
 } from 'class-validator';
-import { MaterialType, OrderStatus } from '../../models/order.schema';
+import { OrderStatus } from '../../models/order.schema';
 
 export class UpdateOrderDto {
-  @IsOptional()
-  @IsEnum(MaterialType)
-  materialType?: MaterialType;
 
   @IsOptional()
   @IsNumber()

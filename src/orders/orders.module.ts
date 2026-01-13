@@ -4,21 +4,29 @@ import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 import { Order, OrderSchema } from '../models/order.schema';
 import { User, UserSchema } from '../models/user.schema';
-import { Driver, DriverSchema } from '../models/driver.schema';
 import { AuditLog, AuditLogSchema } from '../models/auditLog.schema';
 import { ImageKitModule } from '../imagekit/imagekit.module';
 import { PassportModule } from '@nestjs/passport';
+import { UserWallet, UserWalletSchema } from '../models/userWallet.schema';
+import { WalletTransaction, WalletTransactionSchema } from '../models/walletTransactions.schema';
+import { WarehouseReceipt, WarehouseReceiptSchema } from '../models/warehouseReceipt.schema';
+import { Warehouse, WarehouseSchema } from '../models/warehouse.schema';
+import { MaterialModule } from '../materialType/material.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Order.name, schema: OrderSchema },
       { name: User.name, schema: UserSchema },
-      { name: Driver.name, schema: DriverSchema },
       { name: AuditLog.name, schema: AuditLogSchema },
+      { name: UserWallet.name, schema: UserWalletSchema },
+      { name: WalletTransaction.name, schema: WalletTransactionSchema },
+      { name: WarehouseReceipt.name, schema: WarehouseReceiptSchema },
+      { name: Warehouse.name, schema: WarehouseSchema },
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     ImageKitModule,
+    MaterialModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService],

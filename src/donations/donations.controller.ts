@@ -41,9 +41,6 @@ export class DonationsController {
     try {
       createDonationDto = {
         mealsProvided: parseInt(body.mealsProvided, 10),
-        pickupLocation: typeof body.pickupLocation === 'string'
-          ? JSON.parse(body.pickupLocation)
-          : body.pickupLocation,
         notes: body.notes,
         photos: body.photos
           ? (typeof body.photos === 'string'

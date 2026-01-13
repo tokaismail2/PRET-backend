@@ -40,17 +40,6 @@ export class Donation {
       },
     },
   })
-  pickupLocation: {
-    street?: string;
-    city?: string;
-    state?: string;
-    zipCode?: string;
-    country?: string;
-    coordinates?: {
-      latitude?: number;
-      longitude?: number;
-    };
-  };
 
   @Prop({
     required: true,
