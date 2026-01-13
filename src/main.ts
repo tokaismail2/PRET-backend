@@ -12,31 +12,26 @@ async function bootstrap(): Promise<void> {
 
   const configService = app.get(ConfigService);
 
-   const corsOptions = {
-      origin:'*',
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: [
-        'Origin',
-        'X-Requested-With',
-        'Content-Type',
-        'Accept',
-        'Authorization',
-        'Cache-Control',
-        'Pragma',
-      ],
-      credentials: true,
-      optionsSuccessStatus: 200,
-    };
-    app.enableCors(corsOptions);  
+  app.enableCors({
+    origin: '*',
+    credentials: false,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+    ],
+  });
 
-    // Debug CORS headers in development
-    app.use((req, res, next) => {
-      if (process.env.NODE_ENV === 'development') {
-        res.header('Access-Control-Allow-Credentials', 'true');
-        res.header('Access-Control-Max-Age', '3600');
-      }
-      next();
-    });
+
+
+  // Debug CORS headers in development
+  app.use((req, res, next) => {
+    if (process.env.NODE_ENV === 'development') {
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Max-Age', '3600');
+    }
+    next();
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
