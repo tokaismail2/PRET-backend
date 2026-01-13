@@ -5,32 +5,26 @@ import responseTime from 'response-time';
 import { AppModule } from './app.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import cors from 'cors';
+import * as cors from 'cors';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
 
+
+  app.use(
+    cors({
+      origin: true,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+    }),
+  );
+
   app.enableCors({
-    origin: '*',
-    credentials: false,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-    ],
-  });
-
-
-
-  // Debug CORS headers in development
-  app.use((req, res, next) => {
-    if (process.env.NODE_ENV === 'development') {
-      res.header('Access-Control-Allow-Credentials', 'true');
-      res.header('Access-Control-Max-Age', '3600');
-    }
-    next();
+    origin: true,
+    credentials: true,
   });
 
   app.useGlobalPipes(
