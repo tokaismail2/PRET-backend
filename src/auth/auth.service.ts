@@ -211,7 +211,6 @@ export class AuthService {
   }
 
   async loginWithEmail(loginEmailDto: LoginEmailDto) {
-    // Find user by email
     const user = await this.userModel.findOne({
       email: loginEmailDto.email.toLowerCase().trim(),
       isVerified: true,
@@ -221,45 +220,59 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    // Check if user is active
     if (!user.isActive) {
       throw new UnauthorizedException('Account is inactive');
     }
 
-    // Check if user has a password (not a Google OAuth user)
     if (!user.password || user.authProvider === 'google') {
       throw new UnauthorizedException('Please sign in with Google');
     }
 
-    // Verify password
-    // const isPasswordValid = await bcrypt.compare(
-    //   loginEmailDto.password,
-    //   user.password,
-    // );
+    // 🔹 load profile based on role
+    let profile: any = null;
 
-    // if (!isPasswordValid) {
-    //   throw new UnauthorizedException('Invalid email or password');
-    // }
+    switch (user.role) {
+      case 'generator':
+        profile = await this.generatorModel.findOne({ user: user._id as any });
+        break;
 
-    // Generate JWT token
+      case 'factory':
+        profile = await this.factoryModel.findOne({ user: user._id as any });
+        break;
+
+      case 'driver':
+        profile = await this.driverModel.findOne({ user: user._id as any });
+        break;
+    }
+
+    if (!profile) {
+      throw new UnauthorizedException('User profile not found');
+    }
+
     const payload = {
-      sub: (user._id as any).toString(),
+      sub: user._id.toString(),
       email: user.email,
-      role: user.role
+      role: user.role,
     };
+
     const accessToken = this.jwtService.sign(payload);
 
-    // Return user without password and token
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user.toObject();
+
     return {
-      user: userWithoutPassword,
-      accessToken,
+      success: true,
+      message: 'Login successful',
+      data: {
+        user: userWithoutPassword,
+        profile,
+        accessToken,
+      },
     };
   }
 
+
   async loginWithPhone(loginPhoneDto: LoginPhoneDto) {
-    // Find user by phone
+    // 1️⃣ Find user by phone
     const user = await this.userModel.findOne({
       phone: loginPhoneDto.phone.trim(),
       isVerified: true,
@@ -269,17 +282,17 @@ export class AuthService {
       throw new UnauthorizedException('Invalid phone number or password');
     }
 
-    // Check if user is active
+    // 2️⃣ Check if user is active
     if (!user.isActive) {
       throw new UnauthorizedException('Account is inactive');
     }
 
-    // Check if user has a password (not a Google OAuth user)
+    // 3️⃣ Check auth provider
     if (!user.password || user.authProvider === 'google') {
       throw new UnauthorizedException('Please sign in with Google');
     }
 
-    // Verify password
+    // 4️⃣ Verify password
     const isPasswordValid = await bcrypt.compare(
       loginPhoneDto.password,
       user.password,
@@ -289,22 +302,51 @@ export class AuthService {
       throw new UnauthorizedException('Invalid phone number or password');
     }
 
-    // Generate JWT token
+    // 5️⃣ Load profile based on role
+    let profile: any;
+
+    switch (user.role) {
+      case 'generator':
+        profile = await this.generatorModel.findOne({ user: user._id as any });
+        break;
+
+      case 'factory':
+        profile = await this.factoryModel.findOne({ user: user._id as any });
+        break;
+
+      case 'driver':
+        profile = await this.driverModel.findOne({ user: user._id as any });
+        break;
+    }
+
+    if (!profile) {
+      throw new UnauthorizedException('User profile not found');
+    }
+
+    // 6️⃣ Generate token
     const payload = {
-      sub: (user._id as any).toString(),
+      sub: user._id.toString(),
       email: user.email,
-      role: user.role
+      role: user.role,
     };
+
     const accessToken = this.jwtService.sign(payload);
 
-    // Return user without password and token
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // 7️⃣ Remove password
     const { password, ...userWithoutPassword } = user.toObject();
+
+    // 8️⃣ Unified response
     return {
-      user: userWithoutPassword,
-      accessToken,
+      success: true,
+      message: 'Login successful',
+      data: {
+        user: userWithoutPassword,
+        profile,
+        accessToken,
+      },
     };
   }
+
 
   async signUpWithGoogle(googleSignupDto: GoogleSignupDto) {
     try {
