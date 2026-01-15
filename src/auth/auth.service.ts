@@ -127,38 +127,41 @@ export class AuthService {
       throw error;
     }
 
-    // Determine verification method (default to email if not specified)
-    const verificationMethod = registerDto.verificationMethod || 'email';
+    // Skip verification for drivers
+    if (role !== UserRole.DRIVER) {
+      // Determine verification method (default to email if not specified)
+      const verificationMethod = registerDto.verificationMethod || 'email';
 
-    if (verificationMethod === 'phone') {
-      // Phone verification
-      if (!savedUser.phone) {
-        throw new BadRequestException('Phone number is required for phone verification');
+      if (verificationMethod === 'phone') {
+        // Phone verification
+        if (!savedUser.phone) {
+          throw new BadRequestException('Phone number is required for phone verification');
+        }
+        const verificationCode = '123456'; // Static for now as requested in original code
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+
+        this.phoneVerificationCodes.set(savedUser.phone.trim(), {
+          code: verificationCode,
+          expiresAt,
+          phone: savedUser.phone.trim(),
+          verified: false,
+        });
+      } else {
+        // Email verification
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+
+        this.emailVerificationCodes.set(savedUser.email.toLowerCase().trim(), {
+          code: verificationCode,
+          expiresAt,
+          email: savedUser.email.toLowerCase().trim(),
+          verified: false,
+        });
+
+        await this.emailService.sendEmailVerificationCode(savedUser.email, verificationCode);
       }
-      const verificationCode = '123456'; // Static for now as requested in original code
-      const expiresAt = new Date();
-      expiresAt.setMinutes(expiresAt.getMinutes() + 5);
-
-      this.phoneVerificationCodes.set(savedUser.phone.trim(), {
-        code: verificationCode,
-        expiresAt,
-        phone: savedUser.phone.trim(),
-        verified: false,
-      });
-    } else {
-      // Email verification
-      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date();
-      expiresAt.setMinutes(expiresAt.getMinutes() + 5);
-
-      this.emailVerificationCodes.set(savedUser.email.toLowerCase().trim(), {
-        code: verificationCode,
-        expiresAt,
-        email: savedUser.email.toLowerCase().trim(),
-        verified: false,
-      });
-
-      await this.emailService.sendEmailVerificationCode(savedUser.email, verificationCode);
     }
 
     // Return user without password
@@ -331,6 +334,9 @@ export class AuthService {
       case 'driver':
         profile = await this.driverModel.findOne({ user: user._id as any });
         break;
+      case 'admin':
+        profile = { type: 'admin' };
+        break;
     }
 
     if (!profile) {
@@ -425,7 +431,7 @@ export class AuthService {
           authProvider: 'google',
           role,
           isActive: true,
-          isVerified:true,
+          isVerified: true,
           profilePicture: picture,
         });
 

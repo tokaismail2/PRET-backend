@@ -15,6 +15,8 @@ import { UserWallet, UserWalletDocument } from '../models/userWallet.schema';
 import { WalletTransaction, WalletTransactionDocument } from '../models/walletTransactions.schema';
 import { WarehouseReceipt, WarehouseReceiptDocument } from '../models/warehouseReceipt.schema';
 import { Warehouse, WarehouseDocument } from '../models/warehouse.schema';
+import { Generator, GeneratorDocument } from '../models/generator.schema';
+
 
 @Injectable()
 export class OrdersService {
@@ -25,7 +27,9 @@ export class OrdersService {
     @InjectModel(WalletTransaction.name) private walletTransactionModel: Model<WalletTransactionDocument>,
     @InjectModel(WarehouseReceipt.name) private warehouseReceiptModel: Model<WarehouseReceiptDocument>,
     @InjectModel(Warehouse.name) private warehouseModel: Model<WarehouseDocument>,
+    @InjectModel(Generator.name) private generatorModel: Model<GeneratorDocument>,
   ) { }
+
 
   async createOrder(userId: string, createOrderDto: CreateOrderDto) {
     // Find user by ID
@@ -113,10 +117,36 @@ export class OrdersService {
 
 
     // Fetch orders based on constructed query
-    const orders = await this.orderModel.find(query).lean();
+    // fetch address of buyer
+    const orders = await this.orderModel
+      .find(query)
+      .sort({ createdAt: -1 })
+      .lean();
 
-    return orders;
+    // Enrich orders with generator address
+    const ordersWithAddress = await Promise.all(
+      orders.map(async (order) => {
+        // Get generator details including address
+        let generator = null;
+        if (order.buyer && (order.buyer as any)._id) {
+          generator = await this.generatorModel
+            .findOne({ user: (order.buyer as any)._id })
+            .select('businessName generatorType address')
+            .lean();
+        }
+
+        return {
+          ...order,
+          generator: generator || null,
+        };
+      })
+    );
+
+    return ordersWithAddress;
+
+
   }
+
 
   async getOrdersByUser(userId: string, status?: OrderStatus) {
     const user = await this.userModel.findById(userId);

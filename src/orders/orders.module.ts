@@ -11,7 +11,9 @@ import { UserWallet, UserWalletSchema } from '../models/userWallet.schema';
 import { WalletTransaction, WalletTransactionSchema } from '../models/walletTransactions.schema';
 import { WarehouseReceipt, WarehouseReceiptSchema } from '../models/warehouseReceipt.schema';
 import { Warehouse, WarehouseSchema } from '../models/warehouse.schema';
+import { Generator, GeneratorSchema } from '../models/generator.schema';
 import { MaterialModule } from '../materialType/material.module';
+
 
 @Module({
   imports: [
@@ -23,7 +25,9 @@ import { MaterialModule } from '../materialType/material.module';
       { name: WalletTransaction.name, schema: WalletTransactionSchema },
       { name: WarehouseReceipt.name, schema: WarehouseReceiptSchema },
       { name: Warehouse.name, schema: WarehouseSchema },
+      { name: Generator.name, schema: GeneratorSchema },
     ]),
+
     PassportModule.register({ defaultStrategy: 'jwt' }),
     ImageKitModule,
     MaterialModule,
