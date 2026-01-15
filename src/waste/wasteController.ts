@@ -9,15 +9,18 @@ import {
   Delete,
 } from '@nestjs/common';
 import { WasteService } from './wasteService';
-import { CreateWasteDto } from './dto/creat';
+import { CreateWasteDto } from './dto/create';
 import { UpdateWasteDto } from './dto/update';
+import authorize from '../auth/guards/roles.guard';
+import { UserRole } from '../models/user.schema';
 
 @Controller('waste')
 export class WasteController {
-  constructor(private readonly wasteService: WasteService) {}
+  constructor(private readonly wasteService: WasteService) { }
 
   // 1️⃣ Create waste
   @Post()
+  @authorize(UserRole.ADMIN)
   create(@Body() createWasteDto: CreateWasteDto) {
     return this.wasteService.create(createWasteDto);
   }
@@ -50,8 +53,8 @@ export class WasteController {
   }
 
   // 🤖 AI – total quantity per type
-  @Get('ai/total/:type')
-  getTotalQuantity(@Param('type') type: string) {
-    return this.wasteService.getTotalQuantityByType(type);
+  @Get('ai/total/:material_id')
+  getTotalQuantity(@Param('material_id') material_id: string) {
+    return this.wasteService.getTotalQuantityByType(material_id);
   }
 }

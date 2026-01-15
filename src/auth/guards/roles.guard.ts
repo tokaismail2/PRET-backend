@@ -4,15 +4,19 @@ import {
   ExecutionContext,
   UnauthorizedException,
   ForbiddenException,
+  applyDecorators,
+  SetMetadata,
+  UseGuards,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserRole } from '../../models/user.schema';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 export const ROLES_KEY = 'roles';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(private reflector: Reflector) { }
 
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(
@@ -47,4 +51,13 @@ export class RolesGuard implements CanActivate {
     return true;
   }
 }
+
+export function authorize(...roles: UserRole[]) {
+  return applyDecorators(
+    SetMetadata(ROLES_KEY, roles),
+    UseGuards(JwtAuthGuard, RolesGuard),
+  );
+}
+
+export default authorize;
 

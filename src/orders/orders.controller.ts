@@ -12,6 +12,7 @@ import {
   UploadedFiles,
   BadRequestException,
   Query,
+  Put
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { OrdersService } from './orders.service';
@@ -25,6 +26,7 @@ import { multerConfig } from '../common/config/multer.config';
 import { OrderStatus } from '../models/order.schema';
 import { AuditLogInterceptorFactory } from "../audit-log/audit-log.interceptor";
 import { Material } from '../models/material.schema';
+import { UpdateOrderDto } from './dto/update-order.dto';
 
 @Controller('orders')
 export class OrdersController {
@@ -167,6 +169,17 @@ export class OrdersController {
       data: order,
     };
   }
+
+  @Put(':id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async updateOrderById(
+    @Param('id') orderId: string,
+    @Body() updateData: UpdateOrderDto,
+  ) {
+    return this.ordersService.updateOrderById(orderId, updateData);
+  }
+
   @Post(':id/assign-driver')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)

@@ -3,7 +3,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Waste, WasteDocument } from '../models/waste.schema';
-import { CreateWasteDto } from './dto/creat';
+import { CreateWasteDto } from './dto/create';
 import { UpdateWasteDto } from './dto/update';
 
 @Injectable()
@@ -11,7 +11,7 @@ export class WasteService {
   constructor(
     @InjectModel(Waste.name)
     private wasteModel: Model<WasteDocument>,
-  ) {}
+  ) { }
 
   // CREATE
   async create(createWasteDto: CreateWasteDto): Promise<Waste> {
@@ -21,12 +21,16 @@ export class WasteService {
 
   // READ ALL
   async findAll(): Promise<Waste[]> {
-    return this.wasteModel.find().sort({ createdAt: -1 }).exec();
+    return this.wasteModel.find()
+    .populate('warehouse_id')
+    .sort({ createdAt: -1 }).exec();
   }
 
   // READ ONE
   async findOne(id: string): Promise<Waste> {
-    const waste = await this.wasteModel.findById(id).exec();
+    const waste = await this.wasteModel.findById(id)
+    .populate('warehouse_id')
+    .exec();
     if (!waste) throw new NotFoundException('Waste not found');
     return waste;
   }
@@ -54,13 +58,13 @@ export class WasteService {
   }
 
   // 🤖 AI HELPER – إجمالي الكمية حسب النوع
-  async getTotalQuantityByType(type: string) {
+  async getTotalQuantityByType(material_id: string) {
     return this.wasteModel.aggregate([
-      { $match: { type } },
+      { $match: { material_id: material_id } },
       {
         $group: {
-          _id: '$type',
-          totalQuantity: { $sum: '$quantity' },
+          _id: '$material_id',
+          total_weight: { $sum: '$total_weight' },
         },
       },
     ]);

@@ -16,6 +16,7 @@ import { WalletTransaction, WalletTransactionDocument } from '../models/walletTr
 import { WarehouseReceipt, WarehouseReceiptDocument } from '../models/warehouseReceipt.schema';
 import { Warehouse, WarehouseDocument } from '../models/warehouse.schema';
 import { Generator, GeneratorDocument } from '../models/generator.schema';
+import { UpdateOrderDto } from './dto/update-order.dto';
 
 
 @Injectable()
@@ -115,9 +116,6 @@ export class OrdersService {
       }
     }
 
-
-    // Fetch orders based on constructed query
-    // fetch address of buyer
     const orders = await this.orderModel
       .find(query)
       .sort({ createdAt: -1 })
@@ -146,7 +144,6 @@ export class OrdersService {
 
 
   }
-
 
   async getOrdersByUser(userId: string, status?: OrderStatus) {
     const user = await this.userModel.findById(userId);
@@ -199,6 +196,41 @@ export class OrdersService {
 
     return order;
   }
+
+  async updateOrderById(orderId: string, updateDto: UpdateOrderDto) {
+
+    const order = await this.orderModel.findOne({
+      _id: orderId,
+      status: OrderStatus.PENDING,
+    });
+
+    if (!order) {
+      throw new ConflictException(
+        'Order not found or cannot be updated (status is not PENDING)',
+      );
+    }
+
+    // Build update object safely
+    const updateData: any = {};
+
+    if (updateDto.quantity !== undefined) {
+      updateData.quantity = updateDto.quantity;
+      updateData.totalPrice = updateDto.quantity * order.price;
+    }
+
+    if (updateDto.notes !== undefined) {
+      updateData.notes = updateDto.notes;
+    }
+
+    const updatedOrder = await this.orderModel.findByIdAndUpdate(
+      orderId,
+      { $set: updateData },
+      { new: true },
+    );
+
+    return updatedOrder;
+  }
+
 
   async assignDriver(orderId: string, driverUserId: string) {
 

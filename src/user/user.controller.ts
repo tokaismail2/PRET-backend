@@ -10,16 +10,24 @@ import {
   HttpStatus,
   UseGuards,
   BadRequestException,
+  Req,
+  Put,
 } from '@nestjs/common';
 import { UsersService } from './user.sevice';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../auth/decorators/user.decorator';
+import authorize from '../auth/guards/roles.guard';
+import { UserRole } from '../models/user.schema';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Request } from 'express';
 
 @Controller('users')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@authorize(UserRole.ADMIN)
+
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   // ---------------- CREATE USER ----------------
   @Post()
@@ -33,8 +41,8 @@ export class UsersController {
   @Get()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async getAllUsers() {
-    const users = await this.usersService.getAllUsers();
+  async getAllUsers(@Req() req: Request) {
+    const users = await this.usersService.getAllUsers(req);
     return { message: 'Users retrieved successfully', users };
   }
 
@@ -48,7 +56,7 @@ export class UsersController {
   }
 
   // ---------------- UPDATE USER ----------------
-  @Patch('by-id/:id')
+  @Put('by-id/:id')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async updateUser(

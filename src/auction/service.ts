@@ -3,45 +3,34 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Auction, AuctionDocument } from '../models/auction.schema';
 import { CreateAuctionDto } from './dto/create';
-import { BidDto } from './dto/bid';
+import { Waste, WasteDocument } from '../models/waste.schema';
 
 @Injectable()
 export class AuctionService {
   constructor(
     @InjectModel(Auction.name)
     private auctionModel: Model<AuctionDocument>,
-  ) {}
+    @InjectModel(Waste.name)
+    private wasteModel: Model<WasteDocument>,
+  ) { }
 
   async createAuction(dto: CreateAuctionDto) {
     const auction = new this.auctionModel(dto);
-    return auction.save();
-  }
+    const savedAuction = await auction.save();
 
-  async placeBid(auctionId: string, bid: BidDto) {
-    const auction = await this.auctionModel.findById(auctionId);
+    // Update waste status to 'in_auction'
+    const waste = await this.wasteModel.findById(dto.waste_id);
+    if (!waste) throw new BadRequestException('Waste not found');
+    waste.status = 'in_auction';
+    await waste.save();
 
-    if (!auction || auction.status === 'closed') {
-      throw new BadRequestException('Auction closed or not found');
-    }
-
-    auction.bids.push(bid);
-    return auction.save();
+    return savedAuction;
   }
 
   async closeAuction(auctionId: string) {
     const auction = await this.auctionModel.findById(auctionId);
     if (!auction) throw new BadRequestException('Auction not found');
 
-    if (auction.bids.length === 0) {
-      auction.status = 'closed';
-      return auction.save();
-    }
-
-    const winner = auction.bids.reduce((max, b) =>
-      b.price > max.price ? b : max,
-    );
-
-    auction.winnerFactory = winner.factory;
     auction.status = 'closed';
 
     return auction.save();

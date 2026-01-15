@@ -14,10 +14,12 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../models/user.schema';
 import { UpdateOrderDto } from '../admin/dto/update-order.dto';
+import authorize from '../auth/guards/roles.guard';
 
 @Controller('admin/data')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN)
+@authorize(UserRole.ADMIN)
+
 export class AdminController {
   constructor(private readonly adminService: AdminService) { }
   @Get('/users')

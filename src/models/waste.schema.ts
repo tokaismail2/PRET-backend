@@ -1,39 +1,29 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export type WasteDocument = Waste & Document;
 
-export enum WasteType {
-  PLASTIC = 'plastic',
-  PAPER = 'paper',
-  METAL = 'metal',
-  ORGANIC = 'organic',
-  GLASS = 'glass',
-  OTHER = 'other',
-}
 
 @Schema({ timestamps: true })
 export class Waste {
-  @Prop({ required: true, enum: WasteType })
-  type: WasteType;
+  @Prop({ type: Types.ObjectId, ref: 'Warehouse', required: true, unique: true })
+  warehouse_id: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Material', required: true })
+  material_id: Types.ObjectId;
 
   @Prop({ required: true, min: 0 })
-  quantity: number;
+  total_weight: number;
 
-  @Prop({ required: true })
-  restaurant: string;
+  @Prop({required:true})
+  price:number;
 
-  @Prop({ default: Date.now })
-  collectedAt: Date;
+  @Prop({ required: true, enum: ['pending', 'in_auction', 'sold'] , default: 'pending'})
+  status: string;
 
-  @Prop({ default: '' })
-  description?: string;
+  @Prop({required: false})
+  description: string;
 
-  @Prop({ default: '' })
-  image?: string;
-
-  @Prop({ default: '' })
-  location?: string;
 }
 
 export const WasteSchema = SchemaFactory.createForClass(Waste);
