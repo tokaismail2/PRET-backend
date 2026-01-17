@@ -4,13 +4,18 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User, UserDocument, UserRole } from '../models/user.schema';
 import { Generator, GeneratorDocument } from '../models/generator.schema';
 import { Factory, FactoryDocument } from '../models/factory.schema';
 import { Driver, DriverDocument } from '../models/driver.schema';
 import { UpdateLocationDto } from '../auth/dto/update-location.dto';
 import { ImageKitService } from '../imagekit/imagekit.service';
+import * as bcrypt from 'bcrypt';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UsersProblems, UsersProblemsDocument } from '../models/usersProblems.schema';
+import { RequestProblemDto } from './dto/request-problem.dto';
+
 
 @Injectable()
 export class PersonalInformationService {
@@ -19,12 +24,14 @@ export class PersonalInformationService {
     @InjectModel(Generator.name) private generatorModel: Model<GeneratorDocument>,
     @InjectModel(Factory.name) private factoryModel: Model<FactoryDocument>,
     @InjectModel(Driver.name) private driverModel: Model<DriverDocument>,
+    @InjectModel(UsersProblems.name) private usersProblemsModel: Model<UsersProblemsDocument>,
     private imageKitService: ImageKitService,
   ) { }
 
-  async updateLocation(
+  async changePassword(
     userId: string,
-    updateLocationDto: UpdateLocationDto,
+    currentPassword: string,
+    newPassword: string,
   ): Promise<Omit<User, 'password'>> {
     const user = await this.userModel.findById(userId);
 
@@ -36,44 +43,25 @@ export class PersonalInformationService {
       throw new UnauthorizedException('Account is inactive');
     }
 
-    // Update role-specific records
-    if (user.role === UserRole.GENERATOR) {
-      await this.generatorModel.findOneAndUpdate(
-        { user: userId as any },
-        {
-          $set: {
-            'address.coordinates.latitude': updateLocationDto.latitude,
-            'address.coordinates.longitude': updateLocationDto.longitude
-          }
-        }
-      );
-    } else if (user.role === UserRole.FACTORY) {
-      await this.factoryModel.findOneAndUpdate(
-        { user: userId as any },
-        {
-          $set: {
-            'address.coordinates.latitude': updateLocationDto.latitude,
-            'address.coordinates.longitude': updateLocationDto.longitude
-          }
-        }
-      );
-    } else if (user.role === UserRole.DRIVER) {
-      await this.driverModel.findOneAndUpdate(
-        { user: userId as any },
-        {
-          $set: {
-            latitude: updateLocationDto.latitude,
-            longitude: updateLocationDto.longitude
-          }
-        }
-      );
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password,
+    );
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Incorrect current password');
     }
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+    user.password = hashedPassword;
+    await user.save();
 
     const { password, ...userWithoutPassword } = user.toObject();
     return userWithoutPassword;
   }
 
-  async uploadLogo(
+  async updateProfilePicture(
     userId: string,
     file: any,
   ): Promise<Omit<User, 'password'>> {
@@ -87,38 +75,164 @@ export class PersonalInformationService {
       throw new UnauthorizedException('Account is inactive');
     }
 
-    if (user.role !== UserRole.GENERATOR) {
-      throw new BadRequestException('Only generators can upload logos');
-    }
-
-    // Find generator record to check for old logo and update
-    const generator = await this.generatorModel.findOne({ user: userId as any });
-    if (!generator) {
-      throw new BadRequestException('Generator data not found');
-    }
-
-    // Delete old logo if exists
-    if (generator.logo) {
-      try {
-        // ... cleanup logic if any ...
-      } catch (error) {
-        console.warn('Failed to delete old logo:', error);
-      }
-    }
-
-    // Upload file to ImageKit
+    // Upload new profile picture to ImageKit
     const uploadResult = await this.imageKitService.uploadFile(
       file,
-      'generators/logos',
-      `generator-${userId}-${Date.now()}`,
+      'profile-pictures',
+      `user-${userId}-${Date.now()}`,
     );
 
-    // Update generator logo
-    generator.logo = uploadResult.url;
-    await generator.save();
+    // Update user profile picture
+    user.profilePicture = uploadResult.url;
+    await user.save();
 
-    const { password, ...userWithoutPassword } = user.toObject();
-    return userWithoutPassword;
+    const { password, ...userWithoutPassword } = user.toObject() as any;
+    return {
+      ...userWithoutPassword,
+      profilePicture: uploadResult.url,
+    };
   }
+  async getProfile(userId: string): Promise<Omit<User, 'password'>> {
+    const user = await this.userModel.findById(userId).select('name email profilePicture role phoneNumber').lean();
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    let profile = '' as any;
+    if (user.role === UserRole.GENERATOR) {
+      profile = await this.generatorModel.findOne({ user: userId as any }).select('address latitude longitude businessName generatorType ').lean();
+    } else if (user.role === UserRole.FACTORY) {
+      profile = await this.factoryModel.findOne({ user: userId as any }).select('address latitude longitude').lean();
+    } else if (user.role === UserRole.DRIVER) {
+      profile = await this.driverModel.findOne({ user: userId as any }).select('address latitude longitude').lean();
+    }
+    const { password, ...userWithoutPassword } = user as any;
+    return {
+      ...userWithoutPassword,
+      profile,
+    };
+  }
+  async updateProfile(
+    userId: string,
+    updateProfileDto: UpdateProfileDto,
+  ): Promise<Omit<User, 'password'>> {
+    const user = await this.userModel.findById(userId);
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is inactive');
+    }
+
+    const userByEmail = await this.userModel.findOne({ email: updateProfileDto.email });
+    if (userByEmail && userByEmail._id.toString() !== userId) {
+      throw new BadRequestException('Email already exists');
+    }
+    const userByPhone = await this.userModel.findOne({ phoneNumber: updateProfileDto.phone });
+    if (userByPhone && userByPhone._id.toString() !== userId) {
+      throw new BadRequestException('Phone number already exists');
+    }
+    // Update user profile
+    user.name = updateProfileDto.name;
+    user.email = updateProfileDto.email;
+    user.phone = updateProfileDto.phone;
+    await user.save();
+
+    const { password, ...userWithoutPassword } = user.toObject() as any;
+    return {
+      ...userWithoutPassword,
+    };
+  }
+
+  async requestProblem(
+    userId: string,
+    requestProblemDto: RequestProblemDto,
+  ): Promise<Omit<User, 'password'>> {
+    const user = await this.userModel.findById(userId);
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is inactive');
+    }
+
+    const usersProblems = await this.usersProblemsModel.create({
+      userId: user._id,
+      problem: requestProblemDto.problem,
+    });
+
+    const { password, ...userWithoutPassword } = user.toObject() as any;
+    return {
+      ...userWithoutPassword,
+      usersProblems,
+    };
+  }
+
+  async getProblem(): Promise<any> {
+
+    const usersProblems = await this.usersProblemsModel.find()
+    .populate('userId', 'name email phone')
+    .lean();
+    return usersProblems;
+  }
+
+  async updateLocation(
+    userId: string,
+    updateLocationDto: UpdateLocationDto,
+  ): Promise<any> {
+    const user = await this.userModel.findById(userId).select('role name email phone').lean();
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    if (user.isActive === false) {
+      throw new UnauthorizedException('Account is inactive');
+    }
+
+    // Update role-specific records
+    if (user.role === UserRole.GENERATOR) {
+      await this.generatorModel.findOneAndUpdate(
+        { user: userId as any },
+        {
+          $set: {
+            'address.coordinates.latitude': updateLocationDto.latitude,
+            'address.coordinates.longitude': updateLocationDto.longitude
+          }
+        }
+      ).lean();
+    } else if (user.role === UserRole.FACTORY) {
+      await this.factoryModel.findOneAndUpdate(
+        { user: userId as any },
+        {
+          $set: {
+            'address.coordinates.latitude': updateLocationDto.latitude,
+            'address.coordinates.longitude': updateLocationDto.longitude
+          }
+        }
+      ).lean();
+    } else if (user.role === UserRole.DRIVER) {
+      await this.driverModel.findOneAndUpdate(
+        { user: userId as any },
+        {
+          $set: {
+            latitude: updateLocationDto.latitude,
+            longitude: updateLocationDto.longitude
+          }
+        }
+      ).lean();
+    }
+
+    const { password, ...userWithoutPassword } = user;
+    return {
+      ...userWithoutPassword,
+      latitude: updateLocationDto.latitude,
+      longitude: updateLocationDto.longitude
+    };
+  }
+
 }
 

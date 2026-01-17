@@ -12,7 +12,8 @@ import {
   UploadedFiles,
   BadRequestException,
   Query,
-  Put
+  Put,
+  Delete,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { OrdersService } from './orders.service';
@@ -136,17 +137,17 @@ export class OrdersController {
   async getAllOrders(
     @CurrentUser() user: any,
     @Query('status') status?: string,
-    @Query('buyerId') buyerId?: string,
+    @Query('generatorId') generatorId?: string,
     @Query('driverId') driverId?: string,
-    @Query('sellerId') sellerId?: string,
+    @Query('factoryId') factoryId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
     const orders = await this.ordersService.getAllOrders({
       status,
-      buyerId,
+      generatorId,
       driverId,
-      sellerId,
+      factoryId,
       startDate,
       endDate,
     });
@@ -173,23 +174,64 @@ export class OrdersController {
   @Put(':id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FilesInterceptor('photos', 3, multerConfig),
+    AuditLogInterceptorFactory('update_order'),
+  )
   async updateOrderById(
     @Param('id') orderId: string,
     @Body() updateData: UpdateOrderDto,
+     @UploadedFiles() files?: MulterFile[],
   ) {
-    return this.ordersService.updateOrderById(orderId, updateData);
+    // Upload photos if provided
+    let photoUrls: string[] = [];
+    if (files && files.length > 0) {
+      if (files.length > 3) {
+        throw new BadRequestException('Maximum 3 photos allowed');
+      }
+
+      photoUrls = await Promise.all(
+        files.map((file) =>
+          this.imageKitService
+            .uploadFile(
+              file,
+              'orders/photos',
+              `order-${Date.now()}-${file.originalname}`,
+            )
+            .then((result) => result.url),
+        ),
+      );
+    }
+
+    // Add photo URLs to DTO
+    const orderData = {
+      ...updateData,
+      photos: photoUrls.length > 0 ? photoUrls : updateData.photos,
+    };
+    return this.ordersService.updateOrderById(orderId, orderData);
   }
 
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async deleteOrder(
+    @Param('id') orderId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.ordersService.deleteOrder(orderId, user.userId);
+  }
   @Post(':id/assign-driver')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   async assignDriver(
     @Param('id') orderId: string,
     @CurrentUser() user: any,
+    @Body('orderCode') orderCode: string,
   ) {
 
 
-    return this.ordersService.assignDriver(orderId, user.userId);
+    return this.ordersService.assignDriver(orderId, user.userId, orderCode);
   }
 
   @Post(':id/arrive-at-warehouse')

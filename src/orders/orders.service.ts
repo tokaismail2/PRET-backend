@@ -17,7 +17,7 @@ import { WarehouseReceipt, WarehouseReceiptDocument } from '../models/warehouseR
 import { Warehouse, WarehouseDocument } from '../models/warehouse.schema';
 import { Generator, GeneratorDocument } from '../models/generator.schema';
 import { UpdateOrderDto } from './dto/update-order.dto';
-
+import { Material, MaterialDocument } from '../models/material.schema';
 
 @Injectable()
 export class OrdersService {
@@ -29,6 +29,7 @@ export class OrdersService {
     @InjectModel(WarehouseReceipt.name) private warehouseReceiptModel: Model<WarehouseReceiptDocument>,
     @InjectModel(Warehouse.name) private warehouseModel: Model<WarehouseDocument>,
     @InjectModel(Generator.name) private generatorModel: Model<GeneratorDocument>,
+    @InjectModel(Material.name) private materialModel: Model<MaterialDocument>,
   ) { }
 
 
@@ -55,7 +56,7 @@ export class OrdersService {
 
     // Create order
     const order = new this.orderModel({
-      buyer: userId,
+      generatorId: userId,
       materialTypeId: createOrderDto.materialType,
       quantity: createOrderDto.quantity,
       unit: createOrderDto.unit,
@@ -63,7 +64,7 @@ export class OrdersService {
       totalPrice: totalPrice,
       status: OrderStatus.PENDING,
       photos: createOrderDto.photos || [],
-      notes: createOrderDto.notes,
+      notes: createOrderDto.notes
     });
 
     const savedOrder = await order.save();
@@ -72,9 +73,9 @@ export class OrdersService {
 
   async getAllOrders(filters: {
     status?: string;
-    buyerId?: string;
+    generatorId?: string;
     driverId?: string;
-    sellerId?: string;
+    factoryId?: string;
     startDate?: string;
     endDate?: string;
   }) {
@@ -86,19 +87,19 @@ export class OrdersService {
       query.status = filters.status;
     }
 
-    // Filter by buyer
-    if (filters.buyerId) {
-      query.buyer = filters.buyerId;
+    // Filter by generator
+    if (filters.generatorId) {
+      query.generatorId = filters.generatorId;
     }
 
     // Filter by driver
     if (filters.driverId) {
-      query.driver = filters.driverId;
+      query.driverId = filters.driverId;
     }
 
-    // Filter by seller
-    if (filters.sellerId) {
-      query.seller = filters.sellerId;
+    // Filter by factory
+    if (filters.factoryId) {
+      query.factoryId = filters.factoryId;
     }
 
     // Filter by date range
@@ -118,6 +119,9 @@ export class OrdersService {
 
     const orders = await this.orderModel
       .find(query)
+      .populate('generatorId', 'name email phone')
+      .populate('materialTypeId', 'name price')
+
       .sort({ createdAt: -1 })
       .lean();
 
@@ -126,9 +130,9 @@ export class OrdersService {
       orders.map(async (order) => {
         // Get generator details including address
         let generator = null;
-        if (order.buyer && (order.buyer as any)._id) {
+        if (order.generatorId && (order.generatorId as any)._id) {
           generator = await this.generatorModel
-            .findOne({ user: (order.buyer as any)._id })
+            .findOne({ user: (order.generatorId as any)._id })
             .select('businessName generatorType address')
             .lean();
         }
@@ -172,29 +176,30 @@ export class OrdersService {
 
     const order = await this.orderModel
       .findById(orderId)
-      .populate('buyer', 'name email phone')
-      .populate('seller', 'name email phone')
-      .populate('driverId', 'name email phone')
+      .populate('generatorId', 'name email phone')
+      .populate('materialTypeId', 'name price')
       .lean();
 
     if (!order) {
       throw new NotFoundException('Order not found');
     }
 
-    const user = await this.userModel.findById(userId);
-
-    const buyerId = (order.buyer as any)?._id?.toString();
-    const sellerId = (order.seller as any)?._id?.toString();
-
-    if (
-      user.role !== UserRole.ADMIN &&
-      buyerId !== userId &&
-      sellerId !== userId
-    ) {
-      throw new UnauthorizedException('You do not have access to this order');
+    // Get generator details including address
+    let generator = null;
+    if (order.generatorId && (order.generatorId as any)._id) {
+      generator = await this.generatorModel
+        .findOne({ user: (order.generatorId as any)._id })
+        .select('businessName generatorType address')
+        .lean();
     }
 
-    return order;
+    const orderWithAddress = {
+      ...order,
+      generator: generator || null,
+    };
+
+
+    return orderWithAddress;
   }
 
   async updateOrderById(orderId: string, updateDto: UpdateOrderDto) {
@@ -222,6 +227,21 @@ export class OrdersService {
       updateData.notes = updateDto.notes;
     }
 
+    //can update on photo 
+    if (updateDto.photos !== undefined) {
+      updateData.photos = updateDto.photos;
+    }
+
+    if(updateDto.materialType !== undefined){
+      updateData.materialTypeId = updateDto.materialType;
+      const materialType = await this.materialModel.findById(updateDto.materialType);
+      if (!materialType) {
+        throw new NotFoundException('Material type not found');
+      }
+      updateData.price = materialType.price;  
+      updateData.totalPrice = updateData.quantity * materialType.price;
+    }
+
     const updatedOrder = await this.orderModel.findByIdAndUpdate(
       orderId,
       { $set: updateData },
@@ -231,8 +251,31 @@ export class OrdersService {
     return updatedOrder;
   }
 
+  async deleteOrder(orderId: string, userId: string) {
+    const order = await this.orderModel.findById(orderId);
 
-  async assignDriver(orderId: string, driverUserId: string) {
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    // Check if user is the generator who created the order
+    if (order.generatorId.toString() !== userId.toString()) {
+      throw new UnauthorizedException('You do not have permission to delete this order');
+    }
+
+    // Check if order is in a state that can be deleted
+    if (order.status !== OrderStatus.PENDING) {
+      throw new ConflictException('Order cannot be deleted as it is not in PENDING status');
+    }
+
+    // Delete the order
+    await this.orderModel.findByIdAndDelete(orderId);
+
+    return { message: 'Order deleted successfully' };
+  }
+
+
+  async assignDriver(orderId: string, driverUserId: string, orderCode: string) {
 
     const order = await this.orderModel.findById(orderId);
 
@@ -248,13 +291,17 @@ export class OrdersService {
       throw new ConflictException('Driver already assigned');
     }
 
+    if(orderCode.toString() !== order.orderCode.toString()){
+      throw new ConflictException('Order code is incorrect');
+    }
+
     order.driverId = new Types.ObjectId(driverUserId);
     order.status = OrderStatus.IN_TRANSIT;
 
     await order.save();
 
     //add the totalPrice for order to wallet of generator
-    const generator = await this.userModel.findById(order.buyer);
+    const generator = await this.userModel.findById(order.generatorId);
     if (!generator) {
       throw new NotFoundException('Generator not found');
     }

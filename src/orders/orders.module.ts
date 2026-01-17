@@ -13,6 +13,7 @@ import { WarehouseReceipt, WarehouseReceiptSchema } from '../models/warehouseRec
 import { Warehouse, WarehouseSchema } from '../models/warehouse.schema';
 import { Generator, GeneratorSchema } from '../models/generator.schema';
 import { MaterialModule } from '../materialType/material.module';
+import { Material, MaterialSchema } from '../models/material.schema';
 
 
 @Module({
@@ -26,6 +27,7 @@ import { MaterialModule } from '../materialType/material.module';
       { name: WarehouseReceipt.name, schema: WarehouseReceiptSchema },
       { name: Warehouse.name, schema: WarehouseSchema },
       { name: Generator.name, schema: GeneratorSchema },
+      { name: Material.name, schema: MaterialSchema },
     ]),
 
     PassportModule.register({ defaultStrategy: 'jwt' }),

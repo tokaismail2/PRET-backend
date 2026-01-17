@@ -28,7 +28,7 @@ export class PaymentService {
       throw new NotFoundException('Order not found');
     }
 
-    if (order.buyer.toString() !== userId) {
+    if (order.generatorId.toString() !== userId) {
       throw new UnauthorizedException('Not your order');
     }
 

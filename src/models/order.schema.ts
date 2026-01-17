@@ -1,6 +1,6 @@
-import { Driver } from './driver.schema';
+
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Types, Model } from 'mongoose';
 import { User } from './user.schema';
 import { Warehouse } from './warehouse.schema';
 import { Material } from './material.schema';
@@ -19,10 +19,7 @@ export enum OrderStatus {
 @Schema({ timestamps: true })
 export class Order {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  buyer: Types.ObjectId | User;
-
-  @Prop({ type: Types.ObjectId, ref: 'User' })
-  seller?: Types.ObjectId | User;
+  generatorId: Types.ObjectId | User;
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   driverId?: Types.ObjectId | User;
@@ -60,8 +57,30 @@ export class Order {
   })
   status: OrderStatus;
 
+  @Prop()
+  orderCode: string;
+
+
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
+
+//create code of order from 6 digits random and unique
+
+OrderSchema.pre('save', async function () {
+  if (!this.orderCode) {
+    let code: string;
+    let isUnique = false;
+
+    while (!isUnique) {
+      code = Math.floor(100000 + Math.random() * 900000).toString();
+      const existingOrder = await (this.constructor as Model<OrderDocument>).findOne({ orderCode: code, status: OrderStatus.PENDING });
+      if (!existingOrder) {
+        isUnique = true;
+        this.orderCode = code;
+      }
+    }
+  }
+});

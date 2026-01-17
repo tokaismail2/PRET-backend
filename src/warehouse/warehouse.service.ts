@@ -52,5 +52,13 @@ export class WarehouseService {
     return warehouse;
   }
 
+  async remove(id: string): Promise<Warehouse> {
+    const warehouse = await this.warehouseModel.findByIdAndDelete(id);
+    if (!warehouse) {
+      throw new NotFoundException('Warehouse not found');
+    }
+    return warehouse;
+  }
+
 
 }

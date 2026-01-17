@@ -7,6 +7,8 @@ import { Generator, GeneratorSchema } from '../models/generator.schema';
 import { Factory, FactorySchema } from '../models/factory.schema';
 import { Driver, DriverSchema } from '../models/driver.schema';
 import { ImageKitModule } from '../imagekit/imagekit.module';
+import { AuditLog, AuditLogSchema } from '../models/auditLog.schema';
+import { UsersProblems, UsersProblemsSchema } from '../models/usersProblems.schema';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { ImageKitModule } from '../imagekit/imagekit.module';
       { name: Generator.name, schema: GeneratorSchema },
       { name: Factory.name, schema: FactorySchema },
       { name: Driver.name, schema: DriverSchema },
+      { name: AuditLog.name, schema: AuditLogSchema },
+      { name: UsersProblems.name, schema: UsersProblemsSchema },
     ]),
     ImageKitModule,
   ],
