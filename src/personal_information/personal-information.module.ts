@@ -9,6 +9,8 @@ import { Driver, DriverSchema } from '../models/driver.schema';
 import { ImageKitModule } from '../imagekit/imagekit.module';
 import { AuditLog, AuditLogSchema } from '../models/auditLog.schema';
 import { UsersProblems, UsersProblemsSchema } from '../models/usersProblems.schema';
+import { UserWallet, UserWalletSchema } from '../models/userWallet.schema';
+import { WalletTransaction, WalletTransactionSchema } from '../models/walletTransactions.schema';
 
 @Module({
   imports: [
@@ -19,6 +21,8 @@ import { UsersProblems, UsersProblemsSchema } from '../models/usersProblems.sche
       { name: Driver.name, schema: DriverSchema },
       { name: AuditLog.name, schema: AuditLogSchema },
       { name: UsersProblems.name, schema: UsersProblemsSchema },
+      { name: UserWallet.name, schema: UserWalletSchema },
+      { name: WalletTransaction.name, schema: WalletTransactionSchema },
     ]),
     ImageKitModule,
   ],

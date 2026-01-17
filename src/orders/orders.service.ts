@@ -149,26 +149,36 @@ export class OrdersService {
 
   }
 
-  async getOrdersByUser(userId: string, status?: OrderStatus) {
+  async getMyOrdersHistory(userId: string, status?: string) {
     const user = await this.userModel.findById(userId);
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    const query: any = { buyer: userId };
+    let filter: any = {};
+
+    if (user.role === UserRole.GENERATOR) {
+      filter.generatorId = userId;
+    }
+    else if (user.role === UserRole.DRIVER) {
+      filter.driverId = userId;
+    }
+    else {
+      throw new ForbiddenException('Invalid role');
+    }
+
+    // add status only if it exists
     if (status) {
-      query.status = status;
+      filter.status = status;
     }
 
     const orders = await this.orderModel
-      .find(query)
-      .populate('seller', 'name email phone')
+      .find(filter)
       .sort({ createdAt: -1 })
       .exec();
 
     return orders;
-
   }
 
   async getOrderById(orderId: string, userId: string) {
@@ -232,13 +242,13 @@ export class OrdersService {
       updateData.photos = updateDto.photos;
     }
 
-    if(updateDto.materialType !== undefined){
+    if (updateDto.materialType !== undefined) {
       updateData.materialTypeId = updateDto.materialType;
       const materialType = await this.materialModel.findById(updateDto.materialType);
       if (!materialType) {
         throw new NotFoundException('Material type not found');
       }
-      updateData.price = materialType.price;  
+      updateData.price = materialType.price;
       updateData.totalPrice = updateData.quantity * materialType.price;
     }
 
@@ -291,7 +301,7 @@ export class OrdersService {
       throw new ConflictException('Driver already assigned');
     }
 
-    if(orderCode.toString() !== order.orderCode.toString()){
+    if (orderCode.toString() !== order.orderCode.toString()) {
       throw new ConflictException('Order code is incorrect');
     }
 

@@ -15,6 +15,8 @@ import * as bcrypt from 'bcrypt';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UsersProblems, UsersProblemsDocument } from '../models/usersProblems.schema';
 import { RequestProblemDto } from './dto/request-problem.dto';
+import { UserWallet, UserWalletDocument } from '../models/userWallet.schema';
+import { WalletTransaction, WalletTransactionDocument } from '../models/walletTransactions.schema';
 
 
 @Injectable()
@@ -25,6 +27,8 @@ export class PersonalInformationService {
     @InjectModel(Factory.name) private factoryModel: Model<FactoryDocument>,
     @InjectModel(Driver.name) private driverModel: Model<DriverDocument>,
     @InjectModel(UsersProblems.name) private usersProblemsModel: Model<UsersProblemsDocument>,
+    @InjectModel(UserWallet.name) private userWalletModel: Model<UserWalletDocument>,
+    @InjectModel(WalletTransaction.name) private walletTransactionsModel: Model<WalletTransactionDocument>,
     private imageKitService: ImageKitService,
   ) { }
 
@@ -178,6 +182,20 @@ export class PersonalInformationService {
     .lean();
     return usersProblems;
   }
+  async getMyWallet(userId: string): Promise<any> {
+    const wallet = await this.userWalletModel.findOne({userId: userId}).select('balance').lean();
+    if (!wallet) {
+      throw new BadRequestException('Wallet not found');
+    }
+
+    const walletTransactions = await this.walletTransactionsModel.findOne({walletId: wallet._id}).lean();
+    return {
+      wallet,
+      walletTransactions,
+    };
+  }
+
+
 
   async updateLocation(
     userId: string,

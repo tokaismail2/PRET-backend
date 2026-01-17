@@ -106,31 +106,19 @@ export class OrdersController {
     };
   }
 
-  @Get()
+  @Get('history')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async getMyOrders(
+  async getMyOrdersHistory(
     @CurrentUser() user: any,
     @Query('status') status?: string,
   ) {
-    let statusEnum: OrderStatus | undefined;
-    if (status) {
-      statusEnum = Object.values(OrderStatus).find(
-        (s) => s.toLowerCase() === status.toLowerCase(),
-      ) as OrderStatus;
-      if (!statusEnum) {
-        throw new BadRequestException(
-          `Invalid status. Valid values: ${Object.values(OrderStatus).join(', ')}`,
-        );
-      }
-    }
-    const orders = await this.ordersService.getOrdersByUser(user.userId, statusEnum);
+    const orders = await this.ordersService.getMyOrdersHistory(user.userId, status);
     return {
       message: 'Orders retrieved successfully',
       data: orders,
     };
   }
-
   @Get('all')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
