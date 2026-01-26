@@ -174,10 +174,11 @@ export class AuthService {
     if (role === UserRole.GENERATOR) {
       if (!dto.generatorType) throw new BadRequestException('Generator type is required');
       if (!dto.businessName) throw new BadRequestException('Business name is required');
-      if (!dto.address) throw new BadRequestException('Address is required');
-    } else if (role === UserRole.FACTORY) {
-      if (!dto.address) throw new BadRequestException('Address is required');
+      // if (!dto.address) throw new BadRequestException('Address is required');
     }
+    //  else if (role === UserRole.FACTORY) {
+    //   if (!dto.address) throw new BadRequestException('Address is required');
+    // }
   }
 
   private async createRoleSpecificRecord(role: UserRole, userId: string, dto: RegisterDto) {
