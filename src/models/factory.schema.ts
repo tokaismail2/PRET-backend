@@ -13,6 +13,7 @@ export class Factory {
         type: {
             street: String,
             city: String,
+            //optional
             state: String,
             zipCode: String,
             country: String,
@@ -26,8 +27,8 @@ export class Factory {
     address: {
         street: string;
         city: string;
-        state: string;
-        zipCode: string;
+        state?: string;
+        zipCode?: string;
         country: string;
         coordinates?: {
             latitude: number;
