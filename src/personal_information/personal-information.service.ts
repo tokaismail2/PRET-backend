@@ -97,7 +97,7 @@ export class PersonalInformationService {
     };
   }
   async getProfile(userId: string): Promise<Omit<User, 'password'>> {
-    const user = await this.userModel.findById(userId).select('name email profilePicture role phoneNumber').lean();
+    const user = await this.userModel.findById(userId).select('name email profilePicture role phone').lean();
     if (!user) {
       throw new BadRequestException('User not found');
     }
