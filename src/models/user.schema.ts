@@ -12,7 +12,7 @@ export enum UserRole {
 
 @Schema({ timestamps: true })
 export class User {
-  @Prop({ required: true, unique: true, lowercase: true, trim: true, sparse: true })
+  @Prop({ required: true, lowercase: true, trim: true, sparse: true })
   email: string;
 
   @Prop({ required: function () { return !this.authProvider || this.authProvider === 'email'; } })
@@ -64,3 +64,14 @@ UserSchema.post('save', async function (doc) {
     }
   }
 });
+
+
+
+
+UserSchema.index(
+  { email: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { isVerified: true }
+  }
+);
