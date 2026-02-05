@@ -27,7 +27,7 @@ export class User {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ unique: true, sparse: true, trim: true })
+  @Prop({ sparse: true, trim: true })
   phone?: string;
 
   @Prop({ required: true, enum: UserRole, default: UserRole.GENERATOR })
@@ -70,6 +70,14 @@ UserSchema.post('save', async function (doc) {
 
 UserSchema.index(
   { email: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { isVerified: true }
+  }
+);
+
+UserSchema.index(
+  { phone: 1 },
   {
     unique: true,
     partialFilterExpression: { isVerified: true }
