@@ -2,9 +2,6 @@ import { IsNumber, IsString, IsDate } from 'class-validator';
 
 
 export class CreateAuctionDto {
-  @IsString()
-  warehouse_id: string;
-
 
   @IsString()
   waste_id: string;

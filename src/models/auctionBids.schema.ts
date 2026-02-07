@@ -12,7 +12,7 @@ export class AuctionBid {
   factory_id: Types.ObjectId;
   
   @Prop({ required: true })
-  price_per_kg: number;
+  total_price: number;
 
 
 }

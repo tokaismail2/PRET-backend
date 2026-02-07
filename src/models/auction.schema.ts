@@ -7,9 +7,6 @@ export type AuctionDocument = Auction & Document;
 export class Auction {
   @Prop({ required: true })
   waste_id: Types.ObjectId;
-
-  @Prop({ required: true })
-  warehouse_id: Types.ObjectId;
   
   @Prop({ required: true })
   start_price: number;
@@ -26,11 +23,11 @@ export class Auction {
   @Prop({ default: 'open' })
   status: 'open' | 'closed';
 
-  @Prop({ default: null })
-  winnerFactory?: string;
+  @Prop({ default: null , ref: 'Factory' })
+  winnerFactory?: Types.ObjectId;
 
   @Prop({ default: null })
-  final_price?: number;
+    final_price?: number;
 
 }
 

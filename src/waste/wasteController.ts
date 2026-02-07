@@ -52,9 +52,5 @@ export class WasteController {
     return this.wasteService.remove(id);
   }
 
-  // 🤖 AI – total quantity per type
-  @Get('ai/total/:material_id')
-  getTotalQuantity(@Param('material_id') material_id: string) {
-    return this.wasteService.getTotalQuantityByType(material_id);
-  }
+
 }

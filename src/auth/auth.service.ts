@@ -126,6 +126,12 @@ export class AuthService {
       await this.userModel.findByIdAndDelete(savedUser._id);
       throw error;
     }
+    
+    //temporary for driver
+    if(role === UserRole.DRIVER){
+      savedUser.isVerified = true;
+      await savedUser.save();
+    }
 
     // Skip verification for drivers
     if (role !== UserRole.DRIVER) {

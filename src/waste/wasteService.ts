@@ -13,10 +13,11 @@ export class WasteService {
     private wasteModel: Model<WasteDocument>,
   ) { }
 
-  // CREATE
+  // استلام الويست من الوير هاوس 
   async create(createWasteDto: CreateWasteDto): Promise<Waste> {
     const waste = new this.wasteModel(createWasteDto);
     return waste.save();
+    
   }
 
   // READ ALL
@@ -57,16 +58,4 @@ export class WasteService {
     return { message: 'Waste deleted successfully' };
   }
 
-  // 🤖 AI HELPER – إجمالي الكمية حسب النوع
-  async getTotalQuantityByType(material_id: string) {
-    return this.wasteModel.aggregate([
-      { $match: { material_id: material_id } },
-      {
-        $group: {
-          _id: '$material_id',
-          total_weight: { $sum: '$total_weight' },
-        },
-      },
-    ]);
-  }
 }
