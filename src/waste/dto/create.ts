@@ -12,7 +12,7 @@ export class CreateWasteDto {
   @IsNumber()
   total_weight: number;
 
-  
+
   @IsNumber()
   price: number;
 
@@ -21,4 +21,5 @@ export class CreateWasteDto {
   @IsOptional()
   @IsString()
   description?: string;
+
 }

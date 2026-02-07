@@ -13,6 +13,9 @@ import { CreateWasteDto } from './dto/create';
 import { UpdateWasteDto } from './dto/update';
 import authorize from '../auth/guards/roles.guard';
 import { UserRole } from '../models/user.schema';
+import { UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { Req } from '@nestjs/common';
 
 @Controller('waste')
 export class WasteController {
@@ -20,9 +23,12 @@ export class WasteController {
 
   // 1️⃣ Create waste
   @Post()
-  @authorize(UserRole.ADMIN)
-  create(@Body() createWasteDto: CreateWasteDto) {
-    return this.wasteService.create(createWasteDto);
+  @authorize(UserRole.DRIVER)
+  //driver_id from req.user.id
+  @UseGuards(AuthGuard('jwt'))
+
+  create(@Body() createWasteDto: CreateWasteDto, @Req() req) {
+    return this.wasteService.create(createWasteDto, req.user.userId);
   }
 
   // 2️⃣ Get all waste

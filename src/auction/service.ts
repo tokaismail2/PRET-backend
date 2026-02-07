@@ -1,10 +1,13 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Auction, AuctionDocument } from '../models/auction.schema';
 import { CreateAuctionDto } from './dto/create';
 import { Waste, WasteDocument } from '../models/waste.schema';
 import { AuctionBid, AuctionBidDocument } from '../models/auctionBids.schema';
+import { User, UserDocument } from '../models/user.schema';
+import { UserWallet, UserWalletDocument } from '../models/userWallet.schema';
+import { WalletTransaction, WalletTransactionDocument } from '../models/walletTransactions.schema';
 
 @Injectable()
 export class AuctionService {
@@ -15,6 +18,9 @@ export class AuctionService {
     private wasteModel: Model<WasteDocument>,
     @InjectModel(AuctionBid.name)
     private auctionBidModel: Model<AuctionBidDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(UserWallet.name) private userWalletModel: Model<UserWalletDocument>,
+    @InjectModel(WalletTransaction.name) private walletTransactionModel: Model<WalletTransactionDocument>,
   ) { }
 
   async createAuction(dto: CreateAuctionDto) {
@@ -40,7 +46,7 @@ export class AuctionService {
 
     //create bid
     const bid = new this.auctionBidModel({
-      auction_id: auctionId,
+      auction_id: auction._id,
       total_price: bidAmount,
       factory_id: factoryId,
     });
@@ -50,16 +56,102 @@ export class AuctionService {
     return auction.save();
   }
 
-  async closeAuction(auctionId: string) {
-    const auction = await this.auctionModel.findById(auctionId);
-    if (!auction) throw new BadRequestException('Auction not found');
 
-    auction.status = 'closed';
-    //calculate winner factory
-    const winnerFactory = await this.auctionBidModel.findOne({ auction_id: auctionId }).sort({ total_price: -1 });
-    auction.winnerFactory = winnerFactory.factory_id;
-    auction.final_price = winnerFactory.total_price;
-    return auction.save();
+  async closeAuction(auctionId: string) {
+    const auction = await this.auctionModel.findById(auctionId).lean();
+
+    if (!auction) {
+      throw new BadRequestException('Auction not found');
+    }
+
+    if (auction.status === 'closed') {
+      throw new BadRequestException('Auction is already closed');
+    }
+
+    const highestBid = await this.auctionBidModel
+      .findOne({ auction_id: new Types.ObjectId(auctionId) })
+      .sort({ total_price: -1 })
+      .lean();
+
+
+    if (!highestBid) {
+      await this.auctionModel.updateOne(
+        { _id: auctionId },
+        {
+          status: 'closed',
+          winnerFactory: null,
+          final_price: null,
+        }
+      );
+
+      return {
+        status: 'closed',
+        winnerFactory: null,
+        final_price: null,
+      };
+    }
+
+    await this.auctionModel.updateOne(
+      { _id: auctionId },
+      {
+        status: 'closed',
+        winnerFactory: highestBid.factory_id,
+        final_price: highestBid.total_price,
+      }
+    );
+
+
+    //update waste status to sold
+    await this.wasteModel.updateOne(
+      { _id: auctionId },
+      { status: 'sold' }
+    );
+
+        // add price to admin wallet (driver take the action)
+        const admin = await this.userModel.findOne({ role: 'admin' });
+        if (!admin) throw new NotFoundException('Admin not found');
+    
+        const wallet = await this.userWalletModel.findOne({ userId: admin._id });
+        if (!wallet) throw new NotFoundException('Wallet not found');
+        wallet.balance += highestBid.total_price;
+        await wallet.save();
+    
+        //create wallet transaction 
+        const walletTransaction = new this.walletTransactionModel({
+          walletId: wallet._id,
+          type: 'deposit',
+          amount: highestBid.total_price,
+          description: `Deposit for auction ${auction._id}`,
+        });
+        await walletTransaction.save();
+
+        //minus price from factory wallet
+        const factory = await this.userModel.findById(highestBid.factory_id);
+        if (!factory) throw new NotFoundException('Factory not found');
+
+        const factoryWallet = await this.userWalletModel.findOne({ userId: factory._id });
+        if (!factoryWallet) throw new NotFoundException('Wallet not found');
+        factoryWallet.balance -= highestBid.total_price;
+        await factoryWallet.save();
+
+        //create wallet transaction 
+        const factoryWalletTransaction = new this.walletTransactionModel({
+          walletId: factoryWallet._id,
+          type: 'withdrawal',
+          amount: highestBid.total_price,
+          description: `Withdrawal for auction ${auction._id}`,
+        });
+        await factoryWalletTransaction.save();
+
+
+
+    return {
+      status: 'closed',
+      winnerFactory: highestBid.factory_id,
+      final_price: highestBid.total_price,
+    };
+
+
   }
 
   //get all auctions with bids 

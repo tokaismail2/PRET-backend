@@ -6,8 +6,11 @@ export type WasteDocument = Waste & Document;
 
 @Schema({ timestamps: true })
 export class Waste {
-  @Prop({ type: Types.ObjectId, ref: 'Warehouse', required: true, unique: true })
+  @Prop({ type: Types.ObjectId, ref: 'Warehouse', required: true })
   warehouse_id: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  driver_id: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Material', required: true })
   material_id: Types.ObjectId;
