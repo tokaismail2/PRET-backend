@@ -10,6 +10,8 @@ import {
   UseInterceptors,
   UploadedFiles,
   BadRequestException,
+  Query,
+  Put,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { DonationsService } from './donations.service';
@@ -19,18 +21,21 @@ import { CurrentUser } from '../auth/decorators/user.decorator';
 import { ImageKitService } from '../imagekit/imagekit.service';
 import { MulterFile } from '../common/types/multer-file.type';
 import { multerConfig } from '../common/config/multer.config';
+import authorize from '../auth/guards/roles.guard';
+import { UserRole } from '../models/user.schema';
 
 @Controller('donations')
 export class DonationsController {
   constructor(
     private readonly donationsService: DonationsService,
     private readonly imageKitService: ImageKitService,
-  ) {}
+  ) { }
 
   @Post()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
-  @UseInterceptors(FilesInterceptor('photos', 3, multerConfig))
+  @authorize(UserRole.GENERATOR)
+  @UseInterceptors(FilesInterceptor('images', 3, multerConfig))
   async createDonation(
     @CurrentUser() user: any,
     @Body() body: any,
@@ -42,10 +47,10 @@ export class DonationsController {
       createDonationDto = {
         mealsProvided: parseInt(body.mealsProvided, 10),
         notes: body.notes,
-        photos: body.photos
-          ? (typeof body.photos === 'string'
-              ? JSON.parse(body.photos)
-              : body.photos)
+        images: body.images
+          ? (typeof body.images === 'string'
+            ? JSON.parse(body.images)
+            : body.images)
           : undefined,
       };
     } catch (error) {
@@ -75,7 +80,7 @@ export class DonationsController {
     // Add photo URLs to DTO
     const donationData = {
       ...createDonationDto,
-      photos: photoUrls.length > 0 ? photoUrls : createDonationDto.photos,
+      images: photoUrls.length > 0 ? photoUrls : createDonationDto.images,
     };
 
     const donation = await this.donationsService.createDonation(
@@ -92,6 +97,7 @@ export class DonationsController {
   @Get()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
+  @authorize(UserRole.GENERATOR)
   async getMyDonations(@CurrentUser() user: any) {
     const donations = await this.donationsService.getDonationsByUser(
       user.userId,
@@ -102,9 +108,47 @@ export class DonationsController {
     };
   }
 
+  @Get('get')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @authorize(UserRole.ADMIN)
+  async getAllDonations(@Query() query: any) {
+    const page = Math.max(1, parseInt(query.page) || 1);
+    const limit = Math.max(1, parseInt(query.limit) || 10);
+
+    return {
+      pagination: {
+        total: await this.donationsService.getDonationCount(),
+        page,
+        limit,
+      },
+      data: await this.donationsService.getAllDonations(page, limit),
+    };
+  }
+
+  //assign donation to charity
+  @Put(':id/assign')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @authorize(UserRole.ADMIN)
+  async assignDonation(
+    @Param('id') id: string,
+    @Body() body: { charity: string },
+  ) {
+    const donation = await this.donationsService.assignDonation(
+      id,
+      body.charity,
+    );
+    return {
+      message: 'Donation assigned successfully',
+      donation,
+    };
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
+  @authorize(UserRole.GENERATOR, UserRole.ADMIN)
   async getDonationById(
     @Param('id') id: string,
     @CurrentUser() user: any,
@@ -118,5 +162,6 @@ export class DonationsController {
       donation,
     };
   }
+
 }
 

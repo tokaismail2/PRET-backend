@@ -41,17 +41,17 @@ export class DonationsService {
 
     // Validate photos count
     if (
-      createDonationDto.photos &&
-      createDonationDto.photos.length > 3
+      createDonationDto.images &&
+      createDonationDto.images.length > 3
     ) {
       throw new BadRequestException('Maximum 3 photos allowed');
     }
 
     // Create donation
     const donation = new this.donationModel({
-      donor: userId,
+      generator: userId,
       mealsProvided: createDonationDto.mealsProvided,
-      photos: createDonationDto.photos || [],
+      images: createDonationDto.images || [],
       status: DonationStatus.PENDING,
       notes: createDonationDto.notes,
     });
@@ -68,8 +68,7 @@ export class DonationsService {
     }
 
     const donations = await this.donationModel
-      .find({ donor: userId })
-      .populate('charity', 'name email phone')
+      .find({ generator: userId })
       .sort({ createdAt: -1 })
       .exec();
 
@@ -82,8 +81,7 @@ export class DonationsService {
   
     const donation = await this.donationModel
       .findById(donationId)
-      .populate('donor', 'name email phone')
-      .populate('charity', 'name email phone')
+      .populate('generator', 'name email phone')
       .exec();
   
     if (!donation) {
@@ -91,23 +89,17 @@ export class DonationsService {
     }
   
     // Extract IDs safely
-    const donorId =
-      donation.donor instanceof Types.ObjectId
-        ? donation.donor.toString()
-        : (donation.donor as any)?._id?.toString();
-  
-    const charityId =
-      donation.charity instanceof Types.ObjectId
-        ? donation.charity.toString()
-        : (donation.charity as any)?._id?.toString();
-  
+    const generatorId =
+      donation.generator instanceof Types.ObjectId
+        ? donation.generator.toString()
+        : (donation.generator as any)?._id?.toString();
+
     const user = await this.userModel.findById(userId);
   
-    // Allow access if: Admin OR donor OR charity
+    // Allow access if: Admin OR donor
     if (
       user.role !== UserRole.ADMIN &&
-      donorId !== userId &&
-      charityId !== userId
+      generatorId !== userId 
     ) {
       throw new UnauthorizedException(
         'You do not have access to this donation',
@@ -115,6 +107,33 @@ export class DonationsService {
     }
   
     return donation;
+  }
+
+  async assignDonation(donationId: string, charity: string) {
+    const donation = await this.donationModel.findById(donationId);
+    if (!donation) {
+      throw new NotFoundException('Donation not found');
+    }
+    donation.charity = charity;
+    donation.status = DonationStatus.ACCEPTED;
+    await donation.save();
+    return donation;
+  }
+  
+  //paginate all donations for admin
+  async getAllDonations(page: number, limit: number) {
+    const donations = await this.donationModel
+      .find()
+      .populate('generator', 'name email phone')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .exec();
+    return donations;
+  }
+
+  async getDonationCount() {
+    return this.donationModel.countDocuments().lean();
   }
   
 }
