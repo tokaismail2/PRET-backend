@@ -1,10 +1,11 @@
 import { IsNumber, IsString, IsDate } from 'class-validator';
+import { Types } from 'mongoose';
 
 
 export class CreateAuctionDto {
 
   @IsString()
-  waste_id: string;
+  waste_id: Types.ObjectId;
 
 
   @IsNumber()

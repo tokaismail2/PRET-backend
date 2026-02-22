@@ -28,7 +28,6 @@ import { FirebaseModule } from '../firebase/firebase.module';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET') || 'your-secret-key-change-in-production',
-        signOptions: { expiresIn: '7d' },
       }),
       inject: [ConfigService],
     }),

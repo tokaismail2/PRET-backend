@@ -23,6 +23,7 @@ import { MulterFile } from '../common/types/multer-file.type';
 import { multerConfig } from '../common/config/multer.config';
 import authorize from '../auth/guards/roles.guard';
 import { UserRole } from '../models/user.schema';
+import { AuditLogInterceptorFactory } from "../audit-log/audit-log.interceptor";
 
 @Controller('donations')
 export class DonationsController {
@@ -35,7 +36,10 @@ export class DonationsController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   @authorize(UserRole.GENERATOR)
-  @UseInterceptors(FilesInterceptor('images', 3, multerConfig))
+  @UseInterceptors(
+    FilesInterceptor('photos', 3, multerConfig),
+    AuditLogInterceptorFactory('create_donation'),
+  )
   async createDonation(
     @CurrentUser() user: any,
     @Body() body: any,
@@ -131,6 +135,9 @@ export class DonationsController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @authorize(UserRole.ADMIN)
+  @UseInterceptors(
+    AuditLogInterceptorFactory('assign_donation'),
+  )
   async assignDonation(
     @Param('id') id: string,
     @Body() body: { charity: string },

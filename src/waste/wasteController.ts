@@ -16,6 +16,8 @@ import { UserRole } from '../models/user.schema';
 import { UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Req } from '@nestjs/common';
+import { AuditLogInterceptorFactory } from "../audit-log/audit-log.interceptor";
+import { UseInterceptors } from '@nestjs/common';
 
 @Controller('waste')
 export class WasteController {
@@ -26,7 +28,9 @@ export class WasteController {
   @authorize(UserRole.DRIVER)
   //driver_id from req.user.id
   @UseGuards(AuthGuard('jwt'))
-
+  @UseInterceptors(
+    AuditLogInterceptorFactory('create_waste'),
+  )
   create(@Body() createWasteDto: CreateWasteDto, @Req() req) {
     return this.wasteService.create(createWasteDto, req.user.userId);
   }
@@ -45,6 +49,9 @@ export class WasteController {
 
   // 4️⃣ Update waste
   @Patch(':id')
+  @UseInterceptors(
+    AuditLogInterceptorFactory('update_waste'),
+  )
   update(
     @Param('id') id: string,
     @Body() updateWasteDto: UpdateWasteDto,
@@ -54,6 +61,9 @@ export class WasteController {
 
   // 5️⃣ Delete waste
   @Delete(':id')
+  @UseInterceptors(
+    AuditLogInterceptorFactory('delete_waste'),
+  )
   remove(@Param('id') id: string) {
     return this.wasteService.remove(id);
   }

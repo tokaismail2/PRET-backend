@@ -1,9 +1,5 @@
-import { Driver } from './models/driver.schema';
-import { ReportModule } from './report/report.module';
+
 import { UsersModule } from './user/user.module';
-import { RatingModule } from "./rating/rating.module";
-import { PaymentModule } from './payment/pyment.module'
-import { MaintenanceModule } from "./maintenance/maintenance.module";
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
@@ -13,7 +9,7 @@ import { ImageKitModule } from './imagekit/imagekit.module';
 import { PersonalInformationModule } from './personal_information/personal-information.module';
 import { OrdersModule } from './orders/orders.module';
 import { DonationsModule } from './donations/donations.module';
-// import { DashboardModule } from './dashboard/dashboard.module';
+ import { DashboardModule } from './dashboard/dashboard.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PaymobModule } from "./paymob/paymob.module";
@@ -50,12 +46,8 @@ import { MongooseModule } from '@nestjs/mongoose';
     PersonalInformationModule,
     OrdersModule,
     DonationsModule,
-    // DashboardModule,
+    DashboardModule,
     UsersModule,
-    ReportModule,
-    RatingModule,
-    PaymentModule,
-    MaintenanceModule,
     PaymobModule,
     AdminModule,
     AuditLogModule,

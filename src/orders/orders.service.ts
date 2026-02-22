@@ -57,7 +57,7 @@ export class OrdersService {
     // Create order
     const order = new this.orderModel({
       generatorId: userId,
-      materialTypeId: createOrderDto.materialType,
+      materialTypeId: new Types.ObjectId(createOrderDto.materialType),
       quantity: createOrderDto.quantity,
       unit: createOrderDto.unit,
       price: createOrderDto.price,
