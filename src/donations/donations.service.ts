@@ -42,9 +42,9 @@ export class DonationsService {
     // Validate photos count
     if (
       createDonationDto.images &&
-      createDonationDto.images.length > 3
+      createDonationDto.images.length > 5
     ) {
-      throw new BadRequestException('Maximum 3 photos allowed');
+      throw new BadRequestException('Maximum 5 photos allowed');
     }
 
     // Create donation

@@ -6,12 +6,16 @@ import ImageKit from 'imagekit';
 export class ImageKitService implements OnModuleInit {
   private imagekit: ImageKit;
 
-  constructor(private configService: ConfigService) {}
+  constructor(private configService: ConfigService) { }
 
   onModuleInit() {
     const publicKey = this.configService.get<string>('IMAGEKIT_PUBLIC_KEY');
     const privateKey = this.configService.get<string>('IMAGEKIT_PRIVATE_KEY');
     const urlEndpoint = this.configService.get<string>('IMAGEKIT_URL_ENDPOINT');
+
+    console.log('PUBLIC:', publicKey);
+    console.log('PRIVATE:', privateKey);
+    console.log('ENDPOINT:', urlEndpoint);
 
     if (!publicKey || !privateKey || !urlEndpoint) {
       console.warn(

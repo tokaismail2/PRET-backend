@@ -39,10 +39,10 @@ export class CreateOrderDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  @ArrayMaxSize(3, {
-    message: 'Maximum 3 photos allowed',
+  @ArrayMaxSize(5, {
+    message: 'Maximum 5 photos allowed',
   })
-  photos?: string[]; // URLs to photos (up to 3)
+  photos?: string[]; // URLs to photos (up to 5)
 
   @IsOptional()
   @IsString()

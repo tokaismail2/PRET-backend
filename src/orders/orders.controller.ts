@@ -72,8 +72,8 @@ export class OrdersController {
     // Upload photos if provided
     let photoUrls: string[] = [];
     if (files && files.length > 0) {
-      if (files.length > 3) {
-        throw new BadRequestException('Maximum 3 photos allowed');
+      if (files.length > 5) {
+        throw new BadRequestException('Maximum 5 photos allowed');
       }
 
       photoUrls = await Promise.all(
@@ -174,8 +174,8 @@ export class OrdersController {
     // Upload photos if provided
     let photoUrls: string[] = [];
     if (files && files.length > 0) {
-      if (files.length > 3) {
-        throw new BadRequestException('Maximum 3 photos allowed');
+      if (files.length > 5) {
+        throw new BadRequestException('Maximum 5 photos allowed');
       }
 
       photoUrls = await Promise.all(
