@@ -13,8 +13,6 @@ export enum OrderStatus {
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
   IN_TRANSIT = 'in_transit',
-
-
 }
 @Schema({ timestamps: true })
 export class Order {

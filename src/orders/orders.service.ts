@@ -175,6 +175,7 @@ export class OrdersService {
 
     const orders = await this.orderModel
       .find(filter)
+      .populate('materialTypeId')
       .sort({ createdAt: -1 })
       .exec();
 
