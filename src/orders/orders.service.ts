@@ -189,6 +189,7 @@ export class OrdersService {
       .findById(orderId)
       .populate('generatorId', 'name email phone')
       .populate('materialTypeId', 'name price')
+      .populate('driverId', 'name email phone')
       .lean();
 
     if (!order) {
