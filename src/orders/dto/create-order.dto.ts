@@ -9,8 +9,9 @@ import {
   IsArray,
   Max,
   ArrayMaxSize,
+
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Types } from 'mongoose';
 class CoordinatesDto {
   @IsNumber()
   latitude: number;
@@ -23,7 +24,7 @@ class CoordinatesDto {
 
 export class CreateOrderDto {
   @IsString()
-  materialType: string;
+  materialType:  Types.ObjectId;
 
   @IsNumber()
   @Min(0)
