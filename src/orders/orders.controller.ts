@@ -38,7 +38,7 @@ export class OrdersController {
   ) { }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)  
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(
     FilesInterceptor('photos', 3, multerConfig),
@@ -120,6 +120,18 @@ export class OrdersController {
     };
   }
 
+  //cancel order by admin 
+  @Put('cancell/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuditLogInterceptorFactory('cancel_order'))
+  async cancelOrder(
+    @Param('id') orderId: string,
+    @CurrentUser() user: any,
+    @Body() body: any,
+  ) {
+    return this.ordersService.cancelOrder(orderId, user.userId, body.reason);
+  }
   @Get('all')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
@@ -146,43 +158,6 @@ export class OrdersController {
     };
   }
 
-  //cancel order by admin 
-  @Put(':id/cancell')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
-  @UseInterceptors(AuditLogInterceptorFactory('cancel_order'))
-  async cancelOrder(
-    @Param('id') orderId: string,
-    @CurrentUser() user: any,
-    @Body() body: any,
-  ) {
-    return this.ordersService.cancelOrder(orderId, user.userId, body.reason);
-  }
-
-  @Post(':id/assign-driver')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
-  async assignDriver(
-    @Param('id') orderId: string,
-    @CurrentUser() user: any,
-    @Body('orderCode') orderCode: string,
-  ) {
-
-
-    return this.ordersService.assignDriver(orderId, user.userId, orderCode);
-  }
-
-  @Post(':id/arrive-at-warehouse')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
-  async arriveAtWarehouse(
-    @Param('id') orderId: string,
-    @Body('warehouseId') warehouseId: string,
-    @CurrentUser() user: any,
-  ) {
-    return this.ordersService.arriveToWarehouse(orderId, warehouseId, user.userId);
-  }
-
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
@@ -207,7 +182,7 @@ export class OrdersController {
   async updateOrderById(
     @Param('id') orderId: string,
     @Body() updateData: UpdateOrderDto,
-    @UploadedFiles() files?: MulterFile[],
+     @UploadedFiles() files?: MulterFile[],
   ) {
     // Upload photos if provided
     let photoUrls: string[] = [];
@@ -246,6 +221,29 @@ export class OrdersController {
     @CurrentUser() user: any,
   ) {
     return this.ordersService.deleteOrder(orderId, user.userId);
+  }
+  @Post(':id/assign-driver')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async assignDriver(
+    @Param('id') orderId: string,
+    @CurrentUser() user: any,
+    @Body('orderCode') orderCode: string,
+  ) {
+
+
+    return this.ordersService.assignDriver(orderId, user.userId, orderCode);
+  }
+
+  @Post(':id/arrive-at-warehouse')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async arriveAtWarehouse(
+    @Param('id') orderId: string,
+    @Body('warehouseId') warehouseId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.ordersService.arriveToWarehouse(orderId, warehouseId, user.userId);
   }
 }
 

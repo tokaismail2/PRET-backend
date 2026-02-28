@@ -34,7 +34,7 @@ export class Order {
   @Prop({ required: true })
   unit: string; // 'kg', 'tons', etc.
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   reason: string;
 
   @Prop({ min: 0 })
