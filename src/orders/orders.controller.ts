@@ -119,6 +119,19 @@ export class OrdersController {
       data: orders,
     };
   }
+
+  //cancel order by admin 
+  @Put('cancell/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuditLogInterceptorFactory('cancel_order'))
+  async cancelOrder(
+    @Param('id') orderId: string,
+    @CurrentUser() user: any,
+    @Body() body: any,
+  ) {
+    return this.ordersService.cancelOrder(orderId, user.userId, body.reason);
+  }
   @Get('all')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)

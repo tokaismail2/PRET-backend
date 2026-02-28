@@ -34,12 +34,14 @@ export class Order {
   @Prop({ required: true })
   unit: string; // 'kg', 'tons', etc.
 
+  @Prop({ required: true })
+  reason: string;
+
   @Prop({ min: 0 })
   price?: number; // price per unit
 
   @Prop({ min: 0 })
   totalPrice?: number;
-
 
 
   @Prop()

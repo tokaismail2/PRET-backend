@@ -182,6 +182,24 @@ export class OrdersService {
     return orders;
   }
 
+  async cancelOrder(orderId: string, userId: string, reason: string) {
+    const order = await this.orderModel.findById(orderId);
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.status !== OrderStatus.PENDING) {
+      throw new BadRequestException('Order cannot be cancelled');
+    }
+
+    order.status = OrderStatus.CANCELLED;
+    order.reason = reason;
+    await order.save();
+
+    return order;
+  }
+
   async getOrderById(orderId: string, userId: string) {
     userId = userId.toString(); // important
 
