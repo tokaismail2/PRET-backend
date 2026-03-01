@@ -80,7 +80,7 @@ export class PersonalInformationController {
       user: updatedUser,
     };
   }
-  //delete image 
+
   @Delete('delete-image')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
