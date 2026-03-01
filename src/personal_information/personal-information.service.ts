@@ -149,6 +149,28 @@ export class PersonalInformationService {
     };
   }
 
+  async deleteProfilePicture(
+    userId: string,
+  ): Promise<Omit<User, 'password'>> {
+    const user = await this.userModel.findById(userId);
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is inactive');
+    }
+
+    user.profilePicture = null;
+    await user.save();
+
+    const { password, ...userWithoutPassword } = user.toObject() as any;
+    return {
+      ...userWithoutPassword,
+    };
+  }
+
   async requestProblem(
     userId: string,
     requestProblemDto: RequestProblemDto,

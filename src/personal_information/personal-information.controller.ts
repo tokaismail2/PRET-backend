@@ -10,7 +10,8 @@ import {
   UseInterceptors,
   BadRequestException,
   Get,
-  Put
+  Put,
+  Delete
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PersonalInformationService } from './personal-information.service';
@@ -23,6 +24,7 @@ import authorize from '../auth/guards/roles.guard';
 import { UserRole } from '../models/user.schema';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { RequestProblemDto } from './dto/request-problem.dto';
+
 
 @Controller('personal-information')
 export class PersonalInformationController {
@@ -78,6 +80,26 @@ export class PersonalInformationController {
       user: updatedUser,
     };
   }
+  //delete image 
+  @Delete('delete-image')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @authorize(UserRole.ADMIN, UserRole.DRIVER, UserRole.FACTORY, UserRole.GENERATOR)
+  @UseInterceptors(
+    AuditLogInterceptorFactory('delete_image'),
+  )
+  async deleteImage(
+    @CurrentUser() user: any,
+  ) {
+    const updatedUser = await this.personalInformationService.deleteProfilePicture(
+      user.userId,
+    );
+    return {
+      message: 'Image deleted successfully',
+      user: updatedUser,
+    };
+  }
+
 
   @Get('profile')
   @UseGuards(JwtAuthGuard)
