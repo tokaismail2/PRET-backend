@@ -248,7 +248,7 @@ export class PersonalInformationService {
       .find({ walletId: wallet._id })
       .populate({
         path: 'orderId',
-        select: 'photos materialTypeId',  // include both fields
+        select: 'photos quantity unit price totalPrice createdAt materialTypeId',  // include both fields
         populate: {
           path: 'materialTypeId',         // nested populate still works
         }
