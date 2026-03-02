@@ -31,9 +31,8 @@ export class WalletTransaction {
 
 export const WalletTransactionSchema = SchemaFactory.createForClass(WalletTransaction);
 
-WalletTransactionSchema.pre<WalletTransactionDocument>('save', function (next: any) {
+WalletTransactionSchema.pre<WalletTransactionDocument>('save', async function () {
   if (this.isNew) {
     this.transactionId = crypto.randomInt(10000000, 99999999).toString();
   }
-  next();
 });
