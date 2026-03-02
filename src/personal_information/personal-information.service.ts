@@ -248,9 +248,9 @@ export class PersonalInformationService {
       .find({ walletId: wallet._id })
       .populate({
         path: 'orderId',
-        select: 'materialTypeId',
+        select: 'photos materialTypeId',  // include both fields
         populate: {
-          path: 'materialTypeId',
+          path: 'materialTypeId',         // nested populate still works
         }
       })
       .sort({ createdAt: -1 })
