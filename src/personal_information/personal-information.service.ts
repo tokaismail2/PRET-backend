@@ -245,16 +245,17 @@ export class PersonalInformationService {
     }
 
     const walletTransactions = await this.walletTransactionsModel
-      .findOne({ walletId: wallet._id })
+      .find({ walletId: wallet._id })
       .populate({
         path: 'orderId',
         select: 'materialTypeId',
         populate: {
           path: 'materialTypeId',
-          // select: 'name ...' // optionally limit fields
         }
       })
+      .sort({ createdAt: -1 })
       .lean();
+
     return {
       wallet,
       walletTransactions,
