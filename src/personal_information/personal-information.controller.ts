@@ -186,16 +186,16 @@ export class PersonalInformationController {
       user: updatedUser,
     };
   }
-
   @Get('wallet')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @authorize(UserRole.DRIVER, UserRole.FACTORY, UserRole.GENERATOR)
   async getWallet(@CurrentUser() user: any) {
-    const wallet = await this.personalInformationService.getMyWallet(user.userId);
+    const { wallet, walletTransactions } = await this.personalInformationService.getMyWallet(user.userId);
     return {
       message: 'Wallet retrieved successfully',
       wallet,
+      walletTransactions,
     };
   }
 
