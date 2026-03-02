@@ -20,6 +20,9 @@ export class WalletTransaction {
 
   @Prop({ required: true })
   description: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'Order', required: false })
+  orderId: Types.ObjectId;
 }
 
 export const WalletTransactionSchema = SchemaFactory.createForClass(WalletTransaction);

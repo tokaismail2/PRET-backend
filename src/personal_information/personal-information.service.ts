@@ -244,7 +244,17 @@ export class PersonalInformationService {
       throw new BadRequestException('Wallet not found');
     }
 
-    const walletTransactions = await this.walletTransactionsModel.findOne({ walletId: wallet._id }).lean();
+    const walletTransactions = await this.walletTransactionsModel
+      .findOne({ walletId: wallet._id })
+      .populate({
+        path: 'orderId',
+        select: 'materialTypeId',
+        populate: {
+          path: 'materialTypeId',
+          // select: 'name ...' // optionally limit fields
+        }
+      })
+      .lean();
     return {
       wallet,
       walletTransactions,
