@@ -345,7 +345,7 @@ export class OrdersService {
       walletId: wallet._id,
       type: 'deposit',
       amount: order.totalPrice,
-      description: `Deposit for order ${order._id}`,
+      description: `Deposit for order ${order.orderCode}`,
     });
     await walletTransaction.save();
 
