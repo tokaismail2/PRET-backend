@@ -22,7 +22,7 @@ export class WalletTransaction {
   @Prop({ required: true })
   description: string;
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   transactionId: string;
 
   @Prop({ type: Types.ObjectId, ref: 'Order', required: false })
