@@ -60,8 +60,8 @@ export class CreateUserDto {
   phone?: string;
 
   @IsOptional()
-  @IsIn(['generator', 'factory', 'driver'], {
-    message: 'Invalid role. Must be one of: generator, factory, driver',
+  @IsIn(['generator', 'factory', 'driver' , 'admin'], {
+    message: 'Invalid role. Must be one of: generator, factory, driver, admin',
   })
   role?: 'generator' | 'factory' | 'driver' | 'admin';
 
