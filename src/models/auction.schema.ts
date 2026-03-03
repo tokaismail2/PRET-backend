@@ -7,6 +7,12 @@ export type AuctionDocument = Auction & Document;
 export class Auction {
   @Prop({ required: true , ref: 'Waste' })
   waste_id: Types.ObjectId;
+
+  @Prop({ required: true , ref: 'Warehouse' })
+  warehouse_id: Types.ObjectId;
+
+  @Prop({ required: true })
+  image: string;
   
   @Prop({ required: true })
   start_price: number;

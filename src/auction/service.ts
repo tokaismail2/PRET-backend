@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import { Auction, AuctionDocument } from '../models/auction.schema';
 import { CreateAuctionDto } from './dto/create';
 import { Waste, WasteDocument } from '../models/waste.schema';
@@ -8,7 +8,6 @@ import { AuctionBid, AuctionBidDocument } from '../models/auctionBids.schema';
 import { User, UserDocument } from '../models/user.schema';
 import { UserWallet, UserWalletDocument } from '../models/userWallet.schema';
 import { WalletTransaction, WalletTransactionDocument } from '../models/walletTransactions.schema';
-
 @Injectable()
 export class AuctionService {
   constructor(
@@ -23,20 +22,22 @@ export class AuctionService {
     @InjectModel(WalletTransaction.name) private walletTransactionModel: Model<WalletTransactionDocument>,
   ) { }
 
+  // ✅ Service بقى نضيف بدون أي لوجيك صور
   async createAuction(dto: CreateAuctionDto) {
     dto.waste_id = new Types.ObjectId(dto.waste_id);
+    dto.warehouse_id = new Types.ObjectId(dto.warehouse_id);
+
+    const waste = await this.wasteModel.findById(dto.waste_id);
+    if (!waste) throw new BadRequestException('Waste not found');
+
     const auction = new this.auctionModel(dto);
     const savedAuction = await auction.save();
 
-    // Update waste status to 'in_auction'
-    const waste = await this.wasteModel.findById(dto.waste_id);
-    if (!waste) throw new BadRequestException('Waste not found');
     waste.status = 'in_auction';
     await waste.save();
 
     return savedAuction;
   }
-
   async placeBid(auctionId: string, bidAmount: number, factoryId: string) {
     const auction = await this.auctionModel.findById(auctionId);
     if (!auction) throw new BadRequestException('Auction not found');
@@ -206,11 +207,93 @@ export class AuctionService {
       .populate({
         path: 'waste_id',
         populate: {
-          path: 'material_id'  
+          path: 'material_id'
         }
       })
       .sort({ createdAt: -1 })
       .lean();
+  }
+
+  // Get auction by ID with recent 5 bids + populated fields
+  async getAuctionById(auctionId: string) {
+    const auction = await this.auctionModel.aggregate([
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(auctionId),
+        },
+      },
+      // Populate waste_id
+      {
+        $lookup: {
+          from: "wastes",
+          localField: "waste_id",
+          foreignField: "_id",
+          as: "waste",
+        },
+      },
+      {
+        $unwind: {
+          path: "$waste",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      // Populate warehouse_id
+      {
+        $lookup: {
+          from: "warehouses",
+          localField: "warehouse_id",
+          foreignField: "_id",
+          as: "warehouse",
+        },
+      },
+      {
+        $unwind: {
+          path: "$warehouse",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      // Recent 5 bids
+      {
+        $lookup: {
+          from: "auctionbids",
+          localField: "_id",
+          foreignField: "auction_id",
+          as: "recent_bids",
+          pipeline: [
+            { $sort: { createdAt: -1 } },
+            { $limit: 5 },
+            {
+              $lookup: {
+                from: "factories",
+                localField: "factory_id",
+                foreignField: "_id",
+                as: "factory",
+              },
+            },
+            {
+              $unwind: {
+                path: "$factory",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          highest_bid: { $max: "$recent_bids.total_price" },
+        },
+      },
+      // Remove raw IDs, keep populated objects
+      {
+        $project: {
+          waste_id: 0,
+          warehouse_id: 0,
+        },
+      },
+    ]);
+
+    return auction[0] ?? null;
   }
 
 

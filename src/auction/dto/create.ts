@@ -7,6 +7,11 @@ export class CreateAuctionDto {
   @IsString()
   waste_id: Types.ObjectId;
 
+  @IsString()
+  warehouse_id: Types.ObjectId;
+
+  @IsString()
+  image: string;
 
   @IsNumber()
   start_price: number;

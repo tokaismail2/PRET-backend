@@ -8,6 +8,7 @@ import { AuctionBid, AuctionBidSchema } from '../models/auctionBids.schema';
 import { User, UserSchema } from '../models/user.schema';
 import { UserWallet, UserWalletSchema } from '../models/userWallet.schema';
 import { WalletTransaction, WalletTransactionSchema } from '../models/walletTransactions.schema';
+import { ImageKitModule } from '../imagekit/imagekit.module';
 
 @Module({
   imports: [
@@ -18,7 +19,9 @@ import { WalletTransaction, WalletTransactionSchema } from '../models/walletTran
       { name: User.name, schema: UserSchema },
       { name: UserWallet.name, schema: UserWalletSchema },
       { name: WalletTransaction.name, schema: WalletTransactionSchema },
+      
     ]),
+    ImageKitModule,
   ],
   controllers: [AuctionController],
   providers: [AuctionService],
