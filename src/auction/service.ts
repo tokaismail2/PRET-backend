@@ -104,14 +104,12 @@ export class AuctionService {
 
     //update waste status to sold
     await this.wasteModel.updateOne(
-      { _id: auctionId },
+      { _id: auction.waste_id },
       { status: 'sold' }
     );
 
     // add price to admin wallet (driver take the action)
-    const wallet = await this.userWalletModel.findOne({
-      userId: adminId  
-    });
+    const wallet = await this.userWalletModel.findOne({ userId: new Types.ObjectId(adminId) })
     if (!wallet) throw new NotFoundException('admin wallet not found');
     wallet.balance += highestBid.total_price;
     await wallet.save();
