@@ -58,7 +58,7 @@ export class AuctionService {
   }
 
 
-  async closeAuction(auctionId: string, adminId: Types.ObjectId) {
+  async closeAuction(auctionId: string, adminId: string) {
     const auction = await this.auctionModel.findById(auctionId).lean();
 
     if (!auction) {
@@ -109,8 +109,8 @@ export class AuctionService {
     );
 
     // add price to admin wallet (driver take the action)
-    const wallet = await this.userWalletModel.findOne({ userId: adminId });
-    if (!wallet) throw new NotFoundException('Wallet not found');
+    const wallet = await this.userWalletModel.findOne({ userId: new Types.ObjectId(adminId) });
+    if (!wallet) throw new NotFoundException('admin wallet not found');
     wallet.balance += highestBid.total_price;
     await wallet.save();
 
@@ -119,7 +119,7 @@ export class AuctionService {
       walletId: wallet._id,
       type: 'deposit',
       amount: highestBid.total_price,
-      description: `Deposit for auction ${auction._id}`,
+      description: `Deposit for auction ${auction._id} for admin`,
     });
     await walletTransaction.save();
 
@@ -128,7 +128,7 @@ export class AuctionService {
     if (!factory) throw new NotFoundException('Factory not found');
 
     const factoryWallet = await this.userWalletModel.findOne({ userId: factory._id });
-    if (!factoryWallet) throw new NotFoundException('Wallet not found');
+    if (!factoryWallet) throw new NotFoundException('factory wallet not found');
     factoryWallet.balance -= highestBid.total_price;
     await factoryWallet.save();
 
@@ -137,7 +137,7 @@ export class AuctionService {
       walletId: factoryWallet._id,
       type: 'withdrawal',
       amount: highestBid.total_price,
-      description: `Withdrawal for auction ${auction._id}`,
+      description: `Withdrawal for auction ${auction._id} from factory`,
     });
     await factoryWalletTransaction.save();
 
