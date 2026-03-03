@@ -57,7 +57,7 @@ export class AuctionService {
   }
 
 
-  async closeAuction(auctionId: string) {
+  async closeAuction(auctionId: string, adminId: string) {
     const auction = await this.auctionModel.findById(auctionId).lean();
 
     if (!auction) {
@@ -108,10 +108,7 @@ export class AuctionService {
     );
 
         // add price to admin wallet (driver take the action)
-        const admin = await this.userModel.findOne({ role: 'admin' });
-        if (!admin) throw new NotFoundException('Admin not found');
-    
-        const wallet = await this.userWalletModel.findOne({ userId: admin._id });
+        const wallet = await this.userWalletModel.findOne({ userId: adminId });
         if (!wallet) throw new NotFoundException('Wallet not found');
         wallet.balance += highestBid.total_price;
         await wallet.save();
