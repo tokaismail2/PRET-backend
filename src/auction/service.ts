@@ -24,6 +24,7 @@ export class AuctionService {
   ) { }
 
   async createAuction(dto: CreateAuctionDto) {
+    dto.waste_id = new Types.ObjectId(dto.waste_id);
     const auction = new this.auctionModel(dto);
     const savedAuction = await auction.save();
 
