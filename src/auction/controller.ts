@@ -45,6 +45,7 @@ export class AuctionController {
 
   @Put('close/:id')
   @authorize(UserRole.ADMIN)
+  @UseGuards(AuthGuard('jwt'))
   close(@Param('id') id: string, @Req() req: any) {
     return this.auctionService.closeAuction(id, req.user.userId); // ← pass admin id
   }
