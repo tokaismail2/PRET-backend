@@ -22,7 +22,7 @@ export class AuctionService {
     @InjectModel(WalletTransaction.name) private walletTransactionModel: Model<WalletTransactionDocument>,
   ) { }
 
-  // ✅ Service بقى نضيف بدون أي لوجيك صور
+
   async createAuction(dto: CreateAuctionDto) {
     dto.waste_id = new Types.ObjectId(dto.waste_id);
     dto.warehouse_id = new Types.ObjectId(dto.warehouse_id);

@@ -9,6 +9,7 @@ import { User, UserSchema } from '../models/user.schema';
 import { UserWallet, UserWalletSchema } from '../models/userWallet.schema';
 import { WalletTransaction, WalletTransactionSchema } from '../models/walletTransactions.schema';
 import { ImageKitModule } from '../imagekit/imagekit.module';
+import { AuditLog, AuditLogSchema } from '../models/auditLog.schema';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { ImageKitModule } from '../imagekit/imagekit.module';
       { name: User.name, schema: UserSchema },
       { name: UserWallet.name, schema: UserWalletSchema },
       { name: WalletTransaction.name, schema: WalletTransactionSchema },
-      
+      { name: AuditLog.name, schema: AuditLogSchema },
     ]),
     ImageKitModule,
   ],
