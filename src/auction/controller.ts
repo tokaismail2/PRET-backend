@@ -30,7 +30,7 @@ export class AuctionController {
   }
 
   @Get('wastes')
-  @authorize(UserRole.FACTORY)
+   @authorize(UserRole.FACTORY)
   getWasteAuctions(
     @Query('status') status?: 'open' | 'closed',
   ) {
@@ -46,7 +46,7 @@ export class AuctionController {
   @Put('close/:id')
   @authorize(UserRole.ADMIN)
   close(@Param('id') id: string, @Req() req: any) {
-    return this.auctionService.closeAuction(id, req.user._id); // ← pass admin id
+    return this.auctionService.closeAuction(id, req.user.userId); // ← pass admin id
   }
 
 }
