@@ -190,12 +190,40 @@ export class AuctionService {
     ]);
   }
 
-  //get active auctions for factory
-  async getActiveAuctionsForFactory(factoryId: string) {
-    return this.auctionModel.find({
-      status: 'open'
-    }).populate('waste_id');
-  }
+async getActiveAuctions(materialName?: string) {
+  const pipeline: any[] = [
+    { $match: { status: 'open' } },
+
+    // Auction → Waste
+    {
+      $lookup: {
+        from: 'wastes',
+        localField: 'waste_id',
+        foreignField: '_id',
+        as: 'waste'
+      }
+    },
+    { $unwind: '$waste' },
+
+    // Waste → Material
+    {
+      $lookup: {
+        from: 'materials',
+        localField: 'waste.material_id',
+        foreignField: '_id',
+        as: 'waste.material'
+      }
+    },
+    { $unwind: '$waste.material' },
+
+    // ✅ الفلتر هنا
+    ...(materialName ? [{
+      $match: { 'waste.material.name': materialName }
+    }] : []),
+  ];
+
+  return this.auctionModel.aggregate(pipeline);
+}
 
   async getWasteAuctions(status?: 'open' | 'closed') {
     const query: any = {};

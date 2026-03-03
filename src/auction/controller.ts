@@ -50,8 +50,8 @@ export class AuctionController {
 
   @Get('active')
   @authorize(UserRole.FACTORY)
-  getActiveAuctionsForFactory(@Req() req) {
-    return this.auctionService.getActiveAuctionsForFactory(req.user.userId);
+  getActiveAuctions(@Query('material') material?: string) {
+    return this.auctionService.getActiveAuctions(material);
   }
 
   @Get('wastes')
