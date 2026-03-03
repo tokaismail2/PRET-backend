@@ -1,12 +1,12 @@
-import { IsNumber, IsString, IsOptional } from 'class-validator';
+import { IsNumber, IsString, IsOptional, IsMongoId } from 'class-validator';
 import { Types } from 'mongoose';
 
 export class CreateWasteDto {
-
+  @IsMongoId()
   warehouse_id: Types.ObjectId;
 
 
-
+  @IsMongoId()
   material_id: Types.ObjectId;
 
 
