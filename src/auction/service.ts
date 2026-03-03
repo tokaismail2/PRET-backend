@@ -57,7 +57,7 @@ export class AuctionService {
   }
 
 
-  async closeAuction(auctionId: string, adminId: string) {
+  async closeAuction(auctionId: string, adminId: Types.ObjectId) {
     const auction = await this.auctionModel.findById(auctionId).lean();
 
     if (!auction) {
