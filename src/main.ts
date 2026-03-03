@@ -27,6 +27,8 @@ async function bootstrap(): Promise<void> {
       },
       disableErrorMessages: configService.get('NODE_ENV') === 'production',
     }),
+
+    
   );
 
   // Global interceptors
