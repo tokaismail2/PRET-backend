@@ -229,7 +229,7 @@ export class DashboardService {
             totalBidsAtCurrentMonth,
             totalWinsAtAuctions,
             activeAuctions,
-            totalWeightOfWaste,
+            totalWeightOfWaste: totalWeightOfWaste.reduce((sum, item) => sum + item.totalWeight, 0),
             totalSpentAtCurrentMonth,
             recentActivity,
         };
