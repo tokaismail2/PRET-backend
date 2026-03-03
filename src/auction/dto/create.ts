@@ -1,4 +1,4 @@
-import { IsNumber, IsString, IsDate } from 'class-validator';
+import { IsNumber, IsString, IsDate, IsOptional } from 'class-validator';
 import { Types } from 'mongoose';
 
 
@@ -11,12 +11,13 @@ export class CreateAuctionDto {
   warehouse_id: Types.ObjectId;
 
   @IsString()
-  image: string;
+  @IsOptional()
+  image?: string;
 
   @IsNumber()
   start_price: number;
 
-  
+
   @IsNumber()
   current_price: number;
 
