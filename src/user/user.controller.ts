@@ -26,7 +26,7 @@ import { AuditLogInterceptorFactory } from "../audit-log/audit-log.interceptor";
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@authorize(UserRole.ADMIN)
+// @authorize(UserRole.ADMIN)
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
 
