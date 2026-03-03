@@ -9,9 +9,10 @@ import {
   IsArray,
   Max,
   ArrayMaxSize,
-
+  IsMongoId,
 } from 'class-validator';
 import { Types } from 'mongoose';
+import { Transform } from 'class-transformer';
 class CoordinatesDto {
   @IsNumber()
   latitude: number;
@@ -23,8 +24,10 @@ class CoordinatesDto {
 
 
 export class CreateOrderDto {
-  @IsString()
-  materialType:  Types.ObjectId;
+
+  @IsMongoId()
+  @Transform(({ value }) => new Types.ObjectId(value))
+  materialType: Types.ObjectId;
 
   @IsNumber()
   @Min(0)

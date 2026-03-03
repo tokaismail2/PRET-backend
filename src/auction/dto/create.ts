@@ -1,16 +1,19 @@
-import { IsNumber, IsString, IsDate } from 'class-validator';
+import { IsNumber, IsString, IsDate, IsMongoId } from 'class-validator';
 import { Types } from 'mongoose';
+import { Transform } from 'class-transformer';
 
 
 export class CreateAuctionDto {
 
+  @IsMongoId()
+  @Transform(({ value }) => new Types.ObjectId(value))
   waste_id: Types.ObjectId;
 
 
   @IsNumber()
   start_price: number;
 
-  
+
   @IsNumber()
   current_price: number;
 
