@@ -5,7 +5,7 @@ export type AuctionDocument = Auction & Document;
 
 @Schema({ timestamps: true })
 export class Auction {
-  @Prop({ required: true })
+  @Prop({ required: true , ref: 'Waste' })
   waste_id: Types.ObjectId;
   
   @Prop({ required: true })

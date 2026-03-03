@@ -203,7 +203,7 @@ export class AuctionService {
       query.status = status;
     }
 
-    return this.auctionModel.find(query).populate('waste_id');
+    return this.auctionModel.find(query).populate('waste_id').sort({ createdAt: -1 }).lean();
   }
 
 
