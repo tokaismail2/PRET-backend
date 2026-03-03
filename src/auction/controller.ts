@@ -21,7 +21,7 @@ export class AuctionController {
   getAll() {
     return this.auctionService.getAllAuctionsWithBids();
   }
-  
+
   @Get('active')
   @authorize(UserRole.FACTORY)
   getActiveAuctionsForFactory(@Req() req) {
@@ -30,7 +30,7 @@ export class AuctionController {
   @Post(':id/bid')
   @authorize(UserRole.FACTORY)
   @UseGuards(AuthGuard('jwt'))
-  bid(@Param('id') id: string, @Body() dto: CreateBidDto,@Req() req) {
+  bid(@Param('id') id: string, @Body() dto: CreateBidDto, @Req() req) {
     return this.auctionService.placeBid(id, dto.total_price, req.user.userId);
   }
 
