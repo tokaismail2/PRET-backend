@@ -4,7 +4,6 @@ import { Types } from 'mongoose';
 
 export class CreateAuctionDto {
 
-  @IsString()
   waste_id: Types.ObjectId;
 
 
