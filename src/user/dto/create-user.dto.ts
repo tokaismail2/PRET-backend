@@ -63,7 +63,7 @@ export class CreateUserDto {
   @IsIn(['generator', 'factory', 'driver'], {
     message: 'Invalid role. Must be one of: generator, factory, driver',
   })
-  role?: 'generator' | 'factory' | 'driver';
+  role?: 'generator' | 'factory' | 'driver' | 'admin';
 
   @ValidateIf((o) => o.role === 'generator')
   @IsEnum(GeneratorType, {
