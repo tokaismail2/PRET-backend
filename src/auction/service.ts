@@ -110,7 +110,7 @@ export class AuctionService {
 
     // add price to admin wallet (driver take the action)
     const wallet = await this.userWalletModel.findOne({ userId: new Types.ObjectId(adminId) })
-    if (!wallet) throw new NotFoundException('admin wallet not found');
+    if (!wallet) throw new NotFoundException(`admin wallet not found ${adminId}`);
     wallet.balance += highestBid.total_price;
     await wallet.save();
 
