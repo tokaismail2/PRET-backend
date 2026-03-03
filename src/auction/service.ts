@@ -202,8 +202,15 @@ export class AuctionService {
     if (status) {
       query.status = status;
     }
-
-    return this.auctionModel.find(query).populate('waste_id').sort({ createdAt: -1 }).lean();
+    return this.auctionModel.find(query)
+      .populate({
+        path: 'waste_id',
+        populate: {
+          path: 'material_id'  
+        }
+      })
+      .sort({ createdAt: -1 })
+      .lean();
   }
 
 
