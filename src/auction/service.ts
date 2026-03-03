@@ -191,5 +191,14 @@ export class AuctionService {
     ]);
   }
 
+  //get active auctions for factory
+  async getActiveAuctionsForFactory(factoryId: string) {
+    return this.auctionModel.find({
+      status: 'open'
+    }).populate('waste_id');
+  }
+
+
+
 
 }

@@ -21,7 +21,12 @@ export class AuctionController {
   getAll() {
     return this.auctionService.getAllAuctionsWithBids();
   }
-
+  
+  @Get('active')
+  @authorize(UserRole.FACTORY)
+  getActiveAuctionsForFactory(@Req() req) {
+    return this.auctionService.getActiveAuctionsForFactory(req.user.userId);
+  }
   @Post(':id/bid')
   @authorize(UserRole.FACTORY)
   @UseGuards(AuthGuard('jwt'))
