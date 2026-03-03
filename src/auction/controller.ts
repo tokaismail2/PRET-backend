@@ -34,7 +34,7 @@ export class AuctionController {
     return this.auctionService.placeBid(id, dto.total_price, req.user.userId);
   }
 
-  @Put(':id/close')
+  @Put('close/:id')
   @authorize(UserRole.ADMIN)
   close(@Param('id') id: string) {
     return this.auctionService.closeAuction(id);
