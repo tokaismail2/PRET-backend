@@ -301,42 +301,27 @@ export class AuctionService {
       },
       { $sort: { createdAt: -1 } },
       { $limit: 5 },
-      // Populate factory
+      // Lookup factory user directly from users collection
       {
         $lookup: {
-          from: "factories",
-          localField: "factory_id",
-          foreignField: "_id",
-          as: "factory",
+          from: 'users',        // ← was 'factories', but your data lives in 'users'
+          localField: 'factory_id',
+          foreignField: '_id',
+          as: 'factory',
         },
       },
       {
         $unwind: {
-          path: "$factory_id",
+          path: '$factory',     // ← was unwinding factory_id (wrong field)
           preserveNullAndEmptyArrays: true,
         },
       },
-      // Populate factory's user
-      {
-        $lookup: {
-          from: "users",
-          localField: "factory.user",
-          foreignField: "_id",
-          as: "factory.user",
-        },
-      },
-      {
-        $unwind: {
-          path: "$factory.user",
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      // Strip sensitive user fields
+      // Strip sensitive fields
       {
         $project: {
-          "factory.user.password": 0,
-          "factory.user.authProvider": 0,
-          "factory.user.__v": 0,
+          'factory.password': 0,
+          'factory.authProvider': 0,
+          'factory.__v': 0,
           factory_id: 0,
         },
       },
@@ -344,7 +329,9 @@ export class AuctionService {
 
     return {
       recent_bids: result,
-      highest_bid: result.length ? Math.max(...result.map((b) => b.total_price)) : null,
+      highest_bid: result.length
+        ? Math.max(...result.map((b) => b.total_price))
+        : null,
     };
   }
 
