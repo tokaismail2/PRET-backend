@@ -190,40 +190,39 @@ export class AuctionService {
     ]);
   }
 
-async getActiveAuctions(materialName?: string) {
-  const pipeline: any[] = [
-    { $match: { status: 'open' } },
+  async getActiveAuctions(materialName?: string) {
+    const pipeline: any[] = [
+      { $match: { status: 'open' } },
 
-    // Auction → Waste
-    {
-      $lookup: {
-        from: 'wastes',
-        localField: 'waste_id',
-        foreignField: '_id',
-        as: 'waste'
-      }
-    },
-    { $unwind: '$waste' },
+      // Auction → Waste
+      {
+        $lookup: {
+          from: 'wastes',
+          localField: 'waste_id',
+          foreignField: '_id',
+          as: 'waste'
+        }
+      },
+      { $unwind: '$waste' },
 
-    // Waste → Material
-    {
-      $lookup: {
-        from: 'materials',
-        localField: 'waste.material_id',
-        foreignField: '_id',
-        as: 'waste.material'
-      }
-    },
-    { $unwind: '$waste.material' },
+      // Waste → Material
+      {
+        $lookup: {
+          from: 'materials',
+          localField: 'waste.material_id',
+          foreignField: '_id',
+          as: 'waste.material'
+        }
+      },
+      { $unwind: '$waste.material' },
 
-    // ✅ الفلتر هنا
-    ...(materialName ? [{
-      $match: { 'waste.material.name': materialName }
-    }] : []),
-  ];
+      ...(materialName ? [{
+        $match: { 'waste.material.name': materialName }
+      }] : []),
+    ];
 
-  return this.auctionModel.aggregate(pipeline);
-}
+    return this.auctionModel.aggregate(pipeline);
+  }
 
   async getWasteAuctions(status?: 'open' | 'closed') {
     const query: any = {};
@@ -242,7 +241,7 @@ async getActiveAuctions(materialName?: string) {
       .lean();
   }
 
-  // Get auction by ID with recent 5 bids + populated fields
+  // Get auction by ID with populated fields
   async getAuctionById(auctionId: string) {
     const auction = await this.auctionModel.aggregate([
       {
@@ -280,38 +279,6 @@ async getActiveAuctions(materialName?: string) {
           preserveNullAndEmptyArrays: true,
         },
       },
-      // Recent 5 bids
-      {
-        $lookup: {
-          from: "auctionbids",
-          localField: "_id",
-          foreignField: "auction_id",
-          as: "recent_bids",
-          pipeline: [
-            { $sort: { createdAt: -1 } },
-            { $limit: 5 },
-            {
-              $lookup: {
-                from: "factories",
-                localField: "factory_id",
-                foreignField: "_id",
-                as: "factory",
-              },
-            },
-            {
-              $unwind: {
-                path: "$factory",
-                preserveNullAndEmptyArrays: true,
-              },
-            },
-          ],
-        },
-      },
-      {
-        $addFields: {
-          highest_bid: { $max: "$recent_bids.total_price" },
-        },
-      },
       // Remove raw IDs, keep populated objects
       {
         $project: {
@@ -324,6 +291,62 @@ async getActiveAuctions(materialName?: string) {
     return auction[0] ?? null;
   }
 
+  // Get recent 5 bids for an auction with highest bid
+  async getRecentBids(auctionId: string) {
+    const result = await this.auctionBidModel.aggregate([
+      {
+        $match: {
+          auction_id: new mongoose.Types.ObjectId(auctionId),
+        },
+      },
+      { $sort: { createdAt: -1 } },
+      { $limit: 5 },
+      // Populate factory
+      {
+        $lookup: {
+          from: "factories",
+          localField: "factory_id",
+          foreignField: "_id",
+          as: "factory",
+        },
+      },
+      {
+        $unwind: {
+          path: "$factory",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      // Populate factory's user
+      {
+        $lookup: {
+          from: "users",
+          localField: "factory.user",
+          foreignField: "_id",
+          as: "factory.user",
+        },
+      },
+      {
+        $unwind: {
+          path: "$factory.user",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      // Strip sensitive user fields
+      {
+        $project: {
+          "factory.user.password": 0,
+          "factory.user.authProvider": 0,
+          "factory.user.__v": 0,
+          factory_id: 0,
+        },
+      },
+    ]);
+
+    return {
+      recent_bids: result,
+      highest_bid: result.length ? Math.max(...result.map((b) => b.total_price)) : null,
+    };
+  }
 
 
 

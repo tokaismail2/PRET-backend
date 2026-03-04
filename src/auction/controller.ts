@@ -61,6 +61,13 @@ export class AuctionController {
   ) {
     return this.auctionService.getWasteAuctions(status);
   }
+
+  @Get(':id/bids')
+  @authorize(UserRole.ADMIN, UserRole.FACTORY)
+  getRecentBids(@Param('id') id: string) {
+    return this.auctionService.getRecentBids(id);
+  }
+
   @Post(':id/bid')
   @authorize(UserRole.FACTORY)
   @UseGuards(AuthGuard('jwt'))
