@@ -301,28 +301,47 @@ export class AuctionService {
       },
       { $sort: { createdAt: -1 } },
       { $limit: 5 },
-      // Lookup factory user directly from users collection
+
+      // Step 1: Lookup the Factory document (has address, etc.)
       {
         $lookup: {
-          from: 'users',        // ← was 'factories', but your data lives in 'users'
+          from: 'factories',
           localField: 'factory_id',
-          foreignField: '_id',
+          foreignField: 'user',   // ← Factory doc links to User via 'user' field
           as: 'factory',
         },
       },
       {
         $unwind: {
-          path: '$factory',     // ← was unwinding factory_id (wrong field)
+          path: '$factory',
           preserveNullAndEmptyArrays: true,
         },
       },
-      // Strip sensitive fields
+
+      // Step 2: Lookup the User document for name, email, phone, etc.
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'factory.user',
+          foreignField: '_id',
+          as: 'factory.user',
+        },
+      },
+      {
+        $unwind: {
+          path: '$factory.user',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      // Step 3: Strip sensitive fields
       {
         $project: {
-          'factory.password': 0,
-          'factory.authProvider': 0,
-          'factory.__v': 0,
           factory_id: 0,
+          'factory.__v': 0,
+          'factory.user.password': 0,
+          'factory.user.authProvider': 0,
+          'factory.user.__v': 0,
         },
       },
     ]);
@@ -334,7 +353,6 @@ export class AuctionService {
         : null,
     };
   }
-
 
 
 
