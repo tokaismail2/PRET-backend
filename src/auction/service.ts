@@ -312,7 +312,7 @@ export class AuctionService {
       },
       {
         $unwind: {
-          path: "$factory",
+          path: "$factory_id",
           preserveNullAndEmptyArrays: true,
         },
       },
