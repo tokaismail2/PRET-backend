@@ -64,12 +64,17 @@ export class AuctionController {
 
   @Get('my-waste-auctions')
   @authorize(UserRole.FACTORY)
-  @UseGuards(AuthGuard('jwt')) // your existing guard
+  @UseGuards(AuthGuard('jwt'))
   getWasteAuction(
     @Req() req: any,
-    @Query('filter') filter?: 'my_bids' | 'completed_bids',
+    @Query('completed') completed?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.auctionService.getWasteAuction(req.user.userId, filter);
+    const isCompleted = completed === 'true' ? true : undefined;
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    return this.auctionService.getWasteAuction(req.user.userId, isCompleted, pageNum, limitNum);
   }
 
   @Get(':id/bids')

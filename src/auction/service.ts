@@ -354,55 +354,62 @@ export class AuctionService {
     };
   }
 
-  //get waste auction (my bids --> waste that at auction i joined at ) (my completed bids --> waste at auction that i win it )
-
-
   async getWasteAuction(
     factoryId: Types.ObjectId,
-    filter?: 'my_bids' | 'completed_bids',
+    completed?: boolean,
+    page: number = 1,
+    limit: number = 10,
   ) {
+    const skip = (page - 1) * limit;
+
     // Step 1: Get all auction IDs this factory has bid on
     const factoryBids = await this.auctionBidModel
       .find({ factory_id: factoryId })
       .distinct('auction_id');
 
-    if (!factoryBids.length) return [];
+    if (!factoryBids.length) {
+      return { data: [], total: 0, page, limit, totalPages: 0 };
+    }
 
     // Step 2: Build auction query based on filter
-    let auctionQuery: Record<string, any> = {
+    const auctionQuery: Record<string, any> = {
       _id: { $in: factoryBids },
     };
 
-    if (filter === 'completed_bids') {
-      // Only auctions this factory WON
+    if (completed === true) {
       auctionQuery.winnerFactory = factoryId;
       auctionQuery.status = 'closed';
-    } else if (filter === 'my_bids') {
-      // Auctions this factory participated in but did NOT win
+    } else {
       auctionQuery.$or = [
         { winnerFactory: { $ne: factoryId } },
         { winnerFactory: null },
       ];
     }
-    // No filter → return all auctions factory participated in
 
-    // Step 3: Fetch auctions and populate waste and populate warehouse
-    const auctions = await this.auctionModel
-      .find(auctionQuery)
-      .populate({
-        path: 'waste_id',
-        model: 'Waste',
-        populate: [
-          { path: 'material_id', model: 'Material' },
-          { path: 'warehouse_id', model: 'Warehouse' },
-        ],
-      })
-      .populate('warehouse_id')
-      .lean();
+    // Step 3: Run count + paginated fetch in parallel
+    const [total, auctions] = await Promise.all([
+      this.auctionModel.countDocuments(auctionQuery),
+      this.auctionModel
+        .find(auctionQuery)
+        .populate({
+          path: 'waste_id',
+          model: 'Waste',
+          populate: [
+            { path: 'material_id', model: 'Material' },
+            { path: 'warehouse_id', model: 'Warehouse' },
+          ],
+        })
+        .populate('warehouse_id')
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
 
-    // Step 4: Attach factory's own bid amount to each auction
+    // Step 4: Attach bid price only for auctions in current page
+    const pageAuctionIds = auctions.map((a) => a._id);
+
     const bidMap = await this.auctionBidModel
-      .find({ factory_id: factoryId, auction_id: { $in: factoryBids } })
+      .find({ factory_id: factoryId, auction_id: { $in: pageAuctionIds } })
       .lean();
 
     const bidByAuction = bidMap.reduce((acc, bid) => {
@@ -410,14 +417,20 @@ export class AuctionService {
       return acc;
     }, {} as Record<string, number>);
 
-    return auctions.map((auction) => ({
+    const data = auctions.map((auction) => ({
       ...auction,
       my_bid_price: bidByAuction[auction._id.toString()] ?? null,
       is_winner: auction.winnerFactory?.toString() === factoryId.toString(),
     }));
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
-
-
 
 
 
