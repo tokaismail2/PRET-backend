@@ -354,6 +354,71 @@ export class AuctionService {
     };
   }
 
+  //get waste auction (my bids --> waste that at auction i joined at ) (my completed bids --> waste at auction that i win it )
+
+
+  async getWasteAuction(
+    factoryId: Types.ObjectId,
+    filter?: 'my_bids' | 'completed_bids',
+  ) {
+    // Step 1: Get all auction IDs this factory has bid on
+    const factoryBids = await this.auctionBidModel
+      .find({ factory_id: factoryId })
+      .distinct('auction_id');
+
+    if (!factoryBids.length) return [];
+
+    // Step 2: Build auction query based on filter
+    let auctionQuery: Record<string, any> = {
+      _id: { $in: factoryBids },
+    };
+
+    if (filter === 'completed_bids') {
+      // Only auctions this factory WON
+      auctionQuery.winnerFactory = factoryId;
+      auctionQuery.status = 'closed';
+    } else if (filter === 'my_bids') {
+      // Auctions this factory participated in but did NOT win
+      auctionQuery.$or = [
+        { winnerFactory: { $ne: factoryId } },
+        { winnerFactory: null },
+      ];
+    }
+    // No filter → return all auctions factory participated in
+
+    // Step 3: Fetch auctions and populate waste and populate warehouse
+    const auctions = await this.auctionModel
+      .find(auctionQuery)
+      .populate({
+        path: 'waste_id',
+        model: 'Waste',
+        populate: [
+          { path: 'material_id', model: 'Material' },
+          { path: 'warehouse_id', model: 'Warehouse' },
+        ],
+      })
+      .populate('warehouse_id')
+      .lean();
+
+    // Step 4: Attach factory's own bid amount to each auction
+    const bidMap = await this.auctionBidModel
+      .find({ factory_id: factoryId, auction_id: { $in: factoryBids } })
+      .lean();
+
+    const bidByAuction = bidMap.reduce((acc, bid) => {
+      acc[bid.auction_id.toString()] = bid.total_price;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return auctions.map((auction) => ({
+      ...auction,
+      my_bid_price: bidByAuction[auction._id.toString()] ?? null,
+      is_winner: auction.winnerFactory?.toString() === factoryId.toString(),
+    }));
+  }
+
+
+
 
 
 }

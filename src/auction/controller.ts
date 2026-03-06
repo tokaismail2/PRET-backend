@@ -62,6 +62,16 @@ export class AuctionController {
     return this.auctionService.getWasteAuctions(status);
   }
 
+  @Get('my-waste-auctions')
+  @authorize(UserRole.FACTORY)
+  @UseGuards(AuthGuard('jwt')) // your existing guard
+  getWasteAuction(
+    @Req() req: any,
+    @Query('filter') filter?: 'my_bids' | 'completed_bids',
+  ) {
+    return this.auctionService.getWasteAuction(req.user.userId, filter);
+  }
+
   @Get(':id/bids')
   @authorize(UserRole.ADMIN, UserRole.FACTORY)
   getRecentBids(@Param('id') id: string) {
@@ -81,9 +91,9 @@ export class AuctionController {
   close(@Param('id') id: string, @Req() req: any) {
     return this.auctionService.closeAuction(id, req.user.userId); // ← pass admin id
   }
-  
+
   @Get(':id')
-  @authorize(UserRole.ADMIN,UserRole.FACTORY)
+  @authorize(UserRole.ADMIN, UserRole.FACTORY)
   getAuctionById(@Param('id') id: string) {
     return this.auctionService.getAuctionById(id);
   }
