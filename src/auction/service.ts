@@ -417,14 +417,14 @@ export class AuctionService {
       return acc;
     }, {} as Record<string, number>);
 
-    const data = auctions.map((auction) => ({
+    const wastes = auctions.map((auction) => ({
       ...auction,
       my_bid_price: bidByAuction[auction._id.toString()] ?? null,
       is_winner: auction.winnerFactory?.toString() === factoryId.toString(),
     }));
 
     return {
-      data,
+      wastes,
       total,
       page,
       limit,
