@@ -29,7 +29,7 @@ export class Auction {
   @Prop({ default: 'open' })
   status: 'open' | 'closed';
 
-  @Prop({ default: null, ref: 'Factory' })
+  @Prop({ default: null, ref: 'User' })
   winnerFactory?: Types.ObjectId;
 
   @Prop({ default: null })
