@@ -67,14 +67,16 @@ export class AuctionController {
   @UseGuards(AuthGuard('jwt'))
   getWasteAuction(
     @Req() req: any,
+    @Query('active') active?: string,
     @Query('completed') completed?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
+    const isActive = active === 'true' ? true : undefined;
     const isCompleted = completed === 'true' ? true : undefined;
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 10;
-    return this.auctionService.getWasteAuction(req.user.userId, isCompleted, pageNum, limitNum);
+    return this.auctionService.getWasteAuction(req.user.userId, isActive, isCompleted, pageNum, limitNum);
   }
 
   @Get(':id/bids')
@@ -95,6 +97,13 @@ export class AuctionController {
   @UseGuards(AuthGuard('jwt'))
   close(@Param('id') id: string, @Req() req: any) {
     return this.auctionService.closeAuction(id, req.user.userId); // ← pass admin id
+  }
+
+  @Put('sign-is-finished/:id')
+  @authorize(UserRole.FACTORY)
+  @UseGuards(AuthGuard('jwt'))
+  signIsFinished(@Param('id') id: string, @Req() req: any) {
+    return this.auctionService.signIsFinished(id, req.user.userId);
   }
 
   @Get(':id')

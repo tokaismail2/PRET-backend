@@ -372,6 +372,7 @@ export class AuctionService {
 
   async getWasteAuction(
     factoryId: Types.ObjectId,
+    active?: boolean,
     completed?: boolean,
     page: number = 1,
     limit: number = 10,
@@ -392,9 +393,13 @@ export class AuctionService {
       _id: { $in: factoryBids },
     };
 
-    if (completed === true) {
+    if (active === true) {
       auctionQuery.winnerFactory = factoryId;
       auctionQuery.status = 'closed';
+    } else if (completed === true) {
+      auctionQuery.winnerFactory = factoryId;
+      auctionQuery.status = 'closed';
+      auctionQuery.is_finished = true;
     } else {
       auctionQuery.$or = [
         { winnerFactory: { $ne: factoryId } },
@@ -446,6 +451,22 @@ export class AuctionService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  async signIsFinished(auctionId: string, factoryId: Types.ObjectId) {
+    const auction = await this.auctionModel.findById(auctionId);
+    if (!auction) {
+      throw new Error('Auction not found');
+    }
+    if (auction.winnerFactory?.toString() !== factoryId.toString()) {
+      throw new Error('You are not the winner');
+    }
+    if (auction.is_finished) {
+      throw new Error('Auction is already finished');
+    }
+    auction.is_finished = true;
+    await auction.save();
+    return auction;
   }
 
 
