@@ -279,7 +279,7 @@ export class AuctionService {
           preserveNullAndEmptyArrays: true,
         },
       },
-      //populate winnerFactory
+      //populate winnerFactory ref User
       {
         $lookup: {
           from: "users",
