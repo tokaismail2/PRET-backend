@@ -298,8 +298,7 @@ export class AuctionService {
       {
         $project: {
           waste_id: 0,
-          warehouse_id: 0,
-          winnerFactory: 0,
+          warehouse_id: 0
         },
       },
     ]);
