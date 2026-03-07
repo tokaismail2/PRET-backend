@@ -279,11 +279,27 @@ export class AuctionService {
           preserveNullAndEmptyArrays: true,
         },
       },
+      //populate winnerFactory
+      {
+        $lookup: {
+          from: "users",
+          localField: "winnerFactory",
+          foreignField: "_id",
+          as: "winnerFactory",
+        },
+      },
+      {
+        $unwind: {
+          path: "$winnerFactory",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
       // Remove raw IDs, keep populated objects
       {
         $project: {
           waste_id: 0,
           warehouse_id: 0,
+          winnerFactory: 0,
         },
       },
     ]);
