@@ -10,6 +10,8 @@ import { UserWallet, UserWalletSchema } from '../models/userWallet.schema';
 import { WalletTransaction, WalletTransactionSchema } from '../models/walletTransactions.schema';
 import { ImageKitModule } from '../imagekit/imagekit.module';
 import { AuditLog, AuditLogSchema } from '../models/auditLog.schema';
+import { Payment, PaymentSchema } from '../models/payment.schema';
+import { PaymobService } from '../paymob/paymob.service';
 
 @Module({
   imports: [
@@ -21,10 +23,11 @@ import { AuditLog, AuditLogSchema } from '../models/auditLog.schema';
       { name: UserWallet.name, schema: UserWalletSchema },
       { name: WalletTransaction.name, schema: WalletTransactionSchema },
       { name: AuditLog.name, schema: AuditLogSchema },
+      { name: Payment.name, schema: PaymentSchema },
     ]),
     ImageKitModule,
   ],
   controllers: [AuctionController],
-  providers: [AuctionService],
+  providers: [AuctionService, PaymobService],
 })
 export class AuctionModule {}

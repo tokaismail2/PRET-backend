@@ -20,7 +20,10 @@ import { WarehouseModule } from "./warehouse/warehouse.module"
 import { MaterialModule } from './materialType/material.module';
 import { AuctionModule } from './auction/module';
 import { CharityModule } from './charity/module';
+import { PaymentModule } from './payment/paymentModule';
 import { MongooseModule } from '@nestjs/mongoose';
+
+
 
 
 
@@ -53,8 +56,8 @@ import { MongooseModule } from '@nestjs/mongoose';
     WarehouseModule,
     MaterialModule,
     AuctionModule,
-    CharityModule
-
+    CharityModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

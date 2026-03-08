@@ -8,6 +8,8 @@ import { AuctionBid, AuctionBidDocument } from '../models/auctionBids.schema';
 import { User, UserDocument } from '../models/user.schema';
 import { UserWallet, UserWalletDocument } from '../models/userWallet.schema';
 import { WalletTransaction, WalletTransactionDocument } from '../models/walletTransactions.schema';
+import { Payment, PaymentDocument } from '../models/payment.schema';
+import { PaymobService } from '../paymob/paymob.service';
 @Injectable()
 export class AuctionService {
   constructor(
@@ -20,6 +22,8 @@ export class AuctionService {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(UserWallet.name) private userWalletModel: Model<UserWalletDocument>,
     @InjectModel(WalletTransaction.name) private walletTransactionModel: Model<WalletTransactionDocument>,
+    @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
+    private readonly paymobService: PaymobService,
   ) { }
 
 
@@ -452,21 +456,65 @@ export class AuctionService {
     };
   }
 
-  async signIsFinished(auctionId: string, factoryId: Types.ObjectId) {
+  async signIsFinished(
+    auctionId: string,
+    factoryId: Types.ObjectId,
+    paymentMethod: 'cash' | 'online',
+  ) {
     const auction = await this.auctionModel.findById(auctionId);
-    if (!auction) {
-      throw new Error('Auction not found');
-    }
+    if (!auction) throw new Error('Auction not found');
+
     if (auction.winnerFactory?.toString() !== factoryId.toString()) {
       throw new Error('You are not the winner');
     }
-    if (auction.is_finished) {
-      throw new Error('Auction is already finished');
+
+    if (auction.is_finished) throw new Error('Auction is already finished');
+
+    const amountCents = auction.final_price * 100;
+
+    if (paymentMethod === 'cash') {
+      await this.paymentModel.create({
+        status: 'completed',
+        user_id: factoryId,
+        auction_id: auctionId,
+        amount: auction.final_price,
+        payment_method: paymentMethod,
+
+      });
+
+      auction.is_finished = true;
+      await auction.save();
+      return { auction };
     }
-    auction.is_finished = true;
-    await auction.save();
-    return auction;
+
+    if (paymentMethod === 'online') {
+      const payment = await this.paymentModel.create({
+        status: 'pending',
+        user_id: factoryId,
+        auction_id: auctionId,
+        amount: auction.final_price,
+        payment_method: paymentMethod,
+      });
+
+      const paymobOrderId = await this.paymobService.registerOrder(
+        amountCents,
+        payment._id.toString(),
+      );
+
+      await this.paymentModel.findByIdAndUpdate(payment._id, {
+        paymob_order_id: paymobOrderId,
+      });
+
+      const paymentKey = await this.paymobService.getPaymentKey(paymobOrderId, amountCents);
+
+      const iframeUrl = this.paymobService.getIframeUrl(paymentKey);
+
+      auction.is_finished = true;
+      await auction.save();
+      return { auction, iframeUrl };
+    }
   }
+
 
 
 

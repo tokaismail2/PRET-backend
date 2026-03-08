@@ -103,7 +103,7 @@ export class AuctionController {
   @authorize(UserRole.FACTORY)
   @UseGuards(AuthGuard('jwt'))
   signIsFinished(@Param('id') id: string, @Req() req: any) {
-    return this.auctionService.signIsFinished(id, req.user.userId);
+    return this.auctionService.signIsFinished(id, req.user.userId, req.body.payment_method);
   }
 
   @Get(':id')
