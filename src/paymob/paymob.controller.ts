@@ -39,8 +39,8 @@ export class PaymobController {
 
 
     const frontendUrl = isSuccess
-      ? `${process.env.FRONTEND_URL}/payment-success`
-      : `${process.env.FRONTEND_URL}/payment-failed`;
+      ? `http://localhost:4000/payment-success`
+      : `http://localhost:4000/payment-failed`;
 
     return res.redirect(frontendUrl);
   }
