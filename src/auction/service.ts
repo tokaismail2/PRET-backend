@@ -476,7 +476,8 @@ export class AuctionService {
       await this.paymentModel.create({
         status: 'completed',
         user_id: factoryId,
-        auction_id: auctionId,
+        //convert to objectId
+        auction_id: new Types.ObjectId(auctionId),
         amount: auction.final_price,
         payment_method: paymentMethod,
 
