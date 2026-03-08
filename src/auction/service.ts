@@ -492,7 +492,7 @@ export class AuctionService {
       const payment = await this.paymentModel.create({
         status: 'pending',
         user_id: factoryId,
-        auction_id: auctionId,
+        auction_id: new Types.ObjectId (auctionId),
         amount: auction.final_price,
         payment_method: paymentMethod,
       });
