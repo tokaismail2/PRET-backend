@@ -472,15 +472,15 @@ export class AuctionService {
 
     const amountCents = auction.final_price * 100;
 
+    let payment = null;
+
     if (paymentMethod === 'cash') {
-      await this.paymentModel.create({
+      payment = await this.paymentModel.create({
         status: 'completed',
         user_id: factoryId,
-        //convert to objectId
         auction_id: new Types.ObjectId(auctionId),
         amount: auction.final_price,
         payment_method: paymentMethod,
-
       });
 
       auction.is_finished = true;
@@ -489,10 +489,10 @@ export class AuctionService {
     }
 
     if (paymentMethod === 'online') {
-      const payment = await this.paymentModel.create({
+      payment = await this.paymentModel.create({
         status: 'pending',
         user_id: factoryId,
-        auction_id: new Types.ObjectId (auctionId),
+        auction_id: new Types.ObjectId(auctionId),
         amount: auction.final_price,
         payment_method: paymentMethod,
       });
@@ -512,9 +512,18 @@ export class AuctionService {
 
       auction.is_finished = true;
       await auction.save();
-      return { auction, iframeUrl };
+      return { auction, iframeUrl, payment };
     }
   }
+
+  //check payment is completed or not with payment_id
+  async checkPayment(paymentId: string) {
+    const payment = await this.paymentModel.findById(paymentId);
+    if (!payment) throw new Error('Payment not found');
+    return payment;
+  }
+
+
 
 
 

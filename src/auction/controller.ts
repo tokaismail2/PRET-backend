@@ -106,6 +106,13 @@ export class AuctionController {
     return this.auctionService.signIsFinished(id, req.user.userId, req.body.payment_method);
   }
 
+  @Get('check-payment/:id')
+  @authorize(UserRole.FACTORY)
+  @UseGuards(AuthGuard('jwt'))
+  checkPayment(@Param('id') id: string) {
+    return this.auctionService.checkPayment(id);
+  }
+
   @Get(':id')
   @authorize(UserRole.ADMIN, UserRole.FACTORY)
   getAuctionById(@Param('id') id: string) {
