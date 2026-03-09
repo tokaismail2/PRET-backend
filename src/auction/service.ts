@@ -388,29 +388,27 @@ export class AuctionService {
       .distinct('auction_id');
 
     if (!factoryBids.length) {
-      return { data: [], total: 0, page, limit, totalPages: 0 };
+      return { wastes: [], total: 0, page, limit, totalPages: 0 };
     }
 
-    // Step 2: Build auction query based on filter
+    // Step 2: Build auction query
     const auctionQuery: Record<string, any> = {
       _id: { $in: factoryBids },
     };
 
-    if (active === true) {
-      auctionQuery.winnerFactory = factoryId;
-      auctionQuery.status = 'closed';
-    } else if (completed === true) {
+    if (completed === true) {
+      // Winner + finished
       auctionQuery.winnerFactory = factoryId;
       auctionQuery.status = 'closed';
       auctionQuery.is_finished = true;
-    } else {
-      auctionQuery.$or = [
-        { winnerFactory: { $ne: factoryId } },
-        { winnerFactory: null },
-      ];
+    } else if (active === true) {
+      // Winner + closed but not finished yet
+      auctionQuery.winnerFactory = factoryId;
+      auctionQuery.status = 'closed';
+      auctionQuery.is_finished = { $ne: true };
     }
 
-    // Step 3: Run count + paginated fetch in parallel
+    // Step 3: Count + fetch
     const [total, auctions] = await Promise.all([
       this.auctionModel.countDocuments(auctionQuery),
       this.auctionModel
@@ -429,31 +427,28 @@ export class AuctionService {
         .lean(),
     ]);
 
-    // Step 4: Attach bid price only for auctions in current page
+    // Step 4: Attach bid price
     const pageAuctionIds = auctions.map((a) => a._id);
 
     const bidMap = await this.auctionBidModel
       .find({ factory_id: factoryId, auction_id: { $in: pageAuctionIds } })
       .lean();
 
-    const bidByAuction = bidMap.reduce((acc, bid) => {
-      acc[bid.auction_id.toString()] = bid.total_price;
-      return acc;
-    }, {} as Record<string, number>);
+    const bidByAuction = bidMap.reduce(
+      (acc, bid) => {
+        acc[bid.auction_id.toString()] = bid.total_price;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     const wastes = auctions.map((auction) => ({
       ...auction,
       my_bid_price: bidByAuction[auction._id.toString()] ?? null,
-      // is_winner: auction.winnerFactory?.toString() === factoryId.toString(),
+      is_winner: auction.winnerFactory?.toString() === factoryId.toString(),
     }));
 
-    return {
-      wastes,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
+    return { wastes, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async signIsFinished(
