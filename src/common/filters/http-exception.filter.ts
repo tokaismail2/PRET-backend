@@ -28,15 +28,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
         const request = ctx.getRequest<Request>();
 
         const status = this.getHttpStatus(exception);
-        const message = this.getErrorMessage(exception);
-
-        const errorResponse: ErrorResponse = {
+        const errorResponse: any = {
             success: false,
             statusCode: status,
-            message,
+            message: this.getErrorMessage(exception),
             path: request.url,
             timestamp: new Date().toISOString(),
         };
+
+        // If it's a validation error, we can add more context
+        const exceptionResponse: any = exception instanceof HttpException ? exception.getResponse() : null;
+        if (exceptionResponse && exceptionResponse.message && Array.isArray(exceptionResponse.message)) {
+            errorResponse.errors = exceptionResponse.message;
+        }
 
         response.status(status).json(errorResponse);
     }

@@ -25,8 +25,10 @@ async function bootstrap(): Promise<void> {
       transformOptions: {
         enableImplicitConversion: true,
       },
-      disableErrorMessages: configService.get('NODE_ENV') === 'production',
+      disableErrorMessages: false,
     }),
+
+
   );
 
   // Global interceptors

@@ -23,6 +23,7 @@ import { MulterFile } from '../common/types/multer-file.type';
 import { multerConfig } from '../common/config/multer.config';
 import authorize from '../auth/guards/roles.guard';
 import { UserRole } from '../models/user.schema';
+import { AuditLogInterceptorFactory } from "../audit-log/audit-log.interceptor";
 
 @Controller('donations')
 export class DonationsController {
@@ -35,7 +36,10 @@ export class DonationsController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   @authorize(UserRole.GENERATOR)
-  @UseInterceptors(FilesInterceptor('images', 3, multerConfig))
+  @UseInterceptors(
+    FilesInterceptor('photos', 3, multerConfig),
+    AuditLogInterceptorFactory('create_donation'),
+  )
   async createDonation(
     @CurrentUser() user: any,
     @Body() body: any,
@@ -60,8 +64,8 @@ export class DonationsController {
     // Upload photos if provided
     let photoUrls: string[] = [];
     if (files && files.length > 0) {
-      if (files.length > 3) {
-        throw new BadRequestException('Maximum 3 photos allowed');
+      if (files.length > 5) {
+        throw new BadRequestException('Maximum 5 photos allowed');
       }
 
       photoUrls = await Promise.all(
@@ -131,6 +135,9 @@ export class DonationsController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @authorize(UserRole.ADMIN)
+  @UseInterceptors(
+    AuditLogInterceptorFactory('assign_donation'),
+  )
   async assignDonation(
     @Param('id') id: string,
     @Body() body: { charity: string },

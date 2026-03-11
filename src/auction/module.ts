@@ -8,9 +8,10 @@ import { AuctionBid, AuctionBidSchema } from '../models/auctionBids.schema';
 import { User, UserSchema } from '../models/user.schema';
 import { UserWallet, UserWalletSchema } from '../models/userWallet.schema';
 import { WalletTransaction, WalletTransactionSchema } from '../models/walletTransactions.schema';
-import { HttpModule } from '@nestjs/axios';
-import { AiController } from './ai.controller';
-import { AiService } from './ai.service';
+import { ImageKitModule } from '../imagekit/imagekit.module';
+import { AuditLog, AuditLogSchema } from '../models/auditLog.schema';
+import { Payment, PaymentSchema } from '../models/payment.schema';
+import { PaymobService } from '../paymob/paymob.service';
 
 
 export class AppModule {}
@@ -23,9 +24,17 @@ export class AppModule {}
       { name: User.name, schema: UserSchema },
       { name: UserWallet.name, schema: UserWalletSchema },
       { name: WalletTransaction.name, schema: WalletTransactionSchema },
+      { name: AuditLog.name, schema: AuditLogSchema },
+      { name: Payment.name, schema: PaymentSchema },
     ]),
+    ImageKitModule,
   ],
+<<<<<<< HEAD
   controllers: [AuctionController, AiController],
   providers: [AuctionService, AiService],
+=======
+  controllers: [AuctionController],
+  providers: [AuctionService, PaymobService],
+>>>>>>> e24003bc3ee4e25cf12588747deccf28a164291c
 })
 export class AuctionModule {}

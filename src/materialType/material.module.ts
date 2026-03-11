@@ -4,11 +4,13 @@ import { MaterialController } from './material.controller';
 import { MaterialService } from './material.service';
 import { Material, MaterialSchema } from '../models/material.schema';
 import { PassportModule } from '@nestjs/passport';
+import { AuditLog, AuditLogSchema } from '../models/auditLog.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Material.name, schema: MaterialSchema },
+      { name: AuditLog.name, schema: AuditLogSchema },
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
   ],

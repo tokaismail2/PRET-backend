@@ -22,6 +22,7 @@ export class WasteService {
   // استلام الويست من الوير هاوس 
   async create(createWasteDto: CreateWasteDto, driverId: string): Promise<any> {
     const waste = new this.wasteModel({ ...createWasteDto, driver_id: driverId });
+    
     await waste.save();
 
     // minus price from admin wallet (driver take the action)

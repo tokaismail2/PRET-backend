@@ -12,7 +12,7 @@ export enum UserRole {
 
 @Schema({ timestamps: true })
 export class User {
-  @Prop({ required: true, lowercase: true, trim: true, sparse: true })
+  @Prop({ required: true, lowercase: true, trim: true })
   email: string;
 
   @Prop({ required: function () { return !this.authProvider || this.authProvider === 'email'; } })
@@ -27,7 +27,7 @@ export class User {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ sparse: true, trim: true })
+  @Prop({ trim: true })
   phone?: string;
 
   @Prop({ required: true, enum: UserRole, default: UserRole.GENERATOR })

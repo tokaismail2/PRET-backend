@@ -57,7 +57,7 @@ export class OrdersService {
     // Create order
     const order = new this.orderModel({
       generatorId: userId,
-      materialTypeId: createOrderDto.materialType,
+      materialTypeId: new Types.ObjectId(createOrderDto.materialType),
       quantity: createOrderDto.quantity,
       unit: createOrderDto.unit,
       price: createOrderDto.price,
@@ -175,10 +175,29 @@ export class OrdersService {
 
     const orders = await this.orderModel
       .find(filter)
+      .populate('materialTypeId')
       .sort({ createdAt: -1 })
       .exec();
 
     return orders;
+  }
+
+  async cancelOrder(orderId: string, userId: string, reason: string) {
+    const order = await this.orderModel.findById(orderId);
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.status !== OrderStatus.PENDING) {
+      throw new BadRequestException('Order cannot be cancelled');
+    }
+
+    order.status = OrderStatus.CANCELLED;
+    order.reason = reason;
+    await order.save();
+
+    return order;
   }
 
   async getOrderById(orderId: string, userId: string) {
@@ -188,6 +207,7 @@ export class OrdersService {
       .findById(orderId)
       .populate('generatorId', 'name email phone')
       .populate('materialTypeId', 'name price')
+      .populate('driverId', 'name email phone')
       .lean();
 
     if (!order) {
@@ -325,7 +345,8 @@ export class OrdersService {
       walletId: wallet._id,
       type: 'deposit',
       amount: order.totalPrice,
-      description: `Deposit for order ${order._id}`,
+      description: `Deposit for order ${order.orderCode}`,
+      orderId: order._id,
     });
     await walletTransaction.save();
 

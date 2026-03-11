@@ -129,18 +129,74 @@ export class PersonalInformationService {
       throw new UnauthorizedException('Account is inactive');
     }
 
-    const userByEmail = await this.userModel.findOne({ email: updateProfileDto.email });
-    if (userByEmail && userByEmail._id.toString() !== userId) {
-      throw new BadRequestException('Email already exists');
+    // ── Email uniqueness check ───────────────────────────────────────────────
+    if (updateProfileDto.email) {
+      const userByEmail = await this.userModel.findOne({ email: updateProfileDto.email });
+      if (userByEmail && userByEmail._id.toString() !== userId) {
+        throw new BadRequestException('Email already exists');
+      }
     }
-    const userByPhone = await this.userModel.findOne({ phoneNumber: updateProfileDto.phone });
-    if (userByPhone && userByPhone._id.toString() !== userId) {
-      throw new BadRequestException('Phone number already exists');
+
+    // ── Phone uniqueness check ───────────────────────────────────────────────
+    if (updateProfileDto.phone) {
+      const userByPhone = await this.userModel.findOne({ phone: updateProfileDto.phone });
+      if (userByPhone && userByPhone._id.toString() !== userId) {
+        throw new BadRequestException('Phone number already exists');
+      }
     }
-    // Update user profile
-    user.name = updateProfileDto.name;
-    user.email = updateProfileDto.email;
-    user.phone = updateProfileDto.phone;
+
+    // ── Update base User fields ──────────────────────────────────────────────
+    if (updateProfileDto.name) user.name = updateProfileDto.name;
+    if (updateProfileDto.email) user.email = updateProfileDto.email;
+    if (updateProfileDto.phone) user.phone = updateProfileDto.phone;
+
+    await user.save();
+
+    if (updateProfileDto.profile) {
+      switch (user.role) {
+        case UserRole.DRIVER:
+          await this.driverModel.findOneAndUpdate(
+            { user: userId } as any,
+            { $set: { ...updateProfileDto.profile } },
+            { new: true, upsert: true },
+          );
+          break;
+
+        case UserRole.FACTORY:
+          await this.factoryModel.findOneAndUpdate(
+            { user: userId } as any,
+            { $set: { ...updateProfileDto.profile } },
+            { new: true, upsert: true },
+          );
+          break;
+
+        case UserRole.GENERATOR:
+          await this.generatorModel.findOneAndUpdate(
+            { user: userId } as any,
+            { $set: { ...updateProfileDto.profile } },
+            { new: true, upsert: true },
+          );
+          break;
+      }
+    }
+    const { password, ...userWithoutPassword } = user.toObject() as any;
+    return { ...userWithoutPassword };
+  }
+
+  async deleteProfilePicture(
+    userId: string,
+  ): Promise<Omit<User, 'password'>> {
+    const user = await this.userModel.findById(userId);
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is inactive');
+    }
+
+    user.profilePicture = null;
     await user.save();
 
     const { password, ...userWithoutPassword } = user.toObject() as any;
@@ -178,17 +234,28 @@ export class PersonalInformationService {
   async getProblem(): Promise<any> {
 
     const usersProblems = await this.usersProblemsModel.find()
-    .populate('userId', 'name email phone')
-    .lean();
+      .populate('userId', 'name email phone')
+      .lean();
     return usersProblems;
   }
   async getMyWallet(userId: string): Promise<any> {
-    const wallet = await this.userWalletModel.findOne({userId: userId}).select('balance').lean();
+    const wallet = await this.userWalletModel.findOne({ userId: userId }).select('balance').lean();
     if (!wallet) {
       throw new BadRequestException('Wallet not found');
     }
 
-    const walletTransactions = await this.walletTransactionsModel.findOne({walletId: wallet._id}).lean();
+    const walletTransactions = await this.walletTransactionsModel
+      .find({ walletId: wallet._id })
+      .populate({
+        path: 'orderId',
+        select: 'photos quantity unit price totalPrice createdAt materialTypeId',  // include both fields
+        populate: {
+          path: 'materialTypeId',         // nested populate still works
+        }
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+
     return {
       wallet,
       walletTransactions,

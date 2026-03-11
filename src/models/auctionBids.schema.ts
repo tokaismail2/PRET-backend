@@ -5,12 +5,12 @@ export type AuctionBidDocument = AuctionBid & Document;
 
 @Schema({ timestamps: true })
 export class AuctionBid {
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Auction' })   
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Auction' })
   auction_id: Types.ObjectId;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Factory' })
+  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
   factory_id: Types.ObjectId;
-  
+
   @Prop({ required: true })
   total_price: number;
 

@@ -17,8 +17,8 @@ export class CreateDonationDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  @ArrayMaxSize(3, {
-    message: 'Maximum 3 images allowed',
+  @ArrayMaxSize(5, {
+    message: 'Maximum 5 images allowed',
   })
   images?: string[]; // URLs to meal images (up to 3)
 

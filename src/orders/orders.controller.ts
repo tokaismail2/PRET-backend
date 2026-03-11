@@ -72,8 +72,8 @@ export class OrdersController {
     // Upload photos if provided
     let photoUrls: string[] = [];
     if (files && files.length > 0) {
-      if (files.length > 3) {
-        throw new BadRequestException('Maximum 3 photos allowed');
+      if (files.length > 5) {
+        throw new BadRequestException('Maximum 5 photos allowed');
       }
 
       photoUrls = await Promise.all(
@@ -118,6 +118,19 @@ export class OrdersController {
       message: 'Orders retrieved successfully',
       data: orders,
     };
+  }
+
+  //cancel order by admin 
+  @Put('cancell/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuditLogInterceptorFactory('cancel_order'))
+  async cancelOrder(
+    @Param('id') orderId: string,
+    @CurrentUser() user: any,
+    @Body() body: any,
+  ) {
+    return this.ordersService.cancelOrder(orderId, user.userId, body.reason);
   }
   @Get('all')
   @UseGuards(JwtAuthGuard)
@@ -174,8 +187,8 @@ export class OrdersController {
     // Upload photos if provided
     let photoUrls: string[] = [];
     if (files && files.length > 0) {
-      if (files.length > 3) {
-        throw new BadRequestException('Maximum 3 photos allowed');
+      if (files.length > 5) {
+        throw new BadRequestException('Maximum 5 photos allowed');
       }
 
       photoUrls = await Promise.all(

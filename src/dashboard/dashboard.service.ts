@@ -1,441 +1,352 @@
-// import {
-//   Injectable,
-//   NotFoundException,
-//   UnauthorizedException,
-// } from '@nestjs/common';
-// import { InjectModel } from '@nestjs/mongoose';
-// import { Model } from 'mongoose';
-// import { Order, OrderDocument, OrderStatus, MaterialType } from '../models/order.schema';
-// import { Donation, DonationDocument, DonationStatus } from '../models/donation.schema';
-// import { User, UserDocument } from '../models/user.schema';
-// import {
-//   DashboardResponseDto,
-//   SummaryStatisticsDto,
-//   PendingPickupDto,
-//   TopRecycledMaterialsDto,
-//   MaterialBreakdownDto,
-//   MonthlyRecyclingDto,
-//   RecentActivityDto,
-// } from './dto/dashboard-response.dto';
+//create generator dashboard service
 
-// @Injectable()
-// export class DashboardService {
-//   constructor(
-//     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
-//     @InjectModel(Donation.name) private donationModel: Model<DonationDocument>,
-//     @InjectModel(User.name) private userModel: Model<UserDocument>,
-//   ) {}
+import { NotFoundException } from "@nestjs/common";
+import { User, UserDocument } from "../models/user.schema";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from "mongoose";
+import { Order, OrderDocument } from "../models/order.schema";
+import { UserWallet, UserWalletDocument } from "../models/userWallet.schema";
+import { WalletTransaction, WalletTransactionDocument } from "../models/walletTransactions.schema";
+import { AuditLog, AuditLogDocument } from "../models/auditLog.schema";
+import mongoose from "mongoose";
+import { AuctionBid, AuctionBidDocument } from "../models/auctionBids.schema";
+import { Auction, AuctionDocument } from "../models/auction.schema";
+import { Donation, DonationDocument } from "../models/donation.schema";
 
-//   async getDashboard(userId: string): Promise<DashboardResponseDto> {
-//     const user = await this.userModel.findById(userId);
+export class DashboardService {
+    constructor(
+        @InjectModel(User.name) private userModel: Model<UserDocument>,
+        @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
+        @InjectModel(UserWallet.name) private walletModel: Model<UserWalletDocument>,
+        @InjectModel(WalletTransaction.name) private walletTransactionModel: Model<WalletTransactionDocument>,
+        @InjectModel(AuditLog.name) private auditLogModel: Model<AuditLogDocument>,
+        @InjectModel(AuctionBid.name) private bidModel: Model<AuctionBidDocument>,
+        @InjectModel(Auction.name) private auctionModel: Model<AuctionDocument>,
+        @InjectModel(Donation.name) private donationModel: Model<DonationDocument>,
+    ) { }
 
-//     if (!user) {
-//       throw new NotFoundException('User not found');
-//     }
+    async getGeneratorDashboard(userId: string) {
+        const user = await this.userModel.findById(userId);
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
 
-//     if (!user.isActive) {
-//       throw new UnauthorizedException('Account is inactive');
-//     }
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        const userObjectId = new mongoose.Types.ObjectId(userId);
 
-//     // Get current date ranges
-//     const now = new Date();
-//     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-//     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-//     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        //Total Orders this month
+        const totalCompletedOrdersAtCurrentMonth = await this.orderModel.countDocuments({
+            generatorId: userObjectId,
+            status: 'completed',
+            createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+        });
+        const totalOrdersAtCurrentMonth = await this.orderModel.countDocuments({
+            generatorId: userObjectId,
+            createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+        });
 
-//     // Get all orders and donations for the user
-//     const allOrders = await this.orderModel
-//       .find({ buyer: userId })
-//       .populate('seller', 'name')
-//       .sort({ createdAt: -1 })
-//       .exec();
+        //Total Donations this month
+        const totalDonationsAtCurrentMonth = await this.orderModel.countDocuments({
+            generatorId: userObjectId,  // fix: was 'generator'
+            type: 'donation',           // adjust field based on your schema
+            createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+        });
 
-//     const allDonations = await this.donationModel
-//       .find({ donor: userId })
-//       .populate('charity', 'name')
-//       .sort({ createdAt: -1 })
-//       .exec();
+        //Wallet Revenue this month
+        const wallet = await this.walletModel.findOne({ userId: userObjectId });
+        let totalRevenueAtCurrentMonth = 0;
 
-//     // Calculate summary statistics
-//     const summary = await this.calculateSummary(
-//       userId,
-//       allOrders,
-//       allDonations,
-//       startOfMonth,
-//       startOfLastMonth,
-//       endOfLastMonth,
-//     );
+        if (wallet) {
+            const revenueResult = await this.walletTransactionModel.aggregate([
+                {
+                    $match: {
+                        walletId: wallet._id,
+                        type: 'deposit',
+                        createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+                    },
+                },
+                {
+                    $group: {
+                        _id: null,
+                        totalRevenue: { $sum: '$amount' },
+                    },
+                },
+            ]);
+            totalRevenueAtCurrentMonth = revenueResult[0]?.totalRevenue ?? 0;
+        }
 
-//     // Get pending pickups
-//     const pendingPickups = this.getPendingPickups(allOrders, allDonations);
+        //Material Chart Data
+        const materialChartData = await this.orderModel.aggregate([
+            {
+                $match: {
+                    generatorId: userObjectId,
+                    status: 'completed',
+                    createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+                },
+            },
+            {
+                $group: {
+                    _id: '$materialTypeId',
+                    totalQuantity: { $sum: '$quantity' },
+                },
+            },
+            {
+                $addFields: {
+                    materialObjectId: { $toObjectId: '$_id' },
+                },
+            },
+            {
+                $lookup: {
+                    from: 'materials',
+                    localField: 'materialObjectId',
+                    foreignField: '_id',
+                    as: 'material',
+                },
+            },
+            { $unwind: '$material' },
+            {
+                $project: {
+                    _id: 0,
+                    materialName: '$material.name',
+                    totalQuantity: 1,
+                },
+            },
+            { $sort: { totalQuantity: -1 } },
+        ]);
 
-//     // Get top recycled materials
-//     const topRecycledMaterials = this.getTopRecycledMaterials(
-//       allOrders,
-//       startOfMonth,
-//     );
+        const totalKg = materialChartData.reduce((sum, item) => sum + item.totalQuantity, 0);
+        const chartData = materialChartData.map((item) => ({
+            name: item.materialName,
+            quantity: item.totalQuantity,
+            percentage: totalKg > 0 ? Math.round((item.totalQuantity / totalKg) * 100) : 0,
+        }));
 
-//     // Get monthly recycling stats
-//     const monthlyRecycling = this.getMonthlyRecycling(
-//       allOrders,
-//       startOfMonth,
-//       startOfLastMonth,
-//       endOfLastMonth,
-//     );
+        //Last 5 Audit Logs
+        const recentActivity = await this.auditLogModel
+            .find({ user: userObjectId })
+            .sort({ createdAt: -1 })
+            .limit(5);
+        return {
+            totalOrdersAtCurrentMonth,
+            totalCompletedOrdersAtCurrentMonth,
+            totalDonationsAtCurrentMonth,
+            totalRevenueAtCurrentMonth,
+            topRecycledMaterials: {
+                totalKg,
+                materials: chartData,
+            },
+            recentActivity,
+        };
+    }
 
-//     // Get recent activity
-//     const recentActivity = this.getRecentActivity(allOrders, allDonations);
+    async getFactoryDashboard(userId: string) {
+        const user = await this.userModel.findById(userId);
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
 
-//     return {
-//       summary,
-//       pendingPickups,
-//       topRecycledMaterials,
-//       monthlyRecycling,
-//       recentActivity,
-//     };
-//   }
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        const userObjectId = new mongoose.Types.ObjectId(userId);
 
-//   private async calculateSummary(
-//     userId: string,
-//     allOrders: OrderDocument[],
-//     allDonations: DonationDocument[],
-//     startOfMonth: Date,
-//     startOfLastMonth: Date,
-//     endOfLastMonth: Date,
-//   ): Promise<SummaryStatisticsDto> {
-//     // Total pickups (all time)
-//     const totalPickups = allOrders.length + allDonations.length;
+        const totalBidsAtCurrentMonth = await this.bidModel.countDocuments({
+            factory_id: userObjectId,
+            createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+        });
 
-//     // Total pickups last month
-//     const ordersLastMonth = await this.orderModel.countDocuments({
-//       buyer: userId,
-//       createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
-//     });
-//     const donationsLastMonth = await this.donationModel.countDocuments({
-//       donor: userId,
-//       createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
-//     });
-//     const totalPickupsLastMonth = ordersLastMonth + donationsLastMonth;
+        const totalWinsAtAuctions = await this.auctionModel.countDocuments({
+            winnerFactory: userObjectId,
+            status: 'closed',
+        });
 
-//     // Calculate percentage change
-//     const totalPickupsChange =
-//       totalPickupsLastMonth > 0
-//         ? ((totalPickups - totalPickupsLastMonth) / totalPickupsLastMonth) * 100
-//         : 0;
+        const activeAuctions = await this.auctionModel.countDocuments({
+            status: 'open',
+        });
 
-//     // Review status (in progress items)
-//     const inProgressOrders = allOrders.filter(
-//       (order) =>
-//         order.status === OrderStatus.IN_TRANSIT 
-//     ).length;
-//     const inProgressDonations = allDonations.filter(
-//       (donation) =>
-//         donation.status === DonationStatus.COMPLETED
-//     ).length;
-//     const reviewStatus = inProgressOrders + inProgressDonations;
+        const totalWeightOfWaste = await this.auctionModel.aggregate([
+            {
+                $match: {
+                    winnerFactory: userObjectId,
+                    status: 'closed',
+                },
+            },
+            {
+                $addFields: {
+                    waste_id: '$waste_id',
+                },
+            },
+            {
+                $lookup: {
+                    from: 'wastes',
+                    localField: 'waste_id',
+                    foreignField: '_id',
+                    as: 'waste',
+                },
+            },
+            {
+                $unwind: '$waste',
+            },
+            {
+                $group: {
+                    _id: '$waste_id',
+                    totalWeight: { $sum: '$waste.total_weight' },
+                },
+            },
+        ]);
 
-//     // Revenue earned (from completed orders this month)
-//     const completedOrdersThisMonth = allOrders.filter(
-//       (order) =>
-//         order.status === OrderStatus.COMPLETED &&
-//         order.createdAt >= startOfMonth &&
-//         order.totalPrice,
-//     );
-//     const revenueEarned = completedOrdersThisMonth.reduce(
-//       (sum, order) => sum + (order.totalPrice || 0),
-//       0,
-//     );
+        //Wallet spent this month
+        const wallet = await this.walletModel.findOne({ userId: userObjectId });
+        let totalSpentAtCurrentMonth = 0;
 
-//     // Revenue last month
-//     const completedOrdersLastMonth = await this.orderModel.find({
-//       buyer: userId,
-//       status: OrderStatus.COMPLETED,
-//       createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
-//     });
-//     const revenueLastMonth = completedOrdersLastMonth.reduce(
-//       (sum, order) => sum + (order.totalPrice || 0),
-//       0,
-//     );
-//     const revenueChange =
-//       revenueLastMonth > 0
-//         ? ((revenueEarned - revenueLastMonth) / revenueLastMonth) * 100
-//         : 0;
+        if (wallet) {
+            const revenueResult = await this.walletTransactionModel.aggregate([
+                {
+                    $match: {
+                        walletId: wallet._id,
+                        type: 'withdrawal',
+                        createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+                    },
+                },
+                {
+                    $group: {
+                        _id: null,
+                        totalRevenue: { $sum: '$amount' },
+                    },
+                },
+            ]);
+            totalSpentAtCurrentMonth = revenueResult[0]?.totalRevenue ?? 0;
+        }
 
-//     // Meals donated this month
-//     const donationsThisMonth = allDonations.filter(
-//       (donation) => donation.createdAt >= startOfMonth,
-//     );
-//     const mealsDonated = donationsThisMonth.reduce(
-//       (sum, donation) => sum + donation.mealsProvided,
-//       0,
-//     );
+        //Last 5 Audit Logs
+        const recentActivity = await this.auditLogModel
+            .find({ user: userObjectId })
+            .sort({ createdAt: -1 })
+            .limit(5);
+        return {
+            totalBidsAtCurrentMonth,
+            totalWinsAtAuctions,
+            activeAuctions,
+            totalWeightOfWaste: totalWeightOfWaste.reduce((sum, item) => sum + item.totalWeight, 0),
+            totalSpentAtCurrentMonth,
+            recentActivity,
+        };
 
-//     return {
-//       totalPickups,
-//       totalPickupsChange: Math.round(totalPickupsChange * 100) / 100,
-//       reviewStatus,
-//       revenueEarned: Math.round(revenueEarned * 100) / 100,
-//       revenueChange: Math.round(revenueChange * 100) / 100,
-//       mealsDonated,
-//     };
-//   }
 
-//   private getPendingPickups(
-//     orders: OrderDocument[],
-//     donations: DonationDocument[],
-//   ): PendingPickupDto[] {
-//     const pending: PendingPickupDto[] = [];
 
-//     // Add pending orders
-//     orders
-//       .filter((order) => order.status === OrderStatus.PENDING)
-//       .forEach((order) => {
-//         const materialTypeName = this.getMaterialDisplayName(order.materialType);
-//         let description = '';
-        
-//         if (order.materialType === MaterialType.ORGANIC) {
-//           description = 'Oil pickup from main branch';
-//         } else {
-//           description = `${materialTypeName} waste collection`;
-//         }
-        
-//         pending.push({
-//           id: order._id.toString(),
-//           type: 'order',
-//           scheduledDate: order.createdAt || new Date(),
-//           description,
-//           status: order.status,
-//         });
-//       });
 
-//     // Add pending donations
-//     donations
-//       .filter((donation) => donation.status === DonationStatus.PENDING)
-//       .forEach((donation) => {
-//         pending.push({
-//           id: donation._id.toString(),
-//           type: 'donation',
-//           scheduledDate: donation.scheduledPickupDate || donation.createdAt || new Date(),
-//           description: 'Food Donations',
-//           status: donation.status,
-//         });
-//       });
+    }
 
-//     // Sort by scheduled date and return top 5
-//     return pending
-//       .sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime())
-//       .slice(0, 5);
-//   }
+    async getDriverDashboard(userId: string) {
+        const user = await this.userModel.findById(userId);
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
 
-//   private getTopRecycledMaterials(
-//     orders: OrderDocument[],
-//     startOfMonth: Date,
-//   ): TopRecycledMaterialsDto {
-//     // Get orders from this month
-//     const ordersThisMonth = orders.filter(
-//       (order) => order.createdAt >= startOfMonth,
-//     );
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        const userObjectId = new mongoose.Types.ObjectId(userId);
 
-//     // Group by material type
-//     const materialMap = new Map<string, { quantity: number; unit: string }>();
+        const totalOrdersAtCurrentMonth = await this.orderModel.countDocuments({
+            driverId: userObjectId,
+            createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+        });
 
-//     ordersThisMonth.forEach((order) => {
-//       const current = materialMap.get(order.materialType) || {
-//         quantity: 0,
-//         unit: order.unit,
-//       };
-//       current.quantity += order.quantity;
-//       materialMap.set(order.materialType, current);
-//     });
+        const totalCompletedOrdersAtCurrentMonth = await this.orderModel.countDocuments({
+            driverId: userObjectId,
+            status: 'completed',
+            createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+        });
 
-//     // Convert to array and calculate percentages
-//     const breakdown: MaterialBreakdownDto[] = [];
-//     let total = 0;
 
-//     materialMap.forEach((value, materialType) => {
-//       total += value.quantity;
-//       breakdown.push({
-//         materialType,
-//         quantity: value.quantity,
-//         percentage: 0, // Will calculate after we have total
-//         unit: value.unit,
-//       });
-//     });
+        const totalRevenueAtCurrentMonth = await this.walletTransactionModel.aggregate([
+            {
+                $match: {
+                    userId: userObjectId,
+                    type: 'deposit',
+                    createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: '$amount' },
+                },
+            },
+        ]);
 
-//     // Calculate percentages
-//     breakdown.forEach((item) => {
-//       item.percentage = total > 0 ? (item.quantity / total) * 100 : 0;
-//     });
 
-//     // Sort by quantity descending
-//     breakdown.sort((a, b) => b.quantity - a.quantity);
+        //Last 5 Audit Logs
+        const recentActivity = await this.auditLogModel
+            .find({ user: userObjectId })
+            .sort({ createdAt: -1 })
+            .limit(5);
+        return {
+            totalOrdersAtCurrentMonth,
+            totalCompletedOrdersAtCurrentMonth,
+            totalRevenueAtCurrentMonth,
+            recentActivity,
+        };
+    }
 
-//     // Determine unit (use most common unit or default to kg)
-//     const unit = breakdown.length > 0 ? breakdown[0].unit : 'kg';
+    async getAdminDashboard(startDate?: Date, endDate?: Date) {
+        const now = new Date();
+        const startOfMonth = startDate ?? new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = endDate ?? new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-//     return {
-//       total: Math.round(total * 100) / 100,
-//       unit,
-//       breakdown: breakdown.map((item) => ({
-//         ...item,
-//         percentage: Math.round(item.percentage * 100) / 100,
-//       })),
-//     };
-//   }
+        const filter = { createdAt: { $gte: startOfMonth, $lte: endOfMonth } };
 
-//   private getMonthlyRecycling(
-//     orders: OrderDocument[],
-//     startOfMonth: Date,
-//     startOfLastMonth: Date,
-//     endOfLastMonth: Date,
-//   ): MonthlyRecyclingDto {
-//     // Calculate total for this month
-//     const ordersThisMonth = orders.filter(
-//       (order) => order.createdAt >= startOfMonth,
-//     );
-//     let totalThisMonth = 0;
-//     ordersThisMonth.forEach((order) => {
-//       // Convert to kg for consistency (assuming most units can be converted)
-//       let quantityInKg = order.quantity;
-//       if (order.unit.toLowerCase() === 'tons' || order.unit.toLowerCase() === 'ton') {
-//         quantityInKg = order.quantity * 1000;
-//       } else if (order.unit.toLowerCase() === 'l' || order.unit.toLowerCase() === 'liter') {
-//         // For liquids, approximate 1L = 1kg
-//         quantityInKg = order.quantity;
-//       }
-//       totalThisMonth += quantityInKg;
-//     });
+        const totalDonations = await this.donationModel.countDocuments(filter);
+        const totalOrders = await this.orderModel.countDocuments(filter);
+        const totalCompletedOrders = await this.orderModel.countDocuments({ ...filter, status: 'completed' });
 
-//     // Calculate total for last month
-//     const ordersLastMonth = orders.filter(
-//       (order) =>
-//         order.createdAt >= startOfLastMonth &&
-//         order.createdAt <= endOfLastMonth,
-//     );
-//     let totalLastMonth = 0;
-//     ordersLastMonth.forEach((order) => {
-//       let quantityInKg = order.quantity;
-//       if (order.unit.toLowerCase() === 'tons' || order.unit.toLowerCase() === 'ton') {
-//         quantityInKg = order.quantity * 1000;
-//       } else if (order.unit.toLowerCase() === 'l' || order.unit.toLowerCase() === 'liter') {
-//         quantityInKg = order.quantity;
-//       }
-//       totalLastMonth += quantityInKg;
-//     });
-
-//     // Convert to tons
-//     const totalThisMonthTons = totalThisMonth / 1000;
-//     const totalLastMonthTons = totalLastMonth / 1000;
-
-//     // Calculate percentage change
-//     const change =
-//       totalLastMonthTons > 0
-//         ? ((totalThisMonthTons - totalLastMonthTons) / totalLastMonthTons) * 100
-//         : 0;
-
-//     return {
-//       total: Math.round(totalThisMonthTons * 100) / 100,
-//       unit: 'tons',
-//       change: Math.round(change * 100) / 100,
-//     };
-//   }
-
-//   private getRecentActivity(
-//     orders: OrderDocument[],
-//     donations: DonationDocument[],
-//   ): RecentActivityDto[] {
-//     const activities: RecentActivityDto[] = [];
-
-//     // Add order activities
-//     orders.slice(0, 10).forEach((order) => {
-//       const materialTypeName =
-//         order.materialType.charAt(0).toUpperCase() +
-//         order.materialType.slice(1);
-//       let title = '';
-//       let description = '';
-
-//       if (order.status === OrderStatus.IN_TRANSIT && order.seller) {
-//         const seller = order.seller as any;
-//         const orderId = order._id.toString().slice(-4);
-//         title = `Order #${orderId} accepted`;
-//         description = `by ${seller.name || 'Factory'}`;
-//       } else if (order.status === OrderStatus.IN_TRANSIT) {
-//         title = 'Pickup dispatched';
-//         description = `for ${materialTypeName.toLowerCase()} containers`;
-//       } else if (order.status === OrderStatus.PENDING) {
-//         title = 'New order created';
-//         // Use more specific material names
-//         const materialDesc =
-//           order.materialType === MaterialType.ORGANIC
-//             ? 'cooking oil'
-//             : order.materialType === MaterialType.PLASTIC
-//               ? 'plastic containers'
-//               : `${materialTypeName.toLowerCase()} scraps`;
-//         description = `for ${materialDesc}`;
-//       } else if (order.status === OrderStatus.COMPLETED) {
-//         title = 'Order completed';
-//         description = `${materialTypeName} waste collection`;
-//       }
-
-//       if (title) {
-//         activities.push({
-//           id: order._id.toString(),
-//           type: 'order',
-//           title,
-//           description,
-//           timestamp: order.createdAt || new Date(),
-//           status: order.status,
-//         });
-//       }
-//     });
-
-//     // Add donation activities
-//     donations.slice(0, 10).forEach((donation) => {
-//       let title = '';
-//       let description = '';
-
-//       if (donation.status === DonationStatus.COMPLETED && donation.charity) {
-//         const charity = donation.charity as any;
-//         title = 'Meals donated';
-//         description = `to ${charity.name || 'City Food Bank'}`;
-//       } else if (donation.status === DonationStatus.PENDING) {
-//         title = 'New donation created';
-//         description = `${donation.mealsProvided} meals`;
-//       } else if (donation.status === DonationStatus.ACCEPTED) {
-//         title = 'Donation accepted';
-//         description = `${donation.mealsProvided} meals`;
-//       }
-
-//       if (title) {
-//         activities.push({
-//           id: donation._id.toString(),
-//           type: 'donation',
-//           title,
-//           description,
-//           timestamp: donation.createdAt || new Date(),
-//           status: donation.status,
-//         });
-//       }
-//     });
-
-//     // Sort by timestamp descending and return top 10
-//     return activities
-//       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-//       .slice(0, 10);
-//   }
-
-//   private getMaterialDisplayName(materialType: MaterialType): string {
-//     const displayNames: Record<MaterialType, string> = {
-//       [MaterialType.PLASTIC]: 'Plastic',
-//       [MaterialType.PAPER]: 'Cardboard',
-//       [MaterialType.METAL]: 'Metal',
-//       [MaterialType.GLASS]: 'Glass',
-//       [MaterialType.ELECTRONICS]: 'Electronics',
-//       [MaterialType.ORGANIC]: 'Cooking Oil',
-//       [MaterialType.TEXTILES]: 'Textiles',
-//       [MaterialType.OTHER]: 'Other',
-//     };
-//     return displayNames[materialType] || materialType;
-//   }
-// }
-
+        const totalUsers = await this.userModel.countDocuments();
+        const totalDrivers = await this.userModel.countDocuments({ role: 'driver' });
+        const totalFactories = await this.userModel.countDocuments({ role: 'factory' });
+        const totalGenerators = await this.userModel.countDocuments({ role: 'generator' });
+        const totalRevenue = await this.walletTransactionModel.aggregate([
+            {
+                $match: {
+                    type: { $in: ['deposit', 'withdrawal'] },
+                    createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalDeposits: {
+                        $sum: {
+                            $cond: [{ $eq: ['$type', 'deposit'] }, '$amount', 0],
+                        },
+                    },
+                    totalWithdrawals: {
+                        $sum: {
+                            $cond: [{ $eq: ['$type', 'withdrawal'] }, '$amount', 0],
+                        },
+                    },
+                },
+            },
+            {
+                $project: {
+                    _id: 0,
+                    totalDeposits: 1,
+                    totalWithdrawals: 1,
+                    totalRevenue: { $subtract: ['$totalWithdrawals', '$totalDeposits'] },
+                },
+            },
+        ]);
+        return {
+            totalUsers,
+            totalDrivers,
+            totalFactories,
+            totalGenerators,
+            totalDonations,
+            totalOrders,
+            totalCompletedOrders,
+            totalRevenue,
+        };
+    }
+}

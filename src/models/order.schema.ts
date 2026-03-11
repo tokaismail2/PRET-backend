@@ -13,8 +13,6 @@ export enum OrderStatus {
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
   IN_TRANSIT = 'in_transit',
-
-
 }
 @Schema({ timestamps: true })
 export class Order {
@@ -36,12 +34,14 @@ export class Order {
   @Prop({ required: true })
   unit: string; // 'kg', 'tons', etc.
 
+  @Prop({ required: false })
+  reason: string;
+
   @Prop({ min: 0 })
   price?: number; // price per unit
 
   @Prop({ min: 0 })
   totalPrice?: number;
-
 
 
   @Prop()

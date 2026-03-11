@@ -9,8 +9,10 @@ import {
   IsArray,
   Max,
   ArrayMaxSize,
+  IsMongoId,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Types } from 'mongoose';
+import { Transform } from 'class-transformer';
 class CoordinatesDto {
   @IsNumber()
   latitude: number;
@@ -22,8 +24,10 @@ class CoordinatesDto {
 
 
 export class CreateOrderDto {
-  @IsString()
-  materialType: string;
+
+  @IsMongoId()
+  @Transform(({ value }) => new Types.ObjectId(value))
+  materialType: Types.ObjectId;
 
   @IsNumber()
   @Min(0)
@@ -39,10 +43,10 @@ export class CreateOrderDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  @ArrayMaxSize(3, {
-    message: 'Maximum 3 photos allowed',
+  @ArrayMaxSize(5, {
+    message: 'Maximum 5 photos allowed',
   })
-  photos?: string[]; // URLs to photos (up to 3)
+  photos?: string[]; // URLs to photos (up to 5)
 
   @IsOptional()
   @IsString()

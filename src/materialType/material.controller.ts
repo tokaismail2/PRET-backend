@@ -14,6 +14,8 @@ import { MaterialService } from './material.service';
 import { CreateMaterialDto } from './dto/add-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AuditLogInterceptorFactory } from "../audit-log/audit-log.interceptor";
+import { UseInterceptors } from '@nestjs/common';
 
 @Controller('material')
 export class MaterialController {
@@ -22,6 +24,9 @@ export class MaterialController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(
+    AuditLogInterceptorFactory('create_material'),
+  )
   create(@Body() createMaterialDto: CreateMaterialDto) {
     return this.materialService.create(createMaterialDto);
   }
@@ -38,12 +43,18 @@ export class MaterialController {
 
   @Put(':id')
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    AuditLogInterceptorFactory('update_material'),
+  )
   update(@Param('id') id: string, @Body() updateMaterialDto: UpdateMaterialDto) {
     return this.materialService.update(id, updateMaterialDto);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    AuditLogInterceptorFactory('delete_material'),
+  )
   remove(@Param('id') id: string) {
     return this.materialService.remove(id);
   }

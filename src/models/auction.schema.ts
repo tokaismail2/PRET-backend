@@ -5,9 +5,15 @@ export type AuctionDocument = Auction & Document;
 
 @Schema({ timestamps: true })
 export class Auction {
-  @Prop({ required: true })
+  @Prop({ required: true, ref: 'Waste' })
   waste_id: Types.ObjectId;
-  
+
+  @Prop({ required: true, ref: 'Warehouse' })
+  warehouse_id: Types.ObjectId;
+
+  @Prop({ required: true })
+  image: string;
+
   @Prop({ required: true })
   start_price: number;
 
@@ -23,11 +29,14 @@ export class Auction {
   @Prop({ default: 'open' })
   status: 'open' | 'closed';
 
-  @Prop({ default: null , ref: 'Factory' })
+  @Prop({ default: null, ref: 'User' })
   winnerFactory?: Types.ObjectId;
 
   @Prop({ default: null })
-    final_price?: number;
+  final_price?: number;
+
+  @Prop({ default: false })
+  is_finished?: boolean;
 
 }
 

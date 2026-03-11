@@ -9,7 +9,3 @@ export * from './waste.schema';
 export * from './warehouse.schema';
 export * from './warehouseReceipt.schema';
 export * from './auction.schema';
-export * from './maintenance.schema';
-export * from './payment.schema';
-export * from './rating.schema';
-export * from './report.schema';

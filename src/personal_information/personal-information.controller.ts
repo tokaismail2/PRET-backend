@@ -10,7 +10,8 @@ import {
   UseInterceptors,
   BadRequestException,
   Get,
-  Put
+  Put,
+  Delete
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PersonalInformationService } from './personal-information.service';
@@ -23,6 +24,7 @@ import authorize from '../auth/guards/roles.guard';
 import { UserRole } from '../models/user.schema';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { RequestProblemDto } from './dto/request-problem.dto';
+
 
 @Controller('personal-information')
 export class PersonalInformationController {
@@ -78,6 +80,26 @@ export class PersonalInformationController {
       user: updatedUser,
     };
   }
+
+  @Delete('delete-image')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @authorize(UserRole.ADMIN, UserRole.DRIVER, UserRole.FACTORY, UserRole.GENERATOR)
+  @UseInterceptors(
+    AuditLogInterceptorFactory('delete_image'),
+  )
+  async deleteImage(
+    @CurrentUser() user: any,
+  ) {
+    const updatedUser = await this.personalInformationService.deleteProfilePicture(
+      user.userId,
+    );
+    return {
+      message: 'Image deleted successfully',
+      user: updatedUser,
+    };
+  }
+
 
   @Get('profile')
   @UseGuards(JwtAuthGuard)
@@ -164,16 +186,16 @@ export class PersonalInformationController {
       user: updatedUser,
     };
   }
-
   @Get('wallet')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @authorize(UserRole.DRIVER, UserRole.FACTORY, UserRole.GENERATOR)
   async getWallet(@CurrentUser() user: any) {
-    const wallet = await this.personalInformationService.getMyWallet(user.userId);
+    const { wallet, walletTransactions } = await this.personalInformationService.getMyWallet(user.userId);
     return {
       message: 'Wallet retrieved successfully',
       wallet,
+      walletTransactions,
     };
   }
 

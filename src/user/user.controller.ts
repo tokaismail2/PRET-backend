@@ -26,12 +26,11 @@ import { AuditLogInterceptorFactory } from "../audit-log/audit-log.interceptor";
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@authorize(UserRole.ADMIN)
-
+// @authorize(UserRole.ADMIN)
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
 
-  // ---------------- CREATE USER ----------------
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
     @UseInterceptors(
@@ -42,7 +41,6 @@ export class UsersController {
     return { message: 'User created successfully', user };
   }
 
-  // ---------------- GET ALL USERS ----------------
   @Get()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
@@ -60,7 +58,7 @@ export class UsersController {
     return { message: 'User retrieved successfully', user };
   }
 
-  // ---------------- UPDATE USER ----------------
+
   @Put('by-id/:id')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
@@ -75,7 +73,6 @@ export class UsersController {
     return { message: 'User updated successfully', user };
   }
 
-  // ---------------- DELETE USER ----------------
   @Delete('by-id/:id')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
