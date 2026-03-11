@@ -25,8 +25,6 @@ export class AuctionService {
     @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
     private readonly paymobService: PaymobService,
   ) { }
-
-
   async createAuction(dto: CreateAuctionDto) {
     dto.waste_id = new Types.ObjectId(dto.waste_id);
     dto.warehouse_id = new Types.ObjectId(dto.warehouse_id);
