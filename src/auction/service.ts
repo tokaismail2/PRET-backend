@@ -8,8 +8,26 @@ import { AuctionBid, AuctionBidDocument } from '../models/auctionBids.schema';
 import { User, UserDocument } from '../models/user.schema';
 import { UserWallet, UserWalletDocument } from '../models/userWallet.schema';
 import { WalletTransaction, WalletTransactionDocument } from '../models/walletTransactions.schema';
-
+import { HttpService } from '@nestjs/axios';
+import { lastValueFrom } from 'rxjs';
 @Injectable()
+export class AiService {
+  // هنا بنعمل Inject للـ HttpService عشان نقدر نستخدمه
+  constructor(private readonly httpService: HttpService) {}
+
+  async getAiPrediction(data: any) {
+    // الرابط اللي البايثون شغال عليه
+    const url = 'http://127.0.0.1:5000/predict_waste'; 
+    
+    try {
+      const response = await lastValueFrom(this.httpService.post(url, data));
+      return response.data;
+    } catch (error) {
+      console.error("Error connecting to AI service:", error);
+      throw error;
+    }
+  }
+}
 export class AuctionService {
   constructor(
     @InjectModel(Auction.name)

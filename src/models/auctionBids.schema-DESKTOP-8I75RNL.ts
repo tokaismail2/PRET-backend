@@ -1,0 +1,20 @@
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Types } from 'mongoose';
+
+export type AuctionBidDocument = AuctionBid & Document;
+
+@Schema({ timestamps: true })
+export class AuctionBid {
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Auction' })
+  auction_id: Types.ObjectId;
+
+  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  factory_id: Types.ObjectId;
+
+  @Prop({ required: true })
+  total_price: number;
+
+
+}
+
+export const AuctionBidSchema = SchemaFactory.createForClass(AuctionBid);
