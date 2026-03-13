@@ -460,7 +460,7 @@ export class AuctionService {
 
     // Step 1: Get all auction IDs this factory has bid on
     const factoryBids = await this.auctionBidModel
-      .find({ factory_id: factoryId , status: "closed"})
+      .find({ factory_id: factoryId }) // ✅ removed status filter
       .distinct('auction_id');
 
     if (!factoryBids.length) {
@@ -508,7 +508,7 @@ export class AuctionService {
       this.auctionBidModel
         .find({ factory_id: factoryId, auction_id: { $in: pageAuctionIds } })
         .lean(),
-      this.paymentModel  // 👈 replace with your actual payment model reference
+      this.paymentModel
         .find({ auction_id: { $in: pageAuctionIds } })
         .distinct('auction_id'),
     ]);
@@ -521,7 +521,6 @@ export class AuctionService {
       {} as Record<string, number>,
     );
 
-    // Build a Set of auction IDs that have payments for O(1) lookup
     const paidAuctionIds = new Set(
       paymentDocs.map((id) => id.toString()),
     );
@@ -530,7 +529,7 @@ export class AuctionService {
       ...auction,
       my_bid_price: bidByAuction[auction._id.toString()] ?? null,
       is_winner: auction.winnerFactory?.toString() === factoryId.toString(),
-      hasPayment: paidAuctionIds.has(auction._id.toString()),  // 👈 new field
+      hasPayment: paidAuctionIds.has(auction._id.toString()),
     }));
 
     return { wastes, total, page, limit, totalPages: Math.ceil(total / limit) };
