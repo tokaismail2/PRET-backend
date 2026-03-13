@@ -371,84 +371,6 @@ export class AuctionService {
     };
   }
 
-  // async getWasteAuction(
-  //   factoryId: Types.ObjectId,
-  //   active?: boolean,
-  //   completed?: boolean,
-  //   page: number = 1,
-  //   limit: number = 10,
-  // ) {
-  //   const skip = (page - 1) * limit;
-
-  //   // Step 1: Get all auction IDs this factory has bid on
-  //   const factoryBids = await this.auctionBidModel
-  //     .find({ factory_id: factoryId , status: "closed"})
-  //     .distinct('auction_id');
-
-  //   if (!factoryBids.length) {
-  //     return { wastes: [], total: 0, page, limit, totalPages: 0 };
-  //   }
-
-  //   // Step 2: Build auction query
-  //   const auctionQuery: Record<string, any> = {
-  //     _id: { $in: factoryBids },
-  //   };
-
-  //   if (completed === true) {
-  //     // Winner + finished
-  //     auctionQuery.winnerFactory = factoryId;
-  //     auctionQuery.status = 'closed';
-  //     auctionQuery.is_finished = true;
-  //   } else if (active === true) {
-  //     // Winner + closed but not finished yet
-  //     auctionQuery.winnerFactory = factoryId;
-  //     auctionQuery.status = 'closed';
-  //     auctionQuery.is_finished = { $ne: true };
-  //   }
-
-  //   // Step 3: Count + fetch
-  //   const [total, auctions] = await Promise.all([
-  //     this.auctionModel.countDocuments(auctionQuery),
-  //     this.auctionModel
-  //       .find(auctionQuery)
-  //       .populate({
-  //         path: 'waste_id',
-  //         model: 'Waste',
-  //         populate: [
-  //           { path: 'material_id', model: 'Material' },
-  //           { path: 'warehouse_id', model: 'Warehouse' },
-  //         ],
-  //       })
-  //       .populate('warehouse_id')
-  //       .skip(skip)
-  //       .limit(limit)
-  //       .lean(),
-  //   ]);
-
-  //   // Step 4: Attach bid price
-  //   const pageAuctionIds = auctions.map((a) => a._id);
-
-  //   const bidMap = await this.auctionBidModel
-  //     .find({ factory_id: factoryId, auction_id: { $in: pageAuctionIds } })
-  //     .lean();
-
-  //   const bidByAuction = bidMap.reduce(
-  //     (acc, bid) => {
-  //       acc[bid.auction_id.toString()] = bid.total_price;
-  //       return acc;
-  //     },
-  //     {} as Record<string, number>,
-  //   );
-
-  //   const wastes = auctions.map((auction) => ({
-  //     ...auction,
-  //     my_bid_price: bidByAuction[auction._id.toString()] ?? null,
-  //     is_winner: auction.winnerFactory?.toString() === factoryId.toString(),
-  //   }));
-
-  //   return { wastes, total, page, limit, totalPages: Math.ceil(total / limit) };
-  // }
-
   async getWasteAuction(
     factoryId: Types.ObjectId,
     active?: boolean,
@@ -473,13 +395,20 @@ export class AuctionService {
     };
 
     if (completed === true) {
+      // استلم فعلاً
       auctionQuery.winnerFactory = factoryId;
       auctionQuery.status = 'closed';
       auctionQuery.is_finished = true;
+
     } else if (active === true) {
+      // كسب لسه مستلمش
       auctionQuery.winnerFactory = factoryId;
       auctionQuery.status = 'closed';
       auctionQuery.is_finished = { $ne: true };
+
+    } else {
+      //  my bids: مزادات شغالة شارك فيها
+      auctionQuery.status = 'open';
     }
 
     // Step 3: Count + fetch
