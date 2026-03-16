@@ -399,6 +399,10 @@ export class AuctionService {
       auctionQuery.winnerFactory = factoryId;
       auctionQuery.status = 'closed';
       auctionQuery.is_finished = true;
+      //payment done
+      const payments = await this.paymentModel.find({ auction_id: { $in: factoryBids } });
+      const paidAuctionIds = payments.map((p) => p.auction_id);
+      auctionQuery._id = { $in: paidAuctionIds };
 
     } else if (active === true) {
       // كسب لسه مستلمش
