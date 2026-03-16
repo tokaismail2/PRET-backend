@@ -478,8 +478,9 @@ export class AuctionService {
     if (auction.winnerFactory?.toString() !== factoryId.toString()) {
       throw new Error('You are not the winner');
     }
-
-    if (auction.is_finished) throw new Error('Auction is already finished');
+    //check if payment is done
+    const donePayment = await this.paymentModel.findOne({ auction_id: auctionId, status: 'completed' });
+    if (donePayment) throw new Error('Payment is already done and auction is completed')
 
     const amountCents = auction.final_price * 100;
 
