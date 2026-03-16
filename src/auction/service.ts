@@ -399,8 +399,8 @@ export class AuctionService {
       auctionQuery.winnerFactory = factoryId;
       auctionQuery.status = 'closed';
       auctionQuery.is_finished = true;
-      //payment done
-      const payments = await this.paymentModel.find({ auction_id: { $in: factoryBids } });
+      //payment done and status is completed
+      const payments = await this.paymentModel.find({ auction_id: { $in: factoryBids }, status: 'completed' });
       const paidAuctionIds = payments.map((p) => p.auction_id);
       auctionQuery._id = { $in: paidAuctionIds };
 
