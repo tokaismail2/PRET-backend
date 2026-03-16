@@ -408,7 +408,6 @@ export class AuctionService {
       // كسب لسه مستلمش
       auctionQuery.winnerFactory = factoryId;
       auctionQuery.status = 'closed';
-      auctionQuery.is_finished = { $ne: true };
 
     } else {
       //  my bids: مزادات شغالة شارك فيها
