@@ -306,54 +306,118 @@ export class OrdersService {
   }
 
 
-  async assignDriver(orderId: string, driverUserId: string, orderCode: string) {
+  // async assignDriver(orderId: string, driverUserId: string, orderCode: string) {
 
-    const order = await this.orderModel.findById(orderId);
+  //   const order = await this.orderModel.findById(orderId);
 
-    if (!order) {
-      throw new NotFoundException('Order not found');
+  //   if (!order) {
+  //     throw new NotFoundException('Order not found');
+  //   }
+
+  //   if (order.status !== OrderStatus.PENDING) {
+  //     throw new ConflictException(`Order cannot be assigned status is ${order.status}`);
+  //   }
+
+  //   if (order.driverId) {
+  //     throw new ConflictException('Driver already assigned');
+  //   }
+
+  //   if (orderCode.toString() !== order.orderCode.toString()) {
+  //     throw new ConflictException('Order code is incorrect');
+  //   }
+
+  //   order.driverId = new Types.ObjectId(driverUserId);
+  //   order.status = OrderStatus.IN_TRANSIT;
+
+  //   await order.save();
+
+  //   //add the totalPrice for order to wallet of generator
+  //   const generator = await this.userModel.findById(order.generatorId);
+  //   if (!generator) {
+  //     throw new NotFoundException('Generator not found');
+  //   }
+  //   const wallet = await this.userWalletModel.findOne({ userId: generator._id });
+
+  //   wallet.balance += order.totalPrice;
+  //   await wallet.save();
+
+  //   //create wallet Transaction
+  //   const walletTransaction = new this.walletTransactionModel({
+  //     walletId: wallet._id,
+  //     type: 'deposit',
+  //     amount: order.totalPrice,
+  //     description: `Deposit for order ${order.orderCode}`,
+  //     orderId: order._id,
+  //   });
+  //   await walletTransaction.save();
+
+  //   return {
+  //     order: order
+  //   };
+  // }
+
+  async assignDriverToRoute(
+    orders: { orderId: string; orderCode: string }[],
+    driverUserId: string,
+  ) {
+    if (orders.length !== 3) {
+      throw new ConflictException('Route must contain exactly 3 orders');
     }
 
-    if (order.status !== OrderStatus.PENDING) {
-      throw new ConflictException(`Order cannot be assigned status is ${order.status}`);
-    }
+    // 1. تحقق من كل الـ orders الأول قبل ما تعمل أي تعديل (all or nothing)
+    const foundOrders = await Promise.all(
+      orders.map(async ({ orderId, orderCode }) => {
+        const order = await this.orderModel.findById(orderId);
 
-    if (order.driverId) {
-      throw new ConflictException('Driver already assigned');
-    }
+        if (!order) {
+          throw new NotFoundException(`Order ${orderId} not found`);
+        }
+        if (order.status !== OrderStatus.PENDING) {
+          throw new ConflictException(`Order ${orderId} status is ${order.status}`);
+        }
+        if (order.driverId) {
+          throw new ConflictException(`Order ${orderId} already has a driver`);
+        }
+        if (orderCode.toString() !== order.orderCode.toString()) {
+          throw new ConflictException(`Order code incorrect for order ${orderId}`);
+        }
 
-    if (orderCode.toString() !== order.orderCode.toString()) {
-      throw new ConflictException('Order code is incorrect');
-    }
+        return order;
+      }),
+    );
 
-    order.driverId = new Types.ObjectId(driverUserId);
-    order.status = OrderStatus.IN_TRANSIT;
+    // 2. assign الـ driver للـ 3 orders وعمل wallet transactions
+    const result = await Promise.all(
+      foundOrders.map(async (order) => {
+        order.driverId = new Types.ObjectId(driverUserId);
+        order.status = OrderStatus.IN_TRANSIT;
+        await order.save();
 
-    await order.save();
+        // add totalPrice to generator wallet
+        const generator = await this.userModel.findById(order.generatorId);
+        if (!generator) {
+          throw new NotFoundException(`Generator not found for order ${order._id}`);
+        }
 
-    //add the totalPrice for order to wallet of generator
-    const generator = await this.userModel.findById(order.generatorId);
-    if (!generator) {
-      throw new NotFoundException('Generator not found');
-    }
-    const wallet = await this.userWalletModel.findOne({ userId: generator._id });
+        const wallet = await this.userWalletModel.findOne({ userId: generator._id });
+        wallet.balance += order.totalPrice;
+        await wallet.save();
 
-    wallet.balance += order.totalPrice;
-    await wallet.save();
+        // create wallet transaction
+        const walletTransaction = new this.walletTransactionModel({
+          walletId: wallet._id,
+          type: 'deposit',
+          amount: order.totalPrice,
+          description: `Deposit for order ${order.orderCode}`,
+          orderId: order._id,
+        });
+        await walletTransaction.save();
 
-    //create wallet Transaction
-    const walletTransaction = new this.walletTransactionModel({
-      walletId: wallet._id,
-      type: 'deposit',
-      amount: order.totalPrice,
-      description: `Deposit for order ${order.orderCode}`,
-      orderId: order._id,
-    });
-    await walletTransaction.save();
+        return order;
+      }),
+    );
 
-    return {
-      order: order
-    };
+    return { orders: result };
   }
 
   async arriveToWarehouse(

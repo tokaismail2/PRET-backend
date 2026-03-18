@@ -236,17 +236,27 @@ export class OrdersController {
   ) {
     return this.ordersService.deleteOrder(orderId, user.userId);
   }
-  @Post(':id/assign-driver')
+  // @Post(':id/assign-driver')
+  // @HttpCode(HttpStatus.OK)
+  // @UseGuards(JwtAuthGuard)
+  // async assignDriver(
+  //   @Param('id') orderId: string,
+  //   @CurrentUser() user: any,
+  //   @Body('orderCode') orderCode: string,
+  // ) {
+
+
+  //   return this.ordersService.assignDriver(orderId, user.userId, orderCode);
+  // }
+
+  @Post('assign-driver/route')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
-  async assignDriver(
-    @Param('id') orderId: string,
+  async assignDriverToRoute(
     @CurrentUser() user: any,
-    @Body('orderCode') orderCode: string,
+    @Body() body: { orders: { orderId: string; orderCode: string }[] },
   ) {
-
-
-    return this.ordersService.assignDriver(orderId, user.userId, orderCode);
+    return this.ordersService.assignDriverToRoute(body.orders, user.userId);
   }
 
   @Post(':id/arrive-at-warehouse')
