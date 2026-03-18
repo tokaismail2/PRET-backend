@@ -259,15 +259,18 @@ export class OrdersController {
     return this.ordersService.assignDriverToRoute(body.orders, user.userId);
   }
 
-  @Post(':id/arrive-at-warehouse')
+  @Post('arrive-warehouse')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
-  async arriveAtWarehouse(
-    @Param('id') orderId: string,
-    @Body('warehouseId') warehouseId: string,
+  async arriveToWarehouse(
     @CurrentUser() user: any,
+    @Body() body: { orderIds: string[]; warehouseId: string },
   ) {
-    return this.ordersService.arriveToWarehouse(orderId, warehouseId, user.userId);
+    return this.ordersService.arriveToWarehouse(
+      body.orderIds,
+      body.warehouseId,
+      user.userId,
+    );
   }
 }
 

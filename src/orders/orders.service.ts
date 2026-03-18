@@ -421,68 +421,69 @@ export class OrdersService {
   }
 
   async arriveToWarehouse(
-    orderId: string,
+    orderIds: string[],
     warehouseId: string,
     driverUserId: string
   ) {
+   
+    const foundOrders = await Promise.all(
+      orderIds.map(async (orderId) => {
+        const order = await this.orderModel.findById(orderId);
 
-    const order = await this.orderModel.findById(orderId);
+        if (!order) {
+          throw new NotFoundException(`Order ${orderId} not found`);
+        }
+        if (order.status !== OrderStatus.IN_TRANSIT) {
+          throw new ConflictException(`Order ${orderId} status is ${order.status}`);
+        }
+        if (order.driverId.toString() !== driverUserId.toString()) {
+          throw new ConflictException(`Driver is not assigned to order ${orderId}`);
+        }
+        const existingReceipt = await this.warehouseReceiptModel.findOne({
+          order_id: order._id,
+        });
+        if (existingReceipt) {
+          throw new ConflictException(`Warehouse receipt already created for order ${orderId}`);
+        }
 
-    if (!order) {
-      throw new NotFoundException('Order not found');
-    }
-
-    if (order.status !== OrderStatus.IN_TRANSIT) {
-      throw new ConflictException(
-        `Order cannot be completed, status is ${order.status}`
-      );
-    }
-
-    if (order.driverId.toString() !== driverUserId.toString()) {
-      throw new ConflictException('Driver is not assigned to this order');
-    }
-
-    const existingReceipt = await this.warehouseReceiptModel.findOne({
-      order_id: order._id,
-    });
-
-    if (existingReceipt) {
-      throw new ConflictException('Warehouse receipt already created');
-    }
-
-    const warehouseReceipt = await this.warehouseReceiptModel.create({
-      warehouse_id: new Types.ObjectId(warehouseId),
-      order_id: order._id,
-      driver_id: new Types.ObjectId(driverUserId),
-      received_weight: order.quantity,
-      price_per_kg: order.price,
-      total_amount: order.totalPrice,
-    });
-
-    order.status = OrderStatus.COMPLETED;
-    order.warehouseId = new Types.ObjectId(warehouseId);
-    await order.save();
+        return order;
+      })
+    );
 
 
-    //Driver wallet logic
-    const deliveryFee = order.totalPrice * 0.1;
-    const driverWallet = await this.userWalletModel.findOne({ userId: driverUserId });
+    const result = await Promise.all(
+      foundOrders.map(async (order) => {
+        const warehouseReceipt = await this.warehouseReceiptModel.create({
+          warehouse_id: new Types.ObjectId(warehouseId),
+          order_id: order._id,
+          driver_id: new Types.ObjectId(driverUserId),
+          received_weight: order.quantity,
+          price_per_kg: order.price,
+          total_amount: order.totalPrice,
+        });
 
-    driverWallet.balance += deliveryFee;
-    await driverWallet.save();
+        order.status = OrderStatus.COMPLETED;
+        order.warehouseId = new Types.ObjectId(warehouseId);
+        await order.save();
 
-    const walletTransaction = await this.walletTransactionModel.create({
-      walletId: driverWallet._id,
-      type: 'withdrawal',
-      amount: deliveryFee,
-      description: `trip_fee for order ${order._id}`,
-    });
-    await walletTransaction.save();
+        // Driver wallet logic
+        const deliveryFee = order.totalPrice * 0.1;
+        const driverWallet = await this.userWalletModel.findOne({ userId: driverUserId });
+        driverWallet.balance += deliveryFee;
+        await driverWallet.save();
 
-    return {
-      order,
-      warehouseReceipt,
-    };
+        await this.walletTransactionModel.create({
+          walletId: driverWallet._id,
+          type: 'withdrawal',
+          amount: deliveryFee,
+          description: `trip_fee for order ${order._id}`,
+        });
+
+        return { order, warehouseReceipt };
+      })
+    );
+
+    return { orders: result };
   }
 
   async getPendingRoutes() {
