@@ -27,15 +27,17 @@ export class Generator {
 
     @Prop({
         type: {
-            street: String,
-            city: String,
-            state: String,
-            zipCode: String,
-            country: String,
+            street: { type: String },
+            city: { type: String },
+            state: { type: String },
+            zipCode: { type: String },
+            country: { type: String },
             coordinates: {
-                latitude: Number,
-                longitude: Number,
+                _id: false,  
+                latitude: { type: Number },
+                longitude: { type: Number },
             },
+            _id: false,  
         },
         required: false,
     })
