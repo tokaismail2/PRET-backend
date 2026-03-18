@@ -486,7 +486,6 @@ export class OrdersService {
   }
 
   async getPendingRoutes() {
-    // 1. جيب كل الـ pending orders
     const orders = await this.orderModel
       .find({ status: OrderStatus.PENDING })
       .populate('generatorId', 'name email phone')
@@ -494,7 +493,6 @@ export class OrdersService {
       .sort({ createdAt: -1 })
       .lean();
 
-    // 2. جيب كل الـ generators دفعة واحدة
     const userIds = orders
       .map((order) => (order.generatorId as any)?._id)
       .filter(Boolean);
@@ -508,7 +506,6 @@ export class OrdersService {
       generators.map((g) => [g.user.toString(), g])
     );
 
-    // 3. Enrich orders مع generator
     const enrichedOrders = orders.map((order) => {
       const userId = (order.generatorId as any)?._id?.toString();
       return {
@@ -517,18 +514,14 @@ export class OrdersService {
       };
     });
 
-    // 4. فلتر اللي عندهم coordinates
     const validOrders = enrichedOrders.filter(
       (o) => o.generator?.address?.coordinates?.latitude &&
         o.generator?.address?.coordinates?.longitude
     );
 
-    if (validOrders.length < 3) return validOrders;
-
-    // 5. احسب متوسط المسافة لكل order مع باقي الـ orders
+    // رتب حسب الأقرب لبعض
     const scored = validOrders.map((current, i) => {
       const currentCoords = current.generator.address.coordinates;
-
       const totalDistance = validOrders.reduce((sum, other, j) => {
         if (i === j) return sum;
         const otherCoords = other.generator.address.coordinates;
@@ -537,18 +530,26 @@ export class OrdersService {
           otherCoords.latitude, otherCoords.longitude,
         );
       }, 0);
-
-      return {
-        ...current,
-        avgDistance: totalDistance / (validOrders.length - 1),
-      };
+      return { ...current, avgDistance: totalDistance / (validOrders.length - 1) };
     });
 
-    // 6. رتب وارجع أقرب 3
-    return scored
-      .sort((a, b) => a.avgDistance - b.avgDistance)
-      .slice(0, 3)
-      .map(({ avgDistance, ...order }) => order); // شيل الـ avgDistance من الـ response
+    scored.sort((a, b) => a.avgDistance - b.avgDistance);
+
+    const sortedOrders = scored.map(({ avgDistance, ...order }) => order);
+
+    // قسّم كل 3 orders في route
+    const routeNames = ['routeOne', 'routeTwo', 'routeThree', 'routeFour', 'routeFive'];
+    const routes: Record<string, any[]> = {};
+
+    for (let i = 0; i < sortedOrders.length; i += 3) {
+      const chunk = sortedOrders.slice(i, i + 3);
+      if (chunk.length === 3) {
+        const routeName = routeNames[i / 3] ?? `route${i / 3 + 1}`;
+        routes[routeName] = chunk;
+      }
+    }
+
+    return routes;
   }
 
   // Helper
