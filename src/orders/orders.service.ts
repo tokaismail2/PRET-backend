@@ -519,7 +519,7 @@ export class OrdersService {
         o.generator?.address?.coordinates?.longitude
     );
 
-    // رتب حسب الأقرب لبعض
+    // sort by nearest to each other
     const scored = validOrders.map((current, i) => {
       const currentCoords = current.generator.address.coordinates;
       const totalDistance = validOrders.reduce((sum, other, j) => {
@@ -537,16 +537,13 @@ export class OrdersService {
 
     const sortedOrders = scored.map(({ avgDistance, ...order }) => order);
 
-    // قسّم كل 3 orders في route
-    const routeNames = ['routeOne', 'routeTwo', 'routeThree', 'routeFour', 'routeFive'];
+    // split 3 orders in route
     const routes: Record<string, any[]> = {};
 
     for (let i = 0; i < sortedOrders.length; i += 3) {
       const chunk = sortedOrders.slice(i, i + 3);
-      if (chunk.length === 3) {
-        const routeName = routeNames[i / 3] ?? `route${i / 3 + 1}`;
-        routes[routeName] = chunk;
-      }
+      const routeIndex = Math.floor(i / 3) + 1;
+      routes[`route${routeIndex}`] = chunk;
     }
 
     return routes;
@@ -567,12 +564,5 @@ export class OrdersService {
       Math.sin(dLon / 2) * Math.sin(dLon / 2);
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
-
-
-
-
-
-
-
 }
 
