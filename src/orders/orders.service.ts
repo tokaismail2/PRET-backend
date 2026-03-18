@@ -121,32 +121,33 @@ export class OrdersService {
       .find(query)
       .populate('generatorId', 'name email phone')
       .populate('materialTypeId', 'name price')
-
       .sort({ createdAt: -1 })
       .lean();
 
-    // Enrich orders with generator address
-    const ordersWithAddress = await Promise.all(
-      orders.map(async (order) => {
-        // Get generator details including address
-        let generator = null;
-        if (order.generatorId && (order.generatorId as any)._id) {
-          generator = await this.generatorModel
-            .findOne({ user: (order.generatorId as any)._id })
-            .select('businessName generatorType address')
-            .lean();
-        }
+    // Get all user IDs in one shot
+    const userIds = orders
+      .map((order) => (order.generatorId as any)?._id)
+      .filter(Boolean);
 
-        return {
-          ...order,
-          generator: generator || null,
-        };
-      })
+    // Single query instead of N queries
+    const generators = await this.generatorModel
+      .find({ user: { $in: userIds } })
+      .select('user businessName generatorType address')
+      .lean();
+
+    // Fast map lookup
+    const generatorMap = new Map(
+      generators.map((g) => [g.user.toString(), g])
     );
 
-    return ordersWithAddress;
-
-
+    // Enrich orders with generator data
+    return orders.map((order) => {
+      const userId = (order.generatorId as any)?._id?.toString();
+      return {
+        ...order,
+        generator: generatorMap.get(userId) || null,
+      };
+    });
   }
 
   async getMyOrdersHistory(userId: string, status?: string) {
@@ -418,6 +419,88 @@ export class OrdersService {
       order,
       warehouseReceipt,
     };
+  }
+
+  async getPendingRoutes() {
+    // 1. جيب كل الـ pending orders
+    const orders = await this.orderModel
+      .find({ status: OrderStatus.PENDING })
+      .populate('generatorId', 'name email phone')
+      .populate('materialTypeId', 'name price')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // 2. جيب كل الـ generators دفعة واحدة
+    const userIds = orders
+      .map((order) => (order.generatorId as any)?._id)
+      .filter(Boolean);
+
+    const generators = await this.generatorModel
+      .find({ user: { $in: userIds } })
+      .select('user businessName generatorType address')
+      .lean();
+
+    const generatorMap = new Map(
+      generators.map((g) => [g.user.toString(), g])
+    );
+
+    // 3. Enrich orders مع generator
+    const enrichedOrders = orders.map((order) => {
+      const userId = (order.generatorId as any)?._id?.toString();
+      return {
+        ...order,
+        generator: generatorMap.get(userId) || null,
+      };
+    });
+
+    // 4. فلتر اللي عندهم coordinates
+    const validOrders = enrichedOrders.filter(
+      (o) => o.generator?.address?.coordinates?.latitude &&
+        o.generator?.address?.coordinates?.longitude
+    );
+
+    if (validOrders.length < 3) return validOrders;
+
+    // 5. احسب متوسط المسافة لكل order مع باقي الـ orders
+    const scored = validOrders.map((current, i) => {
+      const currentCoords = current.generator.address.coordinates;
+
+      const totalDistance = validOrders.reduce((sum, other, j) => {
+        if (i === j) return sum;
+        const otherCoords = other.generator.address.coordinates;
+        return sum + this.haversineDistance(
+          currentCoords.latitude, currentCoords.longitude,
+          otherCoords.latitude, otherCoords.longitude,
+        );
+      }, 0);
+
+      return {
+        ...current,
+        avgDistance: totalDistance / (validOrders.length - 1),
+      };
+    });
+
+    // 6. رتب وارجع أقرب 3
+    return scored
+      .sort((a, b) => a.avgDistance - b.avgDistance)
+      .slice(0, 3)
+      .map(({ avgDistance, ...order }) => order); // شيل الـ avgDistance من الـ response
+  }
+
+  // Helper
+  private haversineDistance(
+    lat1: number, lon1: number,
+    lat2: number, lon2: number,
+  ): number {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
 

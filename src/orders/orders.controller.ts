@@ -28,6 +28,8 @@ import { OrderStatus } from '../models/order.schema';
 import { AuditLogInterceptorFactory } from "../audit-log/audit-log.interceptor";
 import { Material } from '../models/material.schema';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import authorize from '../auth/guards/roles.guard';
+import { UserRole } from '../models/user.schema';
 
 @Controller('orders')
 export class OrdersController {
@@ -38,7 +40,7 @@ export class OrdersController {
   ) { }
 
   @Post()
-  @UseGuards(JwtAuthGuard)  
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(
     FilesInterceptor('photos', 3, multerConfig),
@@ -157,6 +159,18 @@ export class OrdersController {
       data: orders,
     };
   }
+  //for driver
+  @Get('pending-routes')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @authorize(UserRole.DRIVER)
+  async getPendingRoutes() {
+    const orders = await this.ordersService.getPendingRoutes();
+    return {
+      message: 'Pending routes retrieved successfully',
+      data: orders,
+    };
+  }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
@@ -182,7 +196,7 @@ export class OrdersController {
   async updateOrderById(
     @Param('id') orderId: string,
     @Body() updateData: UpdateOrderDto,
-     @UploadedFiles() files?: MulterFile[],
+    @UploadedFiles() files?: MulterFile[],
   ) {
     // Upload photos if provided
     let photoUrls: string[] = [];
