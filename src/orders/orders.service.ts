@@ -519,7 +519,7 @@ export class OrdersService {
 
     // بناء الـ routes بناءً على الـ constraints
     const MAX_WEIGHT = 200;   // كيلو
-    const MAX_DISTANCE = 200; // كيلومتر
+    const MAX_DISTANCE = 30; // كيلومتر
 
     const used = new Set<string>();
     const routes: Record<string, any[]> = {};
