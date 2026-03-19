@@ -254,7 +254,7 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard)
   async assignDriverToRoute(
     @CurrentUser() user: any,
-    @Body() body: { orders: { orderId: string; orderCode: string }[] },
+    @Body() body: { orders: { orderId: string }[] },
   ) {
     return this.ordersService.assignDriverToRoute(body.orders, user.userId);
   }
@@ -264,11 +264,12 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard)
   async arriveToWarehouse(
     @CurrentUser() user: any,
-    @Body() body: { orderIds: string[]; warehouseId: string },
+    @Body() body: { orderIds: string[]; warehouseId: string; otp: string },
   ) {
     return this.ordersService.arriveToWarehouse(
       body.orderIds,
       body.warehouseId,
+      body.otp,
       user.userId,
     );
   }

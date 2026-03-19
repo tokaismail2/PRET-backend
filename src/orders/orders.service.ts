@@ -357,16 +357,15 @@ export class OrdersService {
   // }
 
   async assignDriverToRoute(
-    orders: { orderId: string; orderCode: string }[],
+    orders: { orderId: string }[],
     driverUserId: string,
   ) {
     if (orders.length !== 3) {
       throw new ConflictException('Route must contain exactly 3 orders');
     }
 
-    // 1. تحقق من كل الـ orders الأول قبل ما تعمل أي تعديل (all or nothing)
     const foundOrders = await Promise.all(
-      orders.map(async ({ orderId, orderCode }) => {
+      orders.map(async ({ orderId }) => {
         const order = await this.orderModel.findById(orderId);
 
         if (!order) {
@@ -378,15 +377,11 @@ export class OrdersService {
         if (order.driverId) {
           throw new ConflictException(`Order ${orderId} already has a driver`);
         }
-        if (orderCode.toString() !== order.orderCode.toString()) {
-          throw new ConflictException(`Order code incorrect for order ${orderId}`);
-        }
 
         return order;
       }),
     );
 
-    // 2. assign الـ driver للـ 3 orders وعمل wallet transactions
     const result = await Promise.all(
       foundOrders.map(async (order) => {
         order.driverId = new Types.ObjectId(driverUserId);
@@ -423,9 +418,10 @@ export class OrdersService {
   async arriveToWarehouse(
     orderIds: string[],
     warehouseId: string,
+    otp: string,
     driverUserId: string
   ) {
-   
+
     const foundOrders = await Promise.all(
       orderIds.map(async (orderId) => {
         const order = await this.orderModel.findById(orderId);
@@ -444,6 +440,14 @@ export class OrdersService {
         });
         if (existingReceipt) {
           throw new ConflictException(`Warehouse receipt already created for order ${orderId}`);
+        }
+
+        const verificationCode = '123456';
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+
+        if (otp !== verificationCode || new Date() > expiresAt) {
+          throw new ConflictException(`Invalid or expired OTP for order ${orderId}`);
         }
 
         return order;
