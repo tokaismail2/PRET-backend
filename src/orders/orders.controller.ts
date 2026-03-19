@@ -254,7 +254,7 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard)
   async assignDriverToRoute(
     @CurrentUser() user: any,
-    @Body() body: { orders: { orderId: string }[] },
+    @Body() body: { orders: string[] },
   ) {
     return this.ordersService.assignDriverToRoute(body.orders, user.userId);
   }

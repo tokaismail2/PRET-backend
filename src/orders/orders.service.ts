@@ -355,17 +355,13 @@ export class OrdersService {
   //     order: order
   //   };
   // }
-
-  async assignDriverToRoute(
-    orders: { orderId: string }[],
-    driverUserId: string,
-  ) {
-    if (orders.length !== 3) {
-      throw new ConflictException('Route must contain exactly 3 orders');
+  async assignDriverToRoute(orderIds: string[], driverUserId: string) {
+    if (orderIds.length === 0) {
+      throw new ConflictException('No orders provided');
     }
 
     const foundOrders = await Promise.all(
-      orders.map(async ({ orderId }) => {
+      orderIds.map(async (orderId) => {
         const order = await this.orderModel.findById(orderId);
 
         if (!order) {
@@ -388,7 +384,6 @@ export class OrdersService {
         order.status = OrderStatus.IN_TRANSIT;
         await order.save();
 
-        // add totalPrice to generator wallet
         const generator = await this.userModel.findById(order.generatorId);
         if (!generator) {
           throw new NotFoundException(`Generator not found for order ${order._id}`);
@@ -398,7 +393,6 @@ export class OrdersService {
         wallet.balance += order.totalPrice;
         await wallet.save();
 
-        // create wallet transaction
         const walletTransaction = new this.walletTransactionModel({
           walletId: wallet._id,
           type: 'deposit',
@@ -414,7 +408,6 @@ export class OrdersService {
 
     return { orders: result };
   }
-
   async arriveToWarehouse(
     orderIds: string[],
     warehouseId: string,
