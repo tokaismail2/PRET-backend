@@ -517,36 +517,55 @@ export class OrdersService {
         o.generator?.address?.coordinates?.longitude
     );
 
-    // sort by nearest to each other
-    const scored = validOrders.map((current, i) => {
-      const currentCoords = current.generator.address.coordinates;
-      const totalDistance = validOrders.reduce((sum, other, j) => {
-        if (i === j) return sum;
-        const otherCoords = other.generator.address.coordinates;
-        return sum + this.haversineDistance(
-          currentCoords.latitude, currentCoords.longitude,
-          otherCoords.latitude, otherCoords.longitude,
-        );
-      }, 0);
-      return { ...current, avgDistance: totalDistance / (validOrders.length - 1) };
-    });
+    // بناء الـ routes بناءً على الـ constraints
+    const MAX_WEIGHT = 200;   // كيلو
+    const MAX_DISTANCE = 200; // كيلومتر
 
-    scored.sort((a, b) => a.avgDistance - b.avgDistance);
-
-    const sortedOrders = scored.map(({ avgDistance, ...order }) => order);
-
-    // split 3 orders in route
+    const used = new Set<string>();
     const routes: Record<string, any[]> = {};
+    let routeIndex = 1;
 
-    for (let i = 0; i < sortedOrders.length; i += 3) {
-      const chunk = sortedOrders.slice(i, i + 3);
-      const routeIndex = Math.floor(i / 3) + 1;
-      routes[`route${routeIndex}`] = chunk;
+    for (let i = 0; i < validOrders.length; i++) {
+      const current = validOrders[i];
+      if (used.has(current._id.toString())) continue;
+
+      const route: typeof validOrders = [current];
+      used.add(current._id.toString());
+      let totalWeight = current.quantity ?? 0;
+
+      for (let j = 0; j < validOrders.length; j++) {
+        if (i === j) continue;
+        const candidate = validOrders[j];
+        if (used.has(candidate._id.toString())) continue;
+
+        // تحقق من الوزن
+        const newWeight = totalWeight + (candidate.quantity ?? 0);
+        if (newWeight > MAX_WEIGHT) continue;
+
+        // تحقق من المسافة بين كل الـ orders الموجودة في الـ route والـ candidate
+        const candidateCoords = candidate.generator.address.coordinates;
+        const withinDistance = route.every((routeOrder) => {
+          const routeCoords = routeOrder.generator.address.coordinates;
+          const dist = this.haversineDistance(
+            routeCoords.latitude, routeCoords.longitude,
+            candidateCoords.latitude, candidateCoords.longitude,
+          );
+          return dist <= MAX_DISTANCE;
+        });
+
+        if (!withinDistance) continue;
+
+        route.push(candidate);
+        used.add(candidate._id.toString());
+        totalWeight = newWeight;
+      }
+
+      routes[`route${routeIndex}`] = route;
+      routeIndex++;
     }
 
     return routes;
   }
-
   // Helper
   private haversineDistance(
     lat1: number, lon1: number,
