@@ -10,6 +10,9 @@ import {
   Max,
   ArrayMaxSize,
   IsMongoId,
+  IsBoolean,
+  IsNotEmpty,
+  ValidateIf,
 } from 'class-validator';
 import { Types } from 'mongoose';
 import { Transform } from 'class-transformer';
@@ -51,5 +54,18 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   notes?: string;
+}
+
+
+export class ReceiveOrderFromGeneratorDto {
+  @IsNotEmpty()
+  orderId: string;
+
+  @IsBoolean()
+  is_received_from_generator: boolean;
+  
+  @ValidateIf(o => o.is_received_from_generator === true)
+  @IsNotEmpty()
+  order_code?: string;
 }
 

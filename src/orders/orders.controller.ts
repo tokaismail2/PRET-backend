@@ -18,7 +18,7 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { OrdersService } from './orders.service';
 import { MaterialService } from '../materialType/material.service';
-import { CreateOrderDto } from './dto/create-order.dto';
+import { CreateOrderDto, ReceiveOrderFromGeneratorDto } from './dto/create-order.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/user.decorator';
 import { ImageKitService } from '../imagekit/imagekit.service';
@@ -279,7 +279,7 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard)
   async receiveOrderFromGenerator(
     @CurrentUser() user: any,
-    @Body() body: { orderId: string; order_code: string; is_received_from_generator: boolean },
+    @Body() body: ReceiveOrderFromGeneratorDto,
   ) {
     return this.ordersService.receiveOrderFromGenerator(
       body.orderId,

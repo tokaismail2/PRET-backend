@@ -410,23 +410,37 @@ export class OrdersService {
   }
 
   //recive order from generator or not 
-  async receiveOrderFromGenerator(orderId: string, driverUserId: string, order_code: string, is_received_from_generator: boolean) {
+  async receiveOrderFromGenerator(
+    orderId: string,
+    driverUserId: string,
+    order_code: string,
+    is_received_from_generator: boolean
+  ) {
     const order = await this.orderModel.findById(orderId);
 
     if (!order) {
       throw new NotFoundException(`Order ${orderId} not found`);
     }
+
     if (order.status !== OrderStatus.IN_TRANSIT) {
       throw new ConflictException(`Order ${orderId} status is ${order.status}`);
     }
+
     if (order.driverId.toString() !== driverUserId.toString()) {
       throw new ConflictException(`Driver is not assigned to order ${orderId}`);
     }
-    if (order.orderCode.toString() !== order_code.toString()) {
-      throw new ConflictException(`Order code is incorrect`);
+
+    if (is_received_from_generator) {
+      if (!order_code || order.orderCode.toString() !== order_code.toString()) {
+        throw new ConflictException(`Order code is incorrect`);
+      }
+
+      order.is_received_from_generator = true;
+    } else {
+      order.is_received_from_generator = false;
+      order.status = OrderStatus.CANCELLED;
     }
 
-    order.is_received_from_generator = is_received_from_generator;
     await order.save();
 
     return { order };
