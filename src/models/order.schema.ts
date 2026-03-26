@@ -10,6 +10,7 @@ export type OrderDocument = Order & Document;
 
 export enum OrderStatus {
   PENDING = 'pending',
+  RECEIVED = 'received',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
   IN_TRANSIT = 'in_transit',

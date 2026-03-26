@@ -437,6 +437,7 @@ export class OrdersService {
       }
 
       order.is_received_from_generator = true;
+      order.status = OrderStatus.RECEIVED;
     } else {
      
       if (order_code) {
