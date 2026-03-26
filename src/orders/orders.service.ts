@@ -431,12 +431,18 @@ export class OrdersService {
     }
 
     if (is_received_from_generator) {
+ 
       if (!order_code || order.orderCode.toString() !== order_code.toString()) {
         throw new ConflictException(`Order code is incorrect`);
       }
 
       order.is_received_from_generator = true;
     } else {
+     
+      if (order_code) {
+        throw new ConflictException(`Order code should not be provided`);
+      }
+
       order.is_received_from_generator = false;
       order.status = OrderStatus.CANCELLED;
     }
