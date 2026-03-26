@@ -450,6 +450,9 @@ export class OrdersService {
         if (order.status !== OrderStatus.IN_TRANSIT) {
           throw new ConflictException(`Order ${orderId} status is ${order.status}`);
         }
+        if (!order.is_received_from_generator) {
+          throw new ConflictException(`Order ${orderId} is not received from generator`);
+        }
         if (order.driverId.toString() !== driverUserId.toString()) {
           throw new ConflictException(`Driver is not assigned to order ${orderId}`);
         }
