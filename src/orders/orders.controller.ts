@@ -273,5 +273,20 @@ export class OrdersController {
       user.userId,
     );
   }
+
+  @Post('receive-from-generator')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async receiveOrderFromGenerator(
+    @CurrentUser() user: any,
+    @Body() body: { orderId: string; order_code: string; is_received_from_generator: boolean },
+  ) {
+    return this.ordersService.receiveOrderFromGenerator(
+      body.orderId,
+      user.userId,
+      body.order_code,
+      body.is_received_from_generator,
+    );
+  }
 }
 

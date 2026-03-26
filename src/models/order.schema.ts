@@ -13,6 +13,7 @@ export enum OrderStatus {
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
   IN_TRANSIT = 'in_transit',
+
 }
 @Schema({ timestamps: true })
 export class Order {
@@ -33,6 +34,9 @@ export class Order {
 
   @Prop({ required: true })
   unit: string; // 'kg', 'tons', etc.
+
+  @Prop({ default: null })
+  is_received_from_generator: boolean; 
 
   @Prop({ required: false })
   reason: string;
