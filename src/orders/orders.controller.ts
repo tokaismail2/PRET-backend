@@ -51,7 +51,6 @@ export class OrdersController {
     @Body() body: any,
     @UploadedFiles() files?: MulterFile[],
   ) {
-    // Parse nested JSON fields from form data
     let createOrderDto: CreateOrderDto;
     try {
       const material = await this.materialService.findOne(body.materialType);
@@ -71,7 +70,6 @@ export class OrdersController {
       throw new BadRequestException('Invalid request data format');
     }
 
-    // Upload photos if provided
     let photoUrls: string[] = [];
     if (files && files.length > 0) {
       if (files.length > 5) {
@@ -91,7 +89,6 @@ export class OrdersController {
       );
     }
 
-    // Add photo URLs to DTO
     const orderData = {
       ...createOrderDto,
       photos: photoUrls.length > 0 ? photoUrls : createOrderDto.photos,
@@ -107,136 +104,6 @@ export class OrdersController {
       data: order,
     };
   }
-
-  @Get('history')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
-  async getMyOrdersHistory(
-    @CurrentUser() user: any,
-    @Query('status') status?: string,
-  ) {
-    const orders = await this.ordersService.getMyOrdersHistory(user.userId, status);
-    return {
-      message: 'Orders retrieved successfully',
-      data: orders,
-    };
-  }
-
-  //cancel order by admin 
-  @Put('cancell/:id')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
-  @UseInterceptors(AuditLogInterceptorFactory('cancel_order'))
-  async cancelOrder(
-    @Param('id') orderId: string,
-    @CurrentUser() user: any,
-    @Body() body: any,
-  ) {
-    return this.ordersService.cancelOrder(orderId, user.userId, body.reason);
-  }
-  @Get('all')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
-  async getAllOrders(
-    @CurrentUser() user: any,
-    @Query('status') status?: string,
-    @Query('generatorId') generatorId?: string,
-    @Query('driverId') driverId?: string,
-    @Query('factoryId') factoryId?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
-    const orders = await this.ordersService.getAllOrders({
-      status,
-      generatorId,
-      driverId,
-      factoryId,
-      startDate,
-      endDate,
-    });
-    return {
-      message: 'Orders retrieved successfully',
-      data: orders,
-    };
-  }
-  //for driver
-  @Get('pending-routes')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
-  @authorize(UserRole.DRIVER)
-  async getPendingRoutes() {
-    const orders = await this.ordersService.getPendingRoutes();
-    return {
-      message: 'Pending routes retrieved successfully',
-      data: orders,
-    };
-  }
-
-  @Get(':id')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
-  async getOrderById(
-    @Param('id') id: string,
-    @CurrentUser() user: any,
-  ) {
-    const order = await this.ordersService.getOrderById(id, user.userId.toString());
-    return {
-      message: 'Order retrieved successfully',
-      data: order,
-    };
-  }
-
-  @Put(':id')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
-  @UseInterceptors(
-    FilesInterceptor('photos', 3, multerConfig),
-    AuditLogInterceptorFactory('update_order'),
-  )
-  async updateOrderById(
-    @Param('id') orderId: string,
-    @Body() updateData: UpdateOrderDto,
-    @UploadedFiles() files?: MulterFile[],
-  ) {
-    // Upload photos if provided
-    let photoUrls: string[] = [];
-    if (files && files.length > 0) {
-      if (files.length > 5) {
-        throw new BadRequestException('Maximum 5 photos allowed');
-      }
-
-      photoUrls = await Promise.all(
-        files.map((file) =>
-          this.imageKitService
-            .uploadFile(
-              file,
-              'orders/photos',
-              `order-${Date.now()}-${file.originalname}`,
-            )
-            .then((result) => result.url),
-        ),
-      );
-    }
-
-    // Add photo URLs to DTO
-    const orderData = {
-      ...updateData,
-      photos: photoUrls.length > 0 ? photoUrls : updateData.photos,
-    };
-    return this.ordersService.updateOrderById(orderId, orderData);
-  }
-
-
-  @Delete(':id')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
-  async deleteOrder(
-    @Param('id') orderId: string,
-    @CurrentUser() user: any,
-  ) {
-    return this.ordersService.deleteOrder(orderId, user.userId);
-  }
-
 
   @Post('assign-driver/route')
   @HttpCode(HttpStatus.OK)
@@ -278,6 +145,58 @@ export class OrdersController {
     );
   }
 
+  @Get('history')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getMyOrdersHistory(
+    @CurrentUser() user: any,
+    @Query('status') status?: string,
+  ) {
+    const orders = await this.ordersService.getMyOrdersHistory(user.userId, status);
+    return {
+      message: 'Orders retrieved successfully',
+      data: orders,
+    };
+  }
+
+  @Get('all')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getAllOrders(
+    @CurrentUser() user: any,
+    @Query('status') status?: string,
+    @Query('generatorId') generatorId?: string,
+    @Query('driverId') driverId?: string,
+    @Query('factoryId') factoryId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const orders = await this.ordersService.getAllOrders({
+      status,
+      generatorId,
+      driverId,
+      factoryId,
+      startDate,
+      endDate,
+    });
+    return {
+      message: 'Orders retrieved successfully',
+      data: orders,
+    };
+  }
+
+  @Get('pending-routes')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @authorize(UserRole.DRIVER)
+  async getPendingRoutes() {
+    const orders = await this.ordersService.getPendingRoutes();
+    return {
+      message: 'Pending routes retrieved successfully',
+      data: orders,
+    };
+  }
+
   @Get('my-history-routes')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
@@ -296,5 +215,79 @@ export class OrdersController {
   ) {
     return this.ordersService.getRouteById(routeId, user.userId);
   }
-}
 
+  @Put('cancell/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuditLogInterceptorFactory('cancel_order'))
+  async cancelOrder(
+    @Param('id') orderId: string,
+    @CurrentUser() user: any,
+    @Body() body: any,
+  ) {
+    return this.ordersService.cancelOrder(orderId, user.userId, body.reason);
+  }
+
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getOrderById(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+  ) {
+    const order = await this.ordersService.getOrderById(id, user.userId.toString());
+    return {
+      message: 'Order retrieved successfully',
+      data: order,
+    };
+  }
+
+  @Put(':id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FilesInterceptor('photos', 3, multerConfig),
+    AuditLogInterceptorFactory('update_order'),
+  )
+  async updateOrderById(
+    @Param('id') orderId: string,
+    @Body() updateData: UpdateOrderDto,
+    @UploadedFiles() files?: MulterFile[],
+  ) {
+    let photoUrls: string[] = [];
+    if (files && files.length > 0) {
+      if (files.length > 5) {
+        throw new BadRequestException('Maximum 5 photos allowed');
+      }
+
+      photoUrls = await Promise.all(
+        files.map((file) =>
+          this.imageKitService
+            .uploadFile(
+              file,
+              'orders/photos',
+              `order-${Date.now()}-${file.originalname}`,
+            )
+            .then((result) => result.url),
+        ),
+      );
+    }
+
+    const orderData = {
+      ...updateData,
+      photos: photoUrls.length > 0 ? photoUrls : updateData.photos,
+    };
+    return this.ordersService.updateOrderById(orderId, orderData);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async deleteOrder(
+    @Param('id') orderId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.ordersService.deleteOrder(orderId, user.userId);
+  }
+
+}
