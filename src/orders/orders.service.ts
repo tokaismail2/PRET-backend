@@ -661,7 +661,7 @@ export class OrdersService {
       .populate('orderIds')
       .lean();
     if (!route) throw new NotFoundException(`Route ${routeId} not found`);
-    if (route.driver.toString() !== driverUserId)
+    if (route.driver.toString() !== driverUserId.toString())
       throw new ConflictException(`Driver is not assigned to route ${routeId}`);
     return route;
   }
