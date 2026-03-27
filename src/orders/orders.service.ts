@@ -468,7 +468,7 @@ export class OrdersService {
         if (!order) {
           throw new NotFoundException(`Order ${orderId} not found`);
         }
-        if (order.status !== OrderStatus.IN_TRANSIT) {
+        if (order.status !== OrderStatus.RECEIVED) {
           throw new ConflictException(`Order ${orderId} status is ${order.status}`);
         }
         if (!order.is_received_from_generator) {
