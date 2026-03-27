@@ -496,10 +496,12 @@ export class OrdersService {
     if (!warehouse) throw new NotFoundException(`Warehouse ${warehouseId} not found`);
 
     const firstOrder = foundOrders[0];
-    const generator = await this.generatorModel.findById(firstOrder.generatorId);
+    const generator = await this.generatorModel.findOne({
+      user: firstOrder.generatorId
+    } as any);
     if (!generator) throw new NotFoundException(`Generator not found`);
 
-    // ✅ استخدام الـ helper الموجود
+
     const distance = this.haversineDistance(
       generator.address.coordinates.latitude,
       generator.address.coordinates.longitude,
