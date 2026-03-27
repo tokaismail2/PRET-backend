@@ -491,7 +491,6 @@ export class OrdersService {
       })
     );
 
-    // ✅ جيب الـ warehouse والـ generator بره الـ map مرة واحدة
     const warehouse = await this.warehouseModel.findById(warehouseId);
     if (!warehouse) throw new NotFoundException(`Warehouse ${warehouseId} not found`);
 
@@ -638,6 +637,33 @@ export class OrdersService {
     }
 
     return routes;
+  }
+  async getMyHistoryRoutes(driverUserId: string) {
+    const routes = await this.routeModel
+      .find({ driver: new Types.ObjectId(driverUserId) })
+      .populate('destination', 'name')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const totalRoutesCount = await this.routeModel.countDocuments({
+      driver: new Types.ObjectId(driverUserId)
+    });
+
+    const walletBalance = await this.userWalletModel.findOne({ userId: driverUserId });
+    const balance = walletBalance?.balance || 0;
+
+    return { routes, totalRoutesCount, balance };
+  }
+  async getRouteById(routeId: string, driverUserId: string) {
+    const route = await this.routeModel
+      .findById(routeId)
+      .populate('destination', 'name')
+      .populate('orderIds')
+      .lean();
+    if (!route) throw new NotFoundException(`Route ${routeId} not found`);
+    if (route.driver.toString() !== driverUserId)
+      throw new ConflictException(`Driver is not assigned to route ${routeId}`);
+    return route;
   }
   // Helper
   private haversineDistance(

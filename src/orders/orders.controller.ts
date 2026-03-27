@@ -236,18 +236,7 @@ export class OrdersController {
   ) {
     return this.ordersService.deleteOrder(orderId, user.userId);
   }
-  // @Post(':id/assign-driver')
-  // @HttpCode(HttpStatus.OK)
-  // @UseGuards(JwtAuthGuard)
-  // async assignDriver(
-  //   @Param('id') orderId: string,
-  //   @CurrentUser() user: any,
-  //   @Body('orderCode') orderCode: string,
-  // ) {
 
-
-  //   return this.ordersService.assignDriver(orderId, user.userId, orderCode);
-  // }
 
   @Post('assign-driver/route')
   @HttpCode(HttpStatus.OK)
@@ -287,6 +276,25 @@ export class OrdersController {
       body.order_code,
       body.is_received_from_generator,
     );
+  }
+
+  @Get('my-history-routes')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @authorize(UserRole.DRIVER)
+  async getMyHistoryRoutes(@CurrentUser() user: any) {
+    return this.ordersService.getMyHistoryRoutes(user.userId);
+  }
+
+  @Get('route/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @authorize(UserRole.DRIVER)
+  async getRouteById(
+    @Param('id') routeId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.ordersService.getRouteById(routeId, user.userId);
   }
 }
 
