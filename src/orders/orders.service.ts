@@ -18,6 +18,7 @@ import { Warehouse, WarehouseDocument } from '../models/warehouse.schema';
 import { Generator, GeneratorDocument } from '../models/generator.schema';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { Material, MaterialDocument } from '../models/material.schema';
+import { Route, RouteDocument } from '../models/route.schema';
 
 @Injectable()
 export class OrdersService {
@@ -30,6 +31,7 @@ export class OrdersService {
     @InjectModel(Warehouse.name) private warehouseModel: Model<WarehouseDocument>,
     @InjectModel(Generator.name) private generatorModel: Model<GeneratorDocument>,
     @InjectModel(Material.name) private materialModel: Model<MaterialDocument>,
+    @InjectModel(Route.name) private routeModel: Model<RouteDocument>,
   ) { }
 
 
@@ -431,7 +433,7 @@ export class OrdersService {
     }
 
     if (is_received_from_generator) {
- 
+
       if (!order_code || order.orderCode.toString() !== order_code.toString()) {
         throw new ConflictException(`Order code is incorrect`);
       }
@@ -439,7 +441,7 @@ export class OrdersService {
       order.is_received_from_generator = true;
       order.status = OrderStatus.RECEIVED;
     } else {
-     
+
       if (order_code) {
         throw new ConflictException(`Order code should not be provided`);
       }
@@ -465,37 +467,57 @@ export class OrdersService {
       orderIds.map(async (orderId) => {
         const order = await this.orderModel.findById(orderId);
 
-        if (!order) {
+        if (!order)
           throw new NotFoundException(`Order ${orderId} not found`);
-        }
-        if (order.status !== OrderStatus.RECEIVED) {
+        if (order.status !== OrderStatus.RECEIVED)
           throw new ConflictException(`Order ${orderId} status is ${order.status}`);
-        }
-        if (!order.is_received_from_generator) {
+        if (!order.is_received_from_generator)
           throw new ConflictException(`Order ${orderId} is not received from generator`);
-        }
-        if (order.driverId.toString() !== driverUserId.toString()) {
+        if (order.driverId.toString() !== driverUserId.toString())
           throw new ConflictException(`Driver is not assigned to order ${orderId}`);
-        }
-        const existingReceipt = await this.warehouseReceiptModel.findOne({
-          order_id: order._id,
-        });
-        if (existingReceipt) {
+
+        const existingReceipt = await this.warehouseReceiptModel.findOne({ order_id: order._id });
+        if (existingReceipt)
           throw new ConflictException(`Warehouse receipt already created for order ${orderId}`);
-        }
 
         const verificationCode = '123456';
         const expiresAt = new Date();
         expiresAt.setMinutes(expiresAt.getMinutes() + 5);
 
-        if (otp !== verificationCode || new Date() > expiresAt) {
+        if (otp !== verificationCode || new Date() > expiresAt)
           throw new ConflictException(`Invalid or expired OTP for order ${orderId}`);
-        }
 
         return order;
       })
     );
 
+    // ✅ جيب الـ warehouse والـ generator بره الـ map مرة واحدة
+    const warehouse = await this.warehouseModel.findById(warehouseId);
+    if (!warehouse) throw new NotFoundException(`Warehouse ${warehouseId} not found`);
+
+    const firstOrder = foundOrders[0];
+    const generator = await this.generatorModel.findById(firstOrder.generatorId);
+    if (!generator) throw new NotFoundException(`Generator not found`);
+
+    // ✅ استخدام الـ helper الموجود
+    const distance = this.haversineDistance(
+      generator.address.coordinates.latitude,
+      generator.address.coordinates.longitude,
+      warehouse.location.coordinates.latitude,
+      warehouse.location.coordinates.longitude,
+    );
+
+    // ✅ الروت مرة واحدة بره الـ map
+    const route = await this.routeModel.create({
+      driver: new Types.ObjectId(driverUserId),
+      orderIds: orderIds.map(id => new Types.ObjectId(id)),
+      destination: new Types.ObjectId(warehouseId),
+      startPoint: {
+        latitude: generator.address.coordinates.latitude,
+        longitude: generator.address.coordinates.longitude,
+      },
+      distance,
+    });
 
     const result = await Promise.all(
       foundOrders.map(async (order) => {
@@ -529,7 +551,7 @@ export class OrdersService {
       })
     );
 
-    return { orders: result };
+    return { orders: result, route };
   }
 
   async getPendingRoutes() {
