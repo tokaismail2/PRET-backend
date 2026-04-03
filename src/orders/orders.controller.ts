@@ -60,6 +60,9 @@ export class OrdersController {
         unit: body.unit,
         price: material.price,
         notes: body.notes,
+        lat: body.lat ? parseFloat(body.lat) : undefined,   // 👈
+        lng: body.lng ? parseFloat(body.lng) : undefined,   // 👈
+        address: body.address,
         photos: body.photos
           ? (typeof body.photos === 'string'
             ? JSON.parse(body.photos)

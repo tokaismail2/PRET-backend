@@ -53,6 +53,36 @@ export class OrdersService {
       throw new BadRequestException('Only generators can create orders');
     }
 
+    // Resolve lat/lng: use body values or fallback to generator profile
+    let lat = createOrderDto.lat;
+    let lng = createOrderDto.lng;
+    let address = createOrderDto.address;
+
+    if (lat == null || lng == null) {
+      const generatorProfile = await this.generatorModel.findOne({ user: new Types.ObjectId(userId) });
+
+      if (!generatorProfile) {
+        throw new NotFoundException('Generator profile not found');
+      }
+
+      const coords = generatorProfile.address?.coordinates;
+
+      if (!coords?.latitude || !coords?.longitude) {
+        throw new BadRequestException(
+          'No location provided and generator profile has no coordinates',
+        );
+      }
+
+      lat = coords.latitude;
+      lng = coords.longitude;
+
+      // Also fallback address if not provided
+      if (!address) {
+        const { street, city, country } = generatorProfile.address;
+        address = [street, city, country].filter(Boolean).join(', ');
+      }
+    }
+
     // Calculate total price
     const totalPrice = createOrderDto.quantity * createOrderDto.price;
 
@@ -63,14 +93,16 @@ export class OrdersService {
       quantity: createOrderDto.quantity,
       unit: createOrderDto.unit,
       price: createOrderDto.price,
-      totalPrice: totalPrice,
+      totalPrice,
       status: OrderStatus.PENDING,
       photos: createOrderDto.photos || [],
-      notes: createOrderDto.notes
+      notes: createOrderDto.notes,
+      lat,
+      lng,
+      address,
     });
 
-    const savedOrder = await order.save();
-    return savedOrder;
+    return order.save();
   }
 
   async getAllOrders(filters: {
@@ -307,56 +339,6 @@ export class OrdersService {
     return { message: 'Order deleted successfully' };
   }
 
-
-  // async assignDriver(orderId: string, driverUserId: string, orderCode: string) {
-
-  //   const order = await this.orderModel.findById(orderId);
-
-  //   if (!order) {
-  //     throw new NotFoundException('Order not found');
-  //   }
-
-  //   if (order.status !== OrderStatus.PENDING) {
-  //     throw new ConflictException(`Order cannot be assigned status is ${order.status}`);
-  //   }
-
-  //   if (order.driverId) {
-  //     throw new ConflictException('Driver already assigned');
-  //   }
-
-  //   if (orderCode.toString() !== order.orderCode.toString()) {
-  //     throw new ConflictException('Order code is incorrect');
-  //   }
-
-  //   order.driverId = new Types.ObjectId(driverUserId);
-  //   order.status = OrderStatus.IN_TRANSIT;
-
-  //   await order.save();
-
-  //   //add the totalPrice for order to wallet of generator
-  //   const generator = await this.userModel.findById(order.generatorId);
-  //   if (!generator) {
-  //     throw new NotFoundException('Generator not found');
-  //   }
-  //   const wallet = await this.userWalletModel.findOne({ userId: generator._id });
-
-  //   wallet.balance += order.totalPrice;
-  //   await wallet.save();
-
-  //   //create wallet Transaction
-  //   const walletTransaction = new this.walletTransactionModel({
-  //     walletId: wallet._id,
-  //     type: 'deposit',
-  //     amount: order.totalPrice,
-  //     description: `Deposit for order ${order.orderCode}`,
-  //     orderId: order._id,
-  //   });
-  //   await walletTransaction.save();
-
-  //   return {
-  //     order: order
-  //   };
-  // }
   async assignDriverToRoute(orderIds: string[], driverUserId: string) {
     if (orderIds.length === 0) {
       throw new ConflictException('No orders provided');
@@ -563,35 +545,13 @@ export class OrdersService {
       .sort({ createdAt: -1 })
       .lean();
 
-    const userIds = orders
-      .map((order) => (order.generatorId as any)?._id)
-      .filter(Boolean);
-
-    const generators = await this.generatorModel
-      .find({ user: { $in: userIds } })
-      .select('user businessName generatorType address')
-      .lean();
-
-    const generatorMap = new Map(
-      generators.map((g) => [g.user.toString(), g])
+    // فلتر الأوردرز اللي عندها lat/lng
+    const validOrders = orders.filter(
+      (o) => o.lat != null && o.lng != null
     );
 
-    const enrichedOrders = orders.map((order) => {
-      const userId = (order.generatorId as any)?._id?.toString();
-      return {
-        ...order,
-        generator: generatorMap.get(userId) || null,
-      };
-    });
-
-    const validOrders = enrichedOrders.filter(
-      (o) => o.generator?.address?.coordinates?.latitude &&
-        o.generator?.address?.coordinates?.longitude
-    );
-
-    // بناء الـ routes بناءً على الـ constraints
-    const MAX_WEIGHT = 200;   // كيلو
-    const MAX_DISTANCE = 30; // كيلومتر
+    const MAX_WEIGHT = 200;
+    const MAX_DISTANCE = 30;
 
     const used = new Set<string>();
     const routes: Record<string, any[]> = {};
@@ -610,17 +570,13 @@ export class OrdersService {
         const candidate = validOrders[j];
         if (used.has(candidate._id.toString())) continue;
 
-        // تحقق من الوزن
         const newWeight = totalWeight + (candidate.quantity ?? 0);
         if (newWeight > MAX_WEIGHT) continue;
 
-        // تحقق من المسافة بين كل الـ orders الموجودة في الـ route والـ candidate
-        const candidateCoords = candidate.generator.address.coordinates;
         const withinDistance = route.every((routeOrder) => {
-          const routeCoords = routeOrder.generator.address.coordinates;
           const dist = this.haversineDistance(
-            routeCoords.latitude, routeCoords.longitude,
-            candidateCoords.latitude, candidateCoords.longitude,
+            routeOrder.lat, routeOrder.lng,
+            candidate.lat, candidate.lng,
           );
           return dist <= MAX_DISTANCE;
         });

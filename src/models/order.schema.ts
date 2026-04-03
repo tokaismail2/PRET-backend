@@ -65,6 +65,14 @@ export class Order {
   @Prop()
   orderCode: string;
 
+  @Prop({ type: Number, required: false })
+  lat?: number;
+
+  @Prop({ type: Number, required: false })
+  lng?: number;
+
+  @Prop({ type: String, required: false })
+  address?: string;
 
   createdAt?: Date;
   updatedAt?: Date;
