@@ -537,15 +537,69 @@ export class OrdersService {
     return { orders: result, route };
   }
 
-  async getPendingRoutes() {
-    const orders = await this.orderModel
-      .find({ status: OrderStatus.PENDING })
-      .populate('generatorId', 'name email phone')
-      .populate('materialTypeId', 'name price')
-      .sort({ createdAt: -1 })
-      .lean();
+  //return data of generator
 
-    // فلتر الأوردرز اللي عندها lat/lng
+  async getPendingRoutes() {
+    const orders = await this.orderModel.aggregate([
+      {
+        $match: { status: OrderStatus.PENDING }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'generatorId',
+          foreignField: '_id',
+          as: 'generator'
+        }
+      },
+      {
+        $unwind: '$generator'
+      },
+      {
+        $lookup: {
+          from: 'generators',
+          localField: 'generator._id',
+          foreignField: 'user',
+          as: 'generatorDetails'
+        }
+      },
+      {
+        $unwind: {
+          path: '$generatorDetails',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+
+      {
+        $project: {
+          _id: 1,
+          quantity: 1,
+          unit: 1,
+          status: 1,
+          createdAt: 1,
+
+          // user (generator)
+          'generator._id': 1,
+          'generator.name': 1,
+          'generator.email': 1,
+          'generator.phone': 1,
+
+          // generator details
+          'generatorDetails.businessName': 1,
+          'generatorDetails.generatorType': 1,
+          'generatorDetails.address': 1,
+          'generatorDetails.logo': 1,
+        }
+      },
+
+      {
+        $sort: { createdAt: -1 }
+      }
+    ]);
+
+
+
+
     const validOrders = orders.filter(
       (o) => o.lat != null && o.lng != null
     );
