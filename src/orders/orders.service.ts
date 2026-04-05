@@ -542,24 +542,27 @@ export class OrdersService {
   async getPendingRoutes() {
     const orders = await this.orderModel.aggregate([
       {
-        $match: { status: OrderStatus.PENDING }
+        $match: { status: 'pending' }
       },
+
       {
         $lookup: {
           from: 'users',
           localField: 'generatorId',
           foreignField: '_id',
-          as: 'generator'
+          as: 'generatorUser'
         }
       },
-      {
-        $unwind: '$generator'
-      },
+      { $unwind: '$generatorUser' },
+
+    
       {
         $lookup: {
           from: 'generators',
-          localField: 'generator._id',
-          foreignField: 'user',
+          let: { userId: '$generatorUser._id' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$user', '$$userId'] } } }
+          ],
           as: 'generatorDetails'
         }
       },
@@ -578,25 +581,24 @@ export class OrdersService {
           status: 1,
           createdAt: 1,
 
-          // user (generator)
-          'generator._id': 1,
-          'generator.name': 1,
-          'generator.email': 1,
-          'generator.phone': 1,
+          generator: {
+            _id: '$generatorUser._id',
+            name: '$generatorUser.name',
+            email: '$generatorUser.email',
+            phone: '$generatorUser.phone',
+            businessName: '$generatorDetails.businessName',
+            generatorType: '$generatorDetails.generatorType',
+            address: '$generatorDetails.address'
+          },
 
-          // generator details
-          'generatorDetails.businessName': 1,
-          'generatorDetails.generatorType': 1,
-          'generatorDetails.address': 1,
-          'generatorDetails.logo': 1,
+          materialTypeId: 1,
+          totalPrice: 1,
+          price: 1
         }
       },
 
-      {
-        $sort: { createdAt: -1 }
-      }
+      { $sort: { createdAt: -1 } }
     ]);
-
 
 
 
