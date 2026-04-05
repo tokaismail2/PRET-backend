@@ -555,7 +555,6 @@ export class OrdersService {
       },
       { $unwind: '$generatorUser' },
 
-    
       {
         $lookup: {
           from: 'generators',
@@ -573,6 +572,7 @@ export class OrdersService {
         }
       },
 
+
       {
         $project: {
           _id: 1,
@@ -580,6 +580,14 @@ export class OrdersService {
           unit: 1,
           status: 1,
           createdAt: 1,
+          updatedAt: 1,
+          orderCode: 1,
+          price: 1,
+          totalPrice: 1,
+          photos: 1,
+          lat: 1,
+          lng: 1,
+          address: 1,
 
           generator: {
             _id: '$generatorUser._id',
@@ -588,12 +596,11 @@ export class OrdersService {
             phone: '$generatorUser.phone',
             businessName: '$generatorDetails.businessName',
             generatorType: '$generatorDetails.generatorType',
-            address: '$generatorDetails.address'
+            address: '$generatorDetails.address',
+            logo: '$generatorDetails.logo'
           },
 
-          materialTypeId: 1,
-          totalPrice: 1,
-          price: 1
+          materialTypeId: 1
         }
       },
 
