@@ -590,14 +590,8 @@ export class OrdersService {
           address: 1,
 
           generator: {
-            _id: '$generatorUser._id',
-            name: '$generatorUser.name',
-            email: '$generatorUser.email',
-            phone: '$generatorUser.phone',
             businessName: '$generatorDetails.businessName',
             generatorType: '$generatorDetails.generatorType',
-            address: '$generatorDetails.address',
-            logo: '$generatorDetails.logo'
           },
 
           materialTypeId: 1
