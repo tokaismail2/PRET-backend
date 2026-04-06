@@ -545,6 +545,7 @@ export class OrdersService {
         $match: { status: 'pending' }
       },
 
+      // user (generator)
       {
         $lookup: {
           from: 'users',
@@ -555,6 +556,7 @@ export class OrdersService {
       },
       { $unwind: '$generatorUser' },
 
+      // generator details
       {
         $lookup: {
           from: 'generators',
@@ -572,6 +574,20 @@ export class OrdersService {
         }
       },
 
+      {
+        $lookup: {
+          from: 'materialtypes',
+          localField: 'materialTypeId',
+          foreignField: '_id',
+          as: 'materialType'
+        }
+      },
+      {
+        $unwind: {
+          path: '$materialType',
+          preserveNullAndEmptyArrays: true
+        }
+      },
 
       {
         $project: {
@@ -592,15 +608,19 @@ export class OrdersService {
           generator: {
             businessName: '$generatorDetails.businessName',
             generatorType: '$generatorDetails.generatorType',
+            phone: '$generatorUser.phone'
           },
 
-          materialTypeId: 1
+
+          material: {
+            _id: '$materialType._id',
+            name: '$materialType.name'
+          }
         }
       },
 
       { $sort: { createdAt: -1 } }
     ]);
-
 
 
     const validOrders = orders.filter(
