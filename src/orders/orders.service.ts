@@ -575,7 +575,7 @@ export class OrdersService {
       },
       {
         $lookup: {
-          from: 'materialtypes',
+          from: 'materials', 
           let: { materialId: '$materialTypeId' },
           pipeline: [
             {
@@ -583,7 +583,13 @@ export class OrdersService {
                 $expr: {
                   $eq: [
                     '$_id',
-                    { $toObjectId: '$$materialId' }
+                    {
+                      $cond: {
+                        if: { $eq: [{ $type: '$$materialId' }, 'string'] },
+                        then: { $toObjectId: '$$materialId' },
+                        else: '$$materialId'
+                      }
+                    }
                   ]
                 }
               }
