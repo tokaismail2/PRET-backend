@@ -573,12 +573,22 @@ export class OrdersService {
           preserveNullAndEmptyArrays: true
         }
       },
-
       {
         $lookup: {
           from: 'materialtypes',
-          localField: 'materialTypeId',
-          foreignField: '_id',
+          let: { materialId: '$materialTypeId' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: [
+                    '$_id',
+                    { $toObjectId: '$$materialId' }
+                  ]
+                }
+              }
+            }
+          ],
           as: 'materialType'
         }
       },
