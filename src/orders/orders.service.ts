@@ -184,7 +184,7 @@ export class OrdersService {
     });
   }
 
-  async getMyOrdersHistory(userId: string, status?: string) {
+  async getMyOrdersHistory(userId: string, status?: string, page: number = 1, limit: number = 10) {
     const user = await this.userModel.findById(userId);
 
     if (!user) {
@@ -212,6 +212,8 @@ export class OrdersService {
       .find(filter)
       .populate('materialTypeId')
       .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
       .exec();
 
     return orders;

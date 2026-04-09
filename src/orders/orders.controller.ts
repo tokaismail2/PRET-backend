@@ -147,18 +147,25 @@ export class OrdersController {
       body.is_received_from_generator,
     );
   }
-
+   //add pagination
   @Get('history')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async getMyOrdersHistory(
     @CurrentUser() user: any,
     @Query('status') status?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
   ) {
-    const orders = await this.ordersService.getMyOrdersHistory(user.userId, status);
+    const orders = await this.ordersService.getMyOrdersHistory(user.userId, status, page, limit);
     return {
       message: 'Orders retrieved successfully',
       data: orders,
+      pagination: {
+        page,
+        limit,
+        total: orders.length,
+      },
     };
   }
 
