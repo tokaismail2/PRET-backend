@@ -102,12 +102,21 @@ export class DonationsController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @authorize(UserRole.GENERATOR)
-  async getMyDonations(@CurrentUser() user: any) {
+  async getMyDonations(@CurrentUser() user: any,@Query() query: any) {
+    const page = Math.max(1, parseInt(query.page) || 1);
+    const limit = Math.max(1, parseInt(query.limit) || 10);
     const donations = await this.donationsService.getDonationsByUser(
       user.userId,
+      page,
+      limit,
     );
     return {
       message: 'Donations retrieved successfully',
+      pagination: {
+        total: await this.donationsService.getDonationCount(),
+        page,
+        limit,
+      },
       donations,
     };
   }

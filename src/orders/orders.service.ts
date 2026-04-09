@@ -184,39 +184,43 @@ export class OrdersService {
     });
   }
 
+
   async getMyOrdersHistory(userId: string, status?: string, page: number = 1, limit: number = 10) {
     const user = await this.userModel.findById(userId);
 
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+    if (!user) throw new NotFoundException('User not found');
 
     let filter: any = {};
 
     if (user.role === UserRole.GENERATOR) {
       filter.generatorId = userId;
-    }
-    else if (user.role === UserRole.DRIVER) {
+    } else if (user.role === UserRole.DRIVER) {
       filter.driverId = userId;
-    }
-    else {
+    } else {
       throw new ForbiddenException('Invalid role');
     }
 
-    // add status only if it exists
-    if (status) {
-      filter.status = status;
-    }
+    if (status) filter.status = status;
 
-    const orders = await this.orderModel
-      .find(filter)
-      .populate('materialTypeId')
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .exec();
+    // ✅ شغّل الاتنين بالتوازي
+    const [orders, total] = await Promise.all([
+      this.orderModel
+        .find(filter)
+        .populate('materialTypeId')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .exec(),
+      this.orderModel.countDocuments(filter),
+    ]);
 
-    return orders;
+    return {
+      data: orders,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async cancelOrder(orderId: string, userId: string, reason: string) {
@@ -577,7 +581,7 @@ export class OrdersService {
       },
       {
         $lookup: {
-          from: 'materials', 
+          from: 'materials',
           let: { materialId: '$materialTypeId' },
           pipeline: [
             {

@@ -23,6 +23,7 @@ import { VerifyResetCodeDto } from './dto/verify-reset-code.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { VerifyPhoneDto } from './dto/verify-phone.dto';
+import { Types } from 'mongoose';
 
 
 interface ResetCodeData {
@@ -72,110 +73,387 @@ export class AuthService {
     }, 5 * 60 * 1000);
   }
 
-  async register(registerDto: RegisterDto): Promise<Omit<User, 'password'>> {
-    // Check if user already exists by email
-    const existingUserByEmail = await this.userModel.findOne({
-      email: registerDto.email.toLowerCase().trim(),
-      isVerified: true,
-    });
-    if (existingUserByEmail) {
-      throw new ConflictException('User with this email already exists');
+  // async register(registerDto: RegisterDto): Promise<Omit<User, 'password'>> {
+  //   // Check if user already exists by email
+  //   const existingUserByEmail = await this.userModel.findOne({
+  //     email: registerDto.email.toLowerCase().trim(),
+  //     isVerified: true,
+  //   });
+  //   if (existingUserByEmail) {
+  //     throw new ConflictException('User with this email already exists');
+  //   }
+
+  //   // Check if phone already exists (if provided)
+  //   let existingUserByPhone;
+  //   if (registerDto.phone) {
+  //       existingUserByPhone = await this.userModel.findOne({
+  //       phone: registerDto.phone.trim(),
+  //       isVerified: true,
+  //     });
+  //     if (existingUserByPhone) {
+  //       throw new ConflictException('User with this phone number already exists');
+  //     }
+  //   }
+
+  //   //if exist and not verified send code again
+  //   if (existingUserByEmail && !existingUserByEmail.isVerified) {
+  //     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+  //     const expiresAt = new Date();
+  //     expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+
+  //     this.emailVerificationCodes.set(existingUserByEmail.email.toLowerCase().trim(), {
+  //       code: verificationCode,
+  //       expiresAt,
+  //       email: existingUserByEmail.email.toLowerCase().trim(),
+  //       verified: false,
+  //     });
+
+  //     await this.emailService.sendEmailVerificationCode(existingUserByEmail.email, verificationCode);
+  //     return;
+  //   }
+
+  //   //if exist and not verified send code again
+  //   if (existingUserByPhone && !existingUserByPhone.isVerified) {
+  //     const verificationCode = '123456'; // Static for now as requested in original code
+  //     const expiresAt = new Date();
+  //     expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+
+  //     this.phoneVerificationCodes.set(existingUserByPhone.phone.trim(), {
+  //       code: verificationCode,
+  //       expiresAt,
+  //       phone: existingUserByPhone.phone.trim(),
+  //       verified: false,
+  //     });
+  //     return;
+  //   }
+
+  //   const role: UserRole = (registerDto.role as unknown as UserRole) || UserRole.GENERATOR;
+
+  //   // Ensure role is one of the allowed registration roles
+  //   if (![UserRole.GENERATOR, UserRole.FACTORY, UserRole.DRIVER].includes(role)) {
+  //     throw new BadRequestException('Invalid role. Must be one of: generator, factory, driver');
+  //   }
+
+  //   // Validate role-specific fields
+  //   this.validateRoleSpecificFields(role, registerDto);
+
+  //   // Hash password
+  //   const saltRounds = 10;
+  //   const hashedPassword = await bcrypt.hash(registerDto.password, saltRounds);
+
+  //   // Create User record
+  //   const newUser = new this.userModel({
+  //     email: registerDto.email.toLowerCase().trim(),
+  //     password: hashedPassword,
+  //     name: registerDto.name,
+  //     phone: registerDto.phone?.trim(),
+  //     role,
+  //   });
+
+  //   const savedUser = await newUser.save();
+
+  //   // Create role-specific record
+  //   try {
+  //     await this.createRoleSpecificRecord(role, (savedUser._id as any).toString(), registerDto);
+  //   } catch (error) {
+  //     // Rollback user creation if role record fails
+  //     await this.userModel.findByIdAndDelete(savedUser._id);
+  //     throw error;
+  //   }
+
+  //   //temporary for driver
+  //   if (role === UserRole.DRIVER) {
+  //     savedUser.isVerified = true;
+  //     await savedUser.save();
+  //   }
+
+  //   // Skip verification for drivers
+  //   if (role !== UserRole.DRIVER) {
+  //     // Determine verification method (default to email if not specified)
+  //     const verificationMethod = registerDto.verificationMethod || 'email';
+
+  //     if (verificationMethod === 'phone') {
+  //       // Phone verification
+  //       if (!savedUser.phone) {
+  //         throw new BadRequestException('Phone number is required for phone verification');
+  //       }
+  //       const verificationCode = '123456'; // Static for now as requested in original code
+  //       const expiresAt = new Date();
+  //       expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+
+  //       this.phoneVerificationCodes.set(savedUser.phone.trim(), {
+  //         code: verificationCode,
+  //         expiresAt,
+  //         phone: savedUser.phone.trim(),
+  //         verified: false,
+  //       });
+  //     } else {
+  //       // Email verification
+  //       const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+  //       const expiresAt = new Date();
+  //       expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+
+  //       this.emailVerificationCodes.set(savedUser.email.toLowerCase().trim(), {
+  //         code: verificationCode,
+  //         expiresAt,
+  //         email: savedUser.email.toLowerCase().trim(),
+  //         verified: false,
+  //       });
+
+  //       await this.emailService.sendEmailVerificationCode(savedUser.email, verificationCode);
+  //     }
+  //   }
+
+  //   // Return user without password
+  //   const userObj = savedUser.toObject();
+  //   delete userObj.password;
+  //   return userObj;
+  // }
+
+  // async register(registerDto: RegisterDto): Promise<Omit<User, 'password'> | { message: string }> {
+  //   const email = registerDto.email.toLowerCase().trim();
+  //   const phone = registerDto.phone?.trim();
+
+  //   // Check existing user by email (WITHOUT isVerified filter)
+  //   const existingUserByEmail = await this.userModel.findOne({ email });
+
+  //   if (existingUserByEmail?.isVerified) {
+  //     throw new ConflictException('User with this email already exists');
+  //   }
+
+  //   // Check existing user by phone (WITHOUT isVerified filter)
+  //   let existingUserByPhone;
+  //   if (phone) {
+  //     existingUserByPhone = await this.userModel.findOne({ phone });
+
+  //     if (existingUserByPhone?.isVerified) {
+  //       throw new ConflictException('User with this phone number already exists');
+  //     }
+  //   }
+
+  //   // If email exists but NOT verified → resend code
+  //   if (existingUserByEmail && !existingUserByEmail.isVerified) {
+  //     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+  //     const expiresAt = new Date();
+  //     expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+
+  //     this.emailVerificationCodes.set(email, {
+  //       code: verificationCode,
+  //       expiresAt,
+  //       email,
+  //       verified: false,
+  //     });
+
+  //     await this.emailService.sendEmailVerificationCode(email, verificationCode);
+
+  //     return { message: 'Verification code resent to email' };
+  //   }
+
+  //   // If phone exists but NOT verified → resend code
+  //   if (existingUserByPhone && !existingUserByPhone.isVerified) {
+  //     const verificationCode = '123456';
+
+  //     const expiresAt = new Date();
+  //     expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+
+  //     this.phoneVerificationCodes.set(phone, {
+  //       code: verificationCode,
+  //       expiresAt,
+  //       phone,
+  //       verified: false,
+  //     });
+
+  //     return { message: 'Verification code resent to phone' };
+  //   }
+
+  //   // Role handling
+  //   const role: UserRole =
+  //     (registerDto.role as unknown as UserRole) || UserRole.GENERATOR;
+
+  //   if (![UserRole.GENERATOR, UserRole.FACTORY, UserRole.DRIVER].includes(role)) {
+  //     throw new BadRequestException('Invalid role. Must be generator, factory, or driver');
+  //   }
+
+  //   this.validateRoleSpecificFields(role, registerDto);
+
+  //   // Hash password
+  //   const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+
+  //   // Create user
+  //   const newUser = new this.userModel({
+  //     email,
+  //     password: hashedPassword,
+  //     name: registerDto.name,
+  //     phone,
+  //     role,
+  //   });
+
+  //   const savedUser = await newUser.save();
+
+  //   // Create role-specific record (with rollback safety)
+  //   try {
+  //     await this.createRoleSpecificRecord(role, savedUser._id.toString(), registerDto);
+  //   } catch (error) {
+  //     await this.userModel.findByIdAndDelete(savedUser._id);
+  //     throw error;
+  //   }
+
+  //   // Auto verify driver (business decision)
+  //   if (role === UserRole.DRIVER) {
+  //     savedUser.isVerified = true;
+  //     await savedUser.save();
+  //   }
+
+  //   // Send verification for non-drivers
+  //   if (role !== UserRole.DRIVER) {
+  //     const verificationMethod = registerDto.verificationMethod || 'email';
+
+  //     if (verificationMethod === 'phone') {
+  //       if (!phone) {
+  //         throw new BadRequestException('Phone number is required for phone verification');
+  //       }
+
+  //       const verificationCode = '123456';
+
+  //       const expiresAt = new Date();
+  //       expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+
+  //       this.phoneVerificationCodes.set(phone, {
+  //         code: verificationCode,
+  //         expiresAt,
+  //         phone,
+  //         verified: false,
+  //       });
+
+  //       return { message: 'Verification code sent to phone' };
+  //     } else {
+  //       const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+  //       const expiresAt = new Date();
+  //       expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+
+  //       this.emailVerificationCodes.set(email, {
+  //         code: verificationCode,
+  //         expiresAt,
+  //         email,
+  //         verified: false,
+  //       });
+
+  //       await this.emailService.sendEmailVerificationCode(email, verificationCode);
+
+  //       return { message: 'Verification code sent to email' };
+  //     }
+  //   }
+
+  //   // Return user safely
+  //   const userObj = savedUser.toObject();
+  //   delete userObj.password;
+
+  //   return userObj;
+  // }
+
+  async register(registerDto: RegisterDto): Promise<Omit<User, 'password'> | { message: string }> {
+    const email = registerDto.email.toLowerCase().trim();
+    const phone = registerDto.phone?.trim();
+
+    let user = await this.userModel.findOne({ email });
+
+    if (phone && !user) {
+      user = await this.userModel.findOne({ phone });
     }
 
-    // Check if phone already exists (if provided)
-    if (registerDto.phone) {
-      const existingUserByPhone = await this.userModel.findOne({
-        phone: registerDto.phone.trim(),
-        isVerified: true,
-      });
-      if (existingUserByPhone) {
-        throw new ConflictException('User with this phone number already exists');
-      }
-    }
+    const role: UserRole =
+      (registerDto.role as unknown as UserRole) || UserRole.GENERATOR;
 
-    const role: UserRole = (registerDto.role as unknown as UserRole) || UserRole.GENERATOR;
-
-    // Ensure role is one of the allowed registration roles
     if (![UserRole.GENERATOR, UserRole.FACTORY, UserRole.DRIVER].includes(role)) {
-      throw new BadRequestException('Invalid role. Must be one of: generator, factory, driver');
+      throw new BadRequestException('Invalid role. Must be generator, factory, or driver');
     }
 
-    // Validate role-specific fields
     this.validateRoleSpecificFields(role, registerDto);
 
-    // Hash password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(registerDto.password, saltRounds);
+    // -------------------------------
+    // 🔥 CASE 1: CREATE or REUSE USER
+    // -------------------------------
+    if (!user) {
+      const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
-    // Create User record
-    const newUser = new this.userModel({
-      email: registerDto.email.toLowerCase().trim(),
-      password: hashedPassword,
-      name: registerDto.name,
-      phone: registerDto.phone?.trim(),
-      role,
-    });
+      user = new this.userModel({
+        email,
+        password: hashedPassword,
+        name: registerDto.name,
+        phone,
+        role,
+      });
 
-    const savedUser = await newUser.save();
-
-    // Create role-specific record
-    try {
-      await this.createRoleSpecificRecord(role, (savedUser._id as any).toString(), registerDto);
-    } catch (error) {
-      // Rollback user creation if role record fails
-      await this.userModel.findByIdAndDelete(savedUser._id);
-      throw error;
-    }
-    
-    //temporary for driver
-    if(role === UserRole.DRIVER){
-      savedUser.isVerified = true;
-      await savedUser.save();
+      await user.save();
     }
 
-    // Skip verification for drivers
+    // -------------------------------
+    // 🔥 CASE 2: ALREADY VERIFIED USER
+    // -------------------------------
+    if (user.isVerified) {
+      throw new ConflictException('User already exists');
+    }
+
+    // -------------------------------
+    // 🔥 ROLE-SPECIFIC RECORD (safe)
+    // -------------------------------
+    await this.createRoleSpecificRecord(role, user._id.toString(), registerDto);
+
+    // -------------------------------
+    // 🔥 DRIVER AUTO VERIFY
+    // -------------------------------
+    if (role === UserRole.DRIVER) {
+      user.isVerified = true;
+      await user.save();
+    }
+
+    // -------------------------------
+    // 🔥 SEND VERIFICATION ALWAYS (if not driver)
+    // -------------------------------
     if (role !== UserRole.DRIVER) {
-      // Determine verification method (default to email if not specified)
       const verificationMethod = registerDto.verificationMethod || 'email';
 
       if (verificationMethod === 'phone') {
-        // Phone verification
-        if (!savedUser.phone) {
-          throw new BadRequestException('Phone number is required for phone verification');
+        if (!phone) {
+          throw new BadRequestException('Phone number is required');
         }
-        const verificationCode = '123456'; // Static for now as requested in original code
-        const expiresAt = new Date();
-        expiresAt.setMinutes(expiresAt.getMinutes() + 5);
 
-        this.phoneVerificationCodes.set(savedUser.phone.trim(), {
-          code: verificationCode,
-          expiresAt,
-          phone: savedUser.phone.trim(),
-          verified: false,
-        });
-      } else {
-        // Email verification
-        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = new Date();
-        expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+        const code = '123456';
 
-        this.emailVerificationCodes.set(savedUser.email.toLowerCase().trim(), {
-          code: verificationCode,
-          expiresAt,
-          email: savedUser.email.toLowerCase().trim(),
+        this.phoneVerificationCodes.set(phone, {
+          code,
+          expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+          phone,
           verified: false,
         });
 
-        await this.emailService.sendEmailVerificationCode(savedUser.email, verificationCode);
+        return { message: 'Verification code sent to phone' };
       }
+
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+      this.emailVerificationCodes.set(email, {
+        code,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        email,
+        verified: false,
+      });
+
+      await this.emailService.sendEmailVerificationCode(email, code);
+
+      return { message: 'Verification code sent to email' };
     }
 
-    // Return user without password
-    const userObj = savedUser.toObject();
+    // -------------------------------
+    // 🔥 RETURN USER
+    // -------------------------------
+    const userObj = user.toObject();
     delete userObj.password;
+
     return userObj;
   }
-
   private validateRoleSpecificFields(role: UserRole, dto: RegisterDto) {
     if (role === UserRole.GENERATOR) {
       if (!dto.generatorType) throw new BadRequestException('Generator type is required');
@@ -221,13 +499,17 @@ export class AuthService {
   }
 
   async loginWithEmail(loginEmailDto: LoginEmailDto) {
-    const user = await this.userModel.findOne({
-      email: loginEmailDto.email.toLowerCase().trim(),
-      isVerified: true,
-    });
+    const email = loginEmailDto.email.toLowerCase().trim();
+
+    const user = await this.userModel.findOne({ email });
 
     if (!user) {
       throw new UnauthorizedException('Invalid email or password');
+    }
+
+    // 🔥 2. must be verified (separate check)
+    if (!user.isVerified) {
+      throw new UnauthorizedException('Please verify your account first');
     }
 
     if (!user.isActive) {
@@ -238,41 +520,42 @@ export class AuthService {
       throw new UnauthorizedException('Please sign in with Google');
     }
 
-    // Verify password
-    // const isPasswordValid = await bcrypt.compare(
-    //   loginEmailDto.password,
-    //   user.password,
-    // );
+    // 🔥 3. PASSWORD CHECK (IMPORTANT FIX)
+    const isPasswordValid = await bcrypt.compare(
+      loginEmailDto.password,
+      user.password,
+    );
 
-    // if (!isPasswordValid) {
-    //   throw new UnauthorizedException('Invalid email or password');
-    // }
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
 
-    // 🔹 load profile based on role
+    // 🔥 4. load profile
     let profile: any = null;
 
     switch (user.role) {
       case 'generator':
-        profile = await this.generatorModel.findOne({ user: user._id as any });
+        profile = await this.generatorModel.findOne({ user: user._id });
         break;
 
       case 'factory':
-        profile = await this.factoryModel.findOne({ user: user._id as any });
+        profile = await this.factoryModel.findOne({ user: user._id });
         break;
 
       case 'driver':
-        profile = await this.driverModel.findOne({ user: user._id as any });
+        profile = await this.driverModel.findOne({ user: user._id });
         break;
+
       case 'admin':
         profile = { type: 'admin' };
         break;
-
     }
 
     if (!profile) {
-      throw new UnauthorizedException('User profile not found');
+      throw new BadRequestException('Profile not found for this user');
     }
 
+    // 🔥 5. JWT
     const payload = {
       sub: user._id.toString(),
       email: user.email,
@@ -281,19 +564,15 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
 
-    const { password, ...userWithoutPassword } = user.toObject();
+    const userObj = user.toObject();
+    delete userObj.password;
 
     return {
-      success: true,
-      message: 'Login successful',
-      data: {
-        user: userWithoutPassword,
-        profile,
-        accessToken,
-      },
+      user: userObj,
+      profile,
+      accessToken,
     };
   }
-
 
   async loginWithPhone(loginPhoneDto: LoginPhoneDto) {
     // 1️⃣ Find user by phone
@@ -331,15 +610,15 @@ export class AuthService {
 
     switch (user.role) {
       case 'generator':
-        profile = await this.generatorModel.findOne({ user: user._id as any });
+        profile = await this.generatorModel.findOne({ user: new Types.ObjectId(user._id) });
         break;
 
       case 'factory':
-        profile = await this.factoryModel.findOne({ user: user._id as any });
+        profile = await this.factoryModel.findOne({ user: new Types.ObjectId(user._id) });
         break;
 
       case 'driver':
-        profile = await this.driverModel.findOne({ user: user._id as any });
+        profile = await this.driverModel.findOne({ user: new Types.ObjectId(user._id) });
         break;
       case 'admin':
         profile = { type: 'admin' };

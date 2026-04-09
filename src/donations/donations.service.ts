@@ -60,7 +60,7 @@ export class DonationsService {
     return savedDonation;
   }
 
-  async getDonationsByUser(userId: string) {
+  async getDonationsByUser(userId: string, page: number, limit: number) {
     const user = await this.userModel.findById(userId);
 
     if (!user) {
@@ -70,6 +70,8 @@ export class DonationsService {
     const donations = await this.donationModel
       .find({ generator: userId })
       .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
       .exec();
 
     return donations;

@@ -1,13 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema } from 'mongoose';
-import { User } from './user.schema';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 
 export type FactoryDocument = Factory & Document;
 
 @Schema({ timestamps: true })
 export class Factory {
     @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true, unique: true })
-    user: User | MongooseSchema.Types.ObjectId;
+    user: Types.ObjectId;
 
     @Prop({
         type: {
