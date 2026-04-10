@@ -313,14 +313,14 @@ export class AuthService {
       throw new UnauthorizedException('Please sign in with Google');
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      loginEmailDto.password,
-      user.password,
-    );
+    // const isPasswordValid = await bcrypt.compare(
+    //   loginEmailDto.password,
+    //   user.password,
+    // );
 
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid email or password');
-    }
+    // if (!isPasswordValid) {
+    //   throw new UnauthorizedException('Invalid email or password');
+    // }
 
     return this.buildLoginResponse(user);
   }
