@@ -25,14 +25,13 @@ export class WasteController {
 
   // 1️⃣ Create waste
   @Post()
-  @authorize(UserRole.DRIVER)
-  //driver_id from req.user.id
+  @authorize(UserRole.ADMIN)
   @UseGuards(AuthGuard('jwt'))
   @UseInterceptors(
     AuditLogInterceptorFactory('create_waste'),
   )
-  create(@Body() createWasteDto: CreateWasteDto, @Req() req) {
-    return this.wasteService.create(createWasteDto, req.user.userId);
+  create(@Body() createWasteDto: CreateWasteDto) {
+    return this.wasteService.create(createWasteDto);
   }
 
   // 2️⃣ Get all waste

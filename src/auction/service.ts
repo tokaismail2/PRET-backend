@@ -5,11 +5,12 @@ import { Auction, AuctionDocument } from '../models/auction.schema';
 import { CreateAuctionDto } from './dto/create';
 import { Waste, WasteDocument } from '../models/waste.schema';
 import { AuctionBid, AuctionBidDocument } from '../models/auctionBids.schema';
-import { User, UserDocument } from '../models/user.schema';
+import { User, UserDocument, UserRole } from '../models/user.schema';
 import { UserWallet, UserWalletDocument } from '../models/userWallet.schema';
 import { WalletTransaction, WalletTransactionDocument } from '../models/walletTransactions.schema';
 import { Payment, PaymentDocument } from '../models/payment.schema';
 import { PaymobService } from '../paymob/paymob.service';
+
 @Injectable()
 export class AuctionService {
   constructor(
@@ -46,7 +47,7 @@ export class AuctionService {
 
     if (auction.status !== 'open') throw new BadRequestException('Auction is not open');
 
-    if (bidAmount <= auction.current_price) throw new BadRequestException('Bid amount must be greater than current price');
+    if (bidAmount < auction.current_price) throw new BadRequestException('Bid amount must be greater than or equal to current price');
 
     //create bid
     const bid = new this.auctionBidModel({
@@ -524,6 +525,22 @@ export class AuctionService {
 
       auction.is_finished = true;
       await auction.save();
+
+      //update admin wallet
+      const admin = await this.userModel.findOne({ role: UserRole.ADMIN });
+      if (!admin) throw new NotFoundException(`Admin not found`);
+
+      const adminWallet = await this.userWalletModel.findOne({ userId: admin._id });
+      adminWallet.balance += auction.final_price;
+      await adminWallet.save();
+
+      await this.walletTransactionModel.create({
+        walletId: adminWallet._id,
+        userId: admin._id,
+        type: 'deposit',
+        amount: auction.final_price,
+        description: `auction_payment for auction ${auction._id}`,
+      });
       return { auction, iframeUrl, payment };
     }
   }

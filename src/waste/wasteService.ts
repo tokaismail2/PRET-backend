@@ -8,6 +8,7 @@ import { UpdateWasteDto } from './dto/update';
 import { User, UserDocument } from '../models/user.schema';
 import { UserWallet, UserWalletDocument } from '../models/userWallet.schema';
 import { WalletTransaction, WalletTransactionDocument } from '../models/walletTransactions.schema';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class WasteService {
@@ -20,8 +21,11 @@ export class WasteService {
   ) { }
 
   // استلام الويست من الوير هاوس 
-  async create(createWasteDto: CreateWasteDto, driverId: string): Promise<any> {
-    const waste = new this.wasteModel({ ...createWasteDto, driver_id: driverId });
+  async create(createWasteDto: CreateWasteDto): Promise<any> {
+    const waste = new this.wasteModel({ ...createWasteDto,
+    warehouse_id: new Types.ObjectId(createWasteDto.warehouse_id),
+    material_id: new Types.ObjectId(createWasteDto.material_id),
+     });
     
     await waste.save();
 
@@ -38,6 +42,7 @@ export class WasteService {
     const walletTransaction = new this.walletTransactionModel({
       walletId: wallet._id,
       type: 'withdrawal',
+      userId: admin._id,
       amount: createWasteDto.price,
       description: `Withdrawal for waste ${waste._id}`,
     });
@@ -48,14 +53,16 @@ export class WasteService {
   // READ ALL
   async findAll(): Promise<Waste[]> {
     return this.wasteModel.find()
-      .populate('warehouse_id')
+      .populate('warehouse_id', 'name contract_number')
+      .populate('material_id', 'name')
       .sort({ createdAt: -1 }).exec();
   }
 
   // READ ONE
   async findOne(id: string): Promise<Waste> {
     const waste = await this.wasteModel.findById(id)
-      .populate('warehouse_id')
+      .populate('warehouse_id', 'name contract_number')
+      .populate('material_id', 'name')
       .exec();
     if (!waste) throw new NotFoundException('Waste not found');
     return waste;

@@ -373,25 +373,6 @@ export class OrdersService {
         order.driverId = new Types.ObjectId(driverUserId);
         order.status = OrderStatus.IN_TRANSIT;
         await order.save();
-
-        const generator = await this.userModel.findById(order.generatorId);
-        if (!generator) {
-          throw new NotFoundException(`Generator not found for order ${order._id}`);
-        }
-
-        const wallet = await this.userWalletModel.findOne({ userId: generator._id });
-        wallet.balance += order.totalPrice;
-        await wallet.save();
-
-        const walletTransaction = new this.walletTransactionModel({
-          walletId: wallet._id,
-          type: 'deposit',
-          amount: order.totalPrice,
-          description: `Deposit for order ${order.orderCode}`,
-          orderId: order._id,
-        });
-        await walletTransaction.save();
-
         return order;
       }),
     );
@@ -428,6 +409,46 @@ export class OrdersService {
 
       order.is_received_from_generator = true;
       order.status = OrderStatus.RECEIVED;
+
+      //create wallet transaction for generator
+      const generator = await this.userModel.findById(order.generatorId);
+      if (!generator) {
+        throw new NotFoundException(`Generator not found for order ${order._id}`);
+      }
+
+      const wallet = await this.userWalletModel.findOne({ userId: generator._id });
+      wallet.balance += order.totalPrice;
+      await wallet.save();
+
+      const walletTransaction = new this.walletTransactionModel({
+        walletId: wallet._id,
+        userId: generator._id,
+        type: 'deposit',
+        amount: order.totalPrice,
+        description: `Deposit for order ${order.orderCode}`,
+        orderId: order._id,
+      });
+      await walletTransaction.save();
+
+      //update wallet of admin 
+      const admin = await this.userModel.findOne({ role: UserRole.ADMIN });
+      if (!admin) {
+        throw new NotFoundException(`Admin not found for order ${order._id}`);
+      }
+
+      const adminWallet = await this.userWalletModel.findOne({ userId: admin._id });
+      adminWallet.balance -= order.totalPrice;
+      await adminWallet.save();
+
+      const adminWalletTransaction = new this.walletTransactionModel({
+        walletId: adminWallet._id,
+        userId: admin._id,
+        type: 'withdrawal',
+        amount: order.totalPrice,
+        description: `Withdrawal for order ${order.orderCode}`,
+        orderId: order._id,
+      });
+      await adminWalletTransaction.save();
     } else {
 
       if (order_code) {
@@ -531,7 +552,24 @@ export class OrdersService {
 
         await this.walletTransactionModel.create({
           walletId: driverWallet._id,
+          userId: driverUserId,
           type: 'withdrawal',
+          amount: deliveryFee,
+          description: `trip_fee for order ${order._id}`,
+        });
+
+        //update admin wallet
+        const admin = await this.userModel.findOne({ role: UserRole.ADMIN });
+        if (!admin) throw new NotFoundException(`Admin not found`);
+
+        const adminWallet = await this.userWalletModel.findOne({ userId: admin._id });
+        adminWallet.balance -= deliveryFee;
+        await adminWallet.save();
+
+        await this.walletTransactionModel.create({
+          walletId: adminWallet._id,
+          userId: admin._id,
+          type: 'deposit',
           amount: deliveryFee,
           description: `trip_fee for order ${order._id}`,
         });

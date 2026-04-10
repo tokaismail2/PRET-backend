@@ -10,6 +10,9 @@ export class WalletTransaction {
   @Prop({ type: Types.ObjectId, ref: 'UserWallet', required: true })
   walletId: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  userId: Types.ObjectId;
+
   //if withdrawal then amount is negative and if deposit then amount is positive
   //بيدفع يبقى withdrawal
   //بياخد يبقى deposit
