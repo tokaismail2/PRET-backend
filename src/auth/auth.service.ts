@@ -3,6 +3,7 @@ import {
   ConflictException,
   BadRequestException,
   UnauthorizedException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -51,10 +52,10 @@ interface PhoneVerificationCodeData {
 export class AuthService {
   // In-memory store for reset codes (consider using Redis in production)
   private resetCodes = new Map<string, ResetCodeData>();
-  // In-memory store for email verification codes (consider using Redis in production)
-  private emailVerificationCodes = new Map<string, EmailVerificationCodeData>();
-  // In-memory store for phone verification codes (consider using Redis in production)
-  private phoneVerificationCodes = new Map<string, PhoneVerificationCodeData>();
+  // // In-memory store for email verification codes (consider using Redis in production)
+  // private emailVerificationCodes = new Map<string, EmailVerificationCodeData>();
+  // // In-memory store for phone verification codes (consider using Redis in production)
+  // private phoneVerificationCodes = new Map<string, PhoneVerificationCodeData>();
 
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
@@ -68,316 +69,45 @@ export class AuthService {
     // Clean up expired codes every 5 minutes
     setInterval(() => {
       this.cleanupExpiredCodes();
-      this.cleanupExpiredEmailVerificationCodes();
-      this.cleanupExpiredPhoneVerificationCodes();
+      // this.cleanupExpiredEmailVerificationCodes();
+      // this.cleanupExpiredPhoneVerificationCodes();
     }, 5 * 60 * 1000);
   }
 
-  // async register(registerDto: RegisterDto): Promise<Omit<User, 'password'>> {
-  //   // Check if user already exists by email
-  //   const existingUserByEmail = await this.userModel.findOne({
-  //     email: registerDto.email.toLowerCase().trim(),
-  //     isVerified: true,
-  //   });
-  //   if (existingUserByEmail) {
-  //     throw new ConflictException('User with this email already exists');
-  //   }
-
-  //   // Check if phone already exists (if provided)
-  //   let existingUserByPhone;
-  //   if (registerDto.phone) {
-  //       existingUserByPhone = await this.userModel.findOne({
-  //       phone: registerDto.phone.trim(),
-  //       isVerified: true,
-  //     });
-  //     if (existingUserByPhone) {
-  //       throw new ConflictException('User with this phone number already exists');
-  //     }
-  //   }
-
-  //   //if exist and not verified send code again
-  //   if (existingUserByEmail && !existingUserByEmail.isVerified) {
-  //     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-  //     const expiresAt = new Date();
-  //     expiresAt.setMinutes(expiresAt.getMinutes() + 5);
-
-  //     this.emailVerificationCodes.set(existingUserByEmail.email.toLowerCase().trim(), {
-  //       code: verificationCode,
-  //       expiresAt,
-  //       email: existingUserByEmail.email.toLowerCase().trim(),
-  //       verified: false,
-  //     });
-
-  //     await this.emailService.sendEmailVerificationCode(existingUserByEmail.email, verificationCode);
-  //     return;
-  //   }
-
-  //   //if exist and not verified send code again
-  //   if (existingUserByPhone && !existingUserByPhone.isVerified) {
-  //     const verificationCode = '123456'; // Static for now as requested in original code
-  //     const expiresAt = new Date();
-  //     expiresAt.setMinutes(expiresAt.getMinutes() + 5);
-
-  //     this.phoneVerificationCodes.set(existingUserByPhone.phone.trim(), {
-  //       code: verificationCode,
-  //       expiresAt,
-  //       phone: existingUserByPhone.phone.trim(),
-  //       verified: false,
-  //     });
-  //     return;
-  //   }
-
-  //   const role: UserRole = (registerDto.role as unknown as UserRole) || UserRole.GENERATOR;
-
-  //   // Ensure role is one of the allowed registration roles
-  //   if (![UserRole.GENERATOR, UserRole.FACTORY, UserRole.DRIVER].includes(role)) {
-  //     throw new BadRequestException('Invalid role. Must be one of: generator, factory, driver');
-  //   }
-
-  //   // Validate role-specific fields
-  //   this.validateRoleSpecificFields(role, registerDto);
-
-  //   // Hash password
-  //   const saltRounds = 10;
-  //   const hashedPassword = await bcrypt.hash(registerDto.password, saltRounds);
-
-  //   // Create User record
-  //   const newUser = new this.userModel({
-  //     email: registerDto.email.toLowerCase().trim(),
-  //     password: hashedPassword,
-  //     name: registerDto.name,
-  //     phone: registerDto.phone?.trim(),
-  //     role,
-  //   });
-
-  //   const savedUser = await newUser.save();
-
-  //   // Create role-specific record
-  //   try {
-  //     await this.createRoleSpecificRecord(role, (savedUser._id as any).toString(), registerDto);
-  //   } catch (error) {
-  //     // Rollback user creation if role record fails
-  //     await this.userModel.findByIdAndDelete(savedUser._id);
-  //     throw error;
-  //   }
-
-  //   //temporary for driver
-  //   if (role === UserRole.DRIVER) {
-  //     savedUser.isVerified = true;
-  //     await savedUser.save();
-  //   }
-
-  //   // Skip verification for drivers
-  //   if (role !== UserRole.DRIVER) {
-  //     // Determine verification method (default to email if not specified)
-  //     const verificationMethod = registerDto.verificationMethod || 'email';
-
-  //     if (verificationMethod === 'phone') {
-  //       // Phone verification
-  //       if (!savedUser.phone) {
-  //         throw new BadRequestException('Phone number is required for phone verification');
-  //       }
-  //       const verificationCode = '123456'; // Static for now as requested in original code
-  //       const expiresAt = new Date();
-  //       expiresAt.setMinutes(expiresAt.getMinutes() + 5);
-
-  //       this.phoneVerificationCodes.set(savedUser.phone.trim(), {
-  //         code: verificationCode,
-  //         expiresAt,
-  //         phone: savedUser.phone.trim(),
-  //         verified: false,
-  //       });
-  //     } else {
-  //       // Email verification
-  //       const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-  //       const expiresAt = new Date();
-  //       expiresAt.setMinutes(expiresAt.getMinutes() + 5);
-
-  //       this.emailVerificationCodes.set(savedUser.email.toLowerCase().trim(), {
-  //         code: verificationCode,
-  //         expiresAt,
-  //         email: savedUser.email.toLowerCase().trim(),
-  //         verified: false,
-  //       });
-
-  //       await this.emailService.sendEmailVerificationCode(savedUser.email, verificationCode);
-  //     }
-  //   }
-
-  //   // Return user without password
-  //   const userObj = savedUser.toObject();
-  //   delete userObj.password;
-  //   return userObj;
-  // }
-
-  // async register(registerDto: RegisterDto): Promise<Omit<User, 'password'> | { message: string }> {
-  //   const email = registerDto.email.toLowerCase().trim();
-  //   const phone = registerDto.phone?.trim();
-
-  //   // Check existing user by email (WITHOUT isVerified filter)
-  //   const existingUserByEmail = await this.userModel.findOne({ email });
-
-  //   if (existingUserByEmail?.isVerified) {
-  //     throw new ConflictException('User with this email already exists');
-  //   }
-
-  //   // Check existing user by phone (WITHOUT isVerified filter)
-  //   let existingUserByPhone;
-  //   if (phone) {
-  //     existingUserByPhone = await this.userModel.findOne({ phone });
-
-  //     if (existingUserByPhone?.isVerified) {
-  //       throw new ConflictException('User with this phone number already exists');
-  //     }
-  //   }
-
-  //   // If email exists but NOT verified → resend code
-  //   if (existingUserByEmail && !existingUserByEmail.isVerified) {
-  //     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-  //     const expiresAt = new Date();
-  //     expiresAt.setMinutes(expiresAt.getMinutes() + 5);
-
-  //     this.emailVerificationCodes.set(email, {
-  //       code: verificationCode,
-  //       expiresAt,
-  //       email,
-  //       verified: false,
-  //     });
-
-  //     await this.emailService.sendEmailVerificationCode(email, verificationCode);
-
-  //     return { message: 'Verification code resent to email' };
-  //   }
-
-  //   // If phone exists but NOT verified → resend code
-  //   if (existingUserByPhone && !existingUserByPhone.isVerified) {
-  //     const verificationCode = '123456';
-
-  //     const expiresAt = new Date();
-  //     expiresAt.setMinutes(expiresAt.getMinutes() + 5);
-
-  //     this.phoneVerificationCodes.set(phone, {
-  //       code: verificationCode,
-  //       expiresAt,
-  //       phone,
-  //       verified: false,
-  //     });
-
-  //     return { message: 'Verification code resent to phone' };
-  //   }
-
-  //   // Role handling
-  //   const role: UserRole =
-  //     (registerDto.role as unknown as UserRole) || UserRole.GENERATOR;
-
-  //   if (![UserRole.GENERATOR, UserRole.FACTORY, UserRole.DRIVER].includes(role)) {
-  //     throw new BadRequestException('Invalid role. Must be generator, factory, or driver');
-  //   }
-
-  //   this.validateRoleSpecificFields(role, registerDto);
-
-  //   // Hash password
-  //   const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-
-  //   // Create user
-  //   const newUser = new this.userModel({
-  //     email,
-  //     password: hashedPassword,
-  //     name: registerDto.name,
-  //     phone,
-  //     role,
-  //   });
-
-  //   const savedUser = await newUser.save();
-
-  //   // Create role-specific record (with rollback safety)
-  //   try {
-  //     await this.createRoleSpecificRecord(role, savedUser._id.toString(), registerDto);
-  //   } catch (error) {
-  //     await this.userModel.findByIdAndDelete(savedUser._id);
-  //     throw error;
-  //   }
-
-  //   // Auto verify driver (business decision)
-  //   if (role === UserRole.DRIVER) {
-  //     savedUser.isVerified = true;
-  //     await savedUser.save();
-  //   }
-
-  //   // Send verification for non-drivers
-  //   if (role !== UserRole.DRIVER) {
-  //     const verificationMethod = registerDto.verificationMethod || 'email';
-
-  //     if (verificationMethod === 'phone') {
-  //       if (!phone) {
-  //         throw new BadRequestException('Phone number is required for phone verification');
-  //       }
-
-  //       const verificationCode = '123456';
-
-  //       const expiresAt = new Date();
-  //       expiresAt.setMinutes(expiresAt.getMinutes() + 5);
-
-  //       this.phoneVerificationCodes.set(phone, {
-  //         code: verificationCode,
-  //         expiresAt,
-  //         phone,
-  //         verified: false,
-  //       });
-
-  //       return { message: 'Verification code sent to phone' };
-  //     } else {
-  //       const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-  //       const expiresAt = new Date();
-  //       expiresAt.setMinutes(expiresAt.getMinutes() + 5);
-
-  //       this.emailVerificationCodes.set(email, {
-  //         code: verificationCode,
-  //         expiresAt,
-  //         email,
-  //         verified: false,
-  //       });
-
-  //       await this.emailService.sendEmailVerificationCode(email, verificationCode);
-
-  //       return { message: 'Verification code sent to email' };
-  //     }
-  //   }
-
-  //   // Return user safely
-  //   const userObj = savedUser.toObject();
-  //   delete userObj.password;
-
-  //   return userObj;
-  // }
-
-  async register(registerDto: RegisterDto): Promise<Omit<User, 'password'> | { message: string }> {
+  async register(
+    registerDto: RegisterDto,
+  ): Promise<Omit<User, 'password'> | { message: string }> {
     const email = registerDto.email.toLowerCase().trim();
     const phone = registerDto.phone?.trim();
-
-    let user = await this.userModel.findOne({ email });
-
-    if (phone && !user) {
-      user = await this.userModel.findOne({ phone });
-    }
 
     const role: UserRole =
       (registerDto.role as unknown as UserRole) || UserRole.GENERATOR;
 
-    if (![UserRole.GENERATOR, UserRole.FACTORY, UserRole.DRIVER].includes(role)) {
-      throw new BadRequestException('Invalid role. Must be generator, factory, or driver');
+    if (
+      ![UserRole.GENERATOR, UserRole.FACTORY, UserRole.DRIVER].includes(role)
+    ) {
+      throw new BadRequestException(
+        'Invalid role. Must be generator, factory, or driver',
+      );
     }
 
     this.validateRoleSpecificFields(role, registerDto);
 
-    // -------------------------------
-    // 🔥 CASE 1: CREATE or REUSE USER
-    // -------------------------------
+    // ─── Find existing user ───────────────────────────────────────────────────
+    let user = await this.userModel.findOne({ email });
+
+    if (!user && phone) {
+      user = await this.userModel.findOne({ phone });
+    }
+
+    // ─── Already verified → reject ───────────────────────────────────────────
+    if (user?.isVerified) {
+      throw new ConflictException('User already exists');
+    }
+
+    // ─── Create user if new ──────────────────────────────────────────────────
     if (!user) {
       const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-
       user = new this.userModel({
         email,
         password: hashedPassword,
@@ -385,118 +115,182 @@ export class AuthService {
         phone,
         role,
       });
-
       await user.save();
     }
 
-    // -------------------------------
-    // 🔥 CASE 2: ALREADY VERIFIED USER
-    // -------------------------------
-    if (user.isVerified) {
-      throw new ConflictException('User already exists');
+    // ─── Create role-specific record (idempotent) ─────────────────────────────
+    try {
+      await this.createRoleSpecificRecord(role, user._id.toString(), registerDto);
+    } catch (err) {
+      console.error('❌ createRoleSpecificRecord failed:', err.message); // ← أضف دي
+      const hasProfile = await this.profileExists(role, user._id.toString());
+      if (!hasProfile) {
+        await this.userModel.deleteOne({ _id: user._id });
+      }
+      throw new InternalServerErrorException(
+        'Failed to create profile. Please try again.',
+      );
     }
 
-    // -------------------------------
-    // 🔥 ROLE-SPECIFIC RECORD (safe)
-    // -------------------------------
-    await this.createRoleSpecificRecord(role, user._id.toString(), registerDto);
-
-    // -------------------------------
-    // 🔥 DRIVER AUTO VERIFY
-    // -------------------------------
+    // ─── Driver: auto-verify and return ──────────────────────────────────────
     if (role === UserRole.DRIVER) {
       user.isVerified = true;
       await user.save();
+
+      const userObj = user.toObject();
+      delete userObj.password;
+      return userObj;
     }
 
-    // -------------------------------
-    // 🔥 SEND VERIFICATION ALWAYS (if not driver)
-    // -------------------------------
-    if (role !== UserRole.DRIVER) {
-      const verificationMethod = registerDto.verificationMethod || 'email';
+    // ─── Non-driver: send verification ───────────────────────────────────────
+    const verificationMethod = registerDto.verificationMethod || 'email';
 
-      if (verificationMethod === 'phone') {
-        if (!phone) {
-          throw new BadRequestException('Phone number is required');
-        }
-
-        const code = '123456';
-
-        this.phoneVerificationCodes.set(phone, {
-          code,
-          expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-          phone,
-          verified: false,
-        });
-
-        return { message: 'Verification code sent to phone' };
+    if (verificationMethod === 'phone') {
+      if (!phone) {
+        throw new BadRequestException(
+          'Phone number is required for phone verification',
+        );
       }
 
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      // TODO: Replace with a real SMS provider
+      const code = '123456';
 
-      this.emailVerificationCodes.set(email, {
-        code,
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-        email,
-        verified: false,
-      });
+      user.verificationCode = code;
+      user.verificationCodeExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+      await user.save();
 
-      await this.emailService.sendEmailVerificationCode(email, code);
-
-      return { message: 'Verification code sent to email' };
+      return { message: 'Verification code sent to phone' };
     }
 
-    // -------------------------------
-    // 🔥 RETURN USER
-    // -------------------------------
+    // ─── Default: email verification ─────────────────────────────────────────
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    user.verificationCode = code;
+    user.verificationCodeExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    await user.save();
+
+    await this.emailService.sendEmailVerificationCode(email, code);
+
+    return { message: 'Verification code sent to email' };
+  }
+  // ─── Helpers ────────────────────────────────────────────────────────────────
+
+  private async profileExists(role: UserRole, userId: string): Promise<boolean> {
+    const id = new Types.ObjectId(userId);
+    switch (role) {
+      case UserRole.GENERATOR:
+        return !!(await this.generatorModel.exists({ user: id }));
+      case UserRole.FACTORY:
+        return !!(await this.factoryModel.exists({ user: id }));
+      case UserRole.DRIVER:
+        return !!(await this.driverModel.exists({ user: id }));
+      default:
+        return false;
+    }
+  }
+
+  private validateRoleSpecificFields(role: UserRole, dto: RegisterDto) {
+    if (role === UserRole.GENERATOR) {
+      if (!dto.generatorType)
+        throw new BadRequestException('Generator type is required');
+      if (!dto.businessName)
+        throw new BadRequestException('Business name is required');
+    }
+  }
+
+  private async createRoleSpecificRecord(
+    role: UserRole,
+    userId: string,
+    dto: RegisterDto,
+  ) {
+    const id = new Types.ObjectId(userId);
+
+    if (role === UserRole.GENERATOR) {
+      // Idempotent: skip if already exists
+      const exists = await this.generatorModel.exists({ user: id });
+      if (!exists) {
+        const generator = new this.generatorModel({
+          user: id,
+          generatorType: dto.generatorType,
+          businessName: dto.businessName,
+          address: dto.address,
+        });
+        await generator.save();
+      }
+    } else if (role === UserRole.FACTORY) {
+      const exists = await this.factoryModel.exists({ user: id });
+      if (!exists) {
+        const factory = new this.factoryModel({
+          user: id,
+          businessName: dto.businessName,
+          address: dto.address, // required in schema — validated before this call
+        });
+        await factory.save();
+      }
+    } else if (role === UserRole.DRIVER) {
+      const exists = await this.driverModel.exists({ user: id });
+      if (!exists) {
+        const driver = new this.driverModel({
+          user: id,
+          latitude: dto.address?.coordinates?.latitude,
+          longitude: dto.address?.coordinates?.longitude,
+          address: dto.address
+            ? {
+              street: dto.address.street,
+              city: dto.address.city,
+              state: dto.address.state,
+              zipCode: dto.address.zipCode,
+              country: dto.address.country,
+            }
+            : undefined,
+        });
+        await driver.save();
+      }
+    }
+  }
+
+  // ─── Shared login logic ──────────────────────────────────────────────────────
+
+  private async buildLoginResponse(user: UserDocument) {
+    let profile: any = null;
+
+    switch (user.role) {
+      case UserRole.GENERATOR:
+        profile = await this.generatorModel.findOne({ user: user._id });
+        break;
+      case UserRole.FACTORY:
+        profile = await this.factoryModel.findOne({ user: user._id });
+        break;
+      case UserRole.DRIVER:
+        profile = await this.driverModel.findOne({ user: user._id });
+        break;
+      case UserRole.ADMIN:
+        profile = { type: 'admin' };
+        break;
+    }
+
+    if (!profile) {
+      // Profile missing despite verified user — data integrity issue
+      throw new InternalServerErrorException(
+        'User profile not found. Please contact support.',
+      );
+    }
+
+    const payload = {
+      sub: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    };
+
+    const accessToken = this.jwtService.sign(payload);
+
     const userObj = user.toObject();
     delete userObj.password;
 
-    return userObj;
-  }
-  private validateRoleSpecificFields(role: UserRole, dto: RegisterDto) {
-    if (role === UserRole.GENERATOR) {
-      if (!dto.generatorType) throw new BadRequestException('Generator type is required');
-      if (!dto.businessName) throw new BadRequestException('Business name is required');
-      // if (!dto.address) throw new BadRequestException('Address is required');
-    }
-    //  else if (role === UserRole.FACTORY) {
-    //   if (!dto.address) throw new BadRequestException('Address is required');
-    // }
+    return { user: userObj, profile, accessToken };
   }
 
-  private async createRoleSpecificRecord(role: UserRole, userId: string, dto: RegisterDto) {
-    if (role === UserRole.GENERATOR) {
-      const generator = new this.generatorModel({
-        user: userId,
-        generatorType: dto.generatorType,
-        businessName: dto.businessName,
-        address: dto.address,
-      });
-      await generator.save();
-    } else if (role === UserRole.FACTORY) {
-      const factory = new this.factoryModel({
-        user: userId,
-        businessName: dto.businessName,
-        address: dto.address,
-      });
-      await factory.save();
-    } else if (role === UserRole.DRIVER) {
-      const driver = new this.driverModel({
-        user: userId,
-        latitude: dto.address?.coordinates?.latitude,
-        longitude: dto.address?.coordinates?.longitude,
-        address: dto.address ? {
-          street: dto.address.street,
-          city: dto.address.city,
-          state: dto.address.state,
-          zipCode: dto.address.zipCode,
-          country: dto.address.country,
-        } : undefined,
-      });
-      await driver.save();
-    }
-  }
+  // ─── Login with email ────────────────────────────────────────────────────────
 
   async loginWithEmail(loginEmailDto: LoginEmailDto) {
     const email = loginEmailDto.email.toLowerCase().trim();
@@ -507,7 +301,6 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    // 🔥 2. must be verified (separate check)
     if (!user.isVerified) {
       throw new UnauthorizedException('Please verify your account first');
     }
@@ -520,7 +313,6 @@ export class AuthService {
       throw new UnauthorizedException('Please sign in with Google');
     }
 
-    // 🔥 3. PASSWORD CHECK (IMPORTANT FIX)
     const isPasswordValid = await bcrypt.compare(
       loginEmailDto.password,
       user.password,
@@ -530,52 +322,12 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    // 🔥 4. load profile
-    let profile: any = null;
-
-    switch (user.role) {
-      case 'generator':
-        profile = await this.generatorModel.findOne({ user: user._id });
-        break;
-
-      case 'factory':
-        profile = await this.factoryModel.findOne({ user: user._id });
-        break;
-
-      case 'driver':
-        profile = await this.driverModel.findOne({ user: user._id });
-        break;
-
-      case 'admin':
-        profile = { type: 'admin' };
-        break;
-    }
-
-    if (!profile) {
-      throw new BadRequestException('Profile not found for this user');
-    }
-
-    // 🔥 5. JWT
-    const payload = {
-      sub: user._id.toString(),
-      email: user.email,
-      role: user.role,
-    };
-
-    const accessToken = this.jwtService.sign(payload);
-
-    const userObj = user.toObject();
-    delete userObj.password;
-
-    return {
-      user: userObj,
-      profile,
-      accessToken,
-    };
+    return this.buildLoginResponse(user);
   }
 
+  // ─── Login with phone ────────────────────────────────────────────────────────
+
   async loginWithPhone(loginPhoneDto: LoginPhoneDto) {
-    // 1️⃣ Find user by phone
     const user = await this.userModel.findOne({
       phone: loginPhoneDto.phone.trim(),
       isVerified: true,
@@ -585,17 +337,14 @@ export class AuthService {
       throw new UnauthorizedException('Invalid phone number or password');
     }
 
-    // 2️⃣ Check if user is active
     if (!user.isActive) {
       throw new UnauthorizedException('Account is inactive');
     }
 
-    // 3️⃣ Check auth provider
     if (!user.password || user.authProvider === 'google') {
       throw new UnauthorizedException('Please sign in with Google');
     }
 
-    // 4️⃣ Verify password
     const isPasswordValid = await bcrypt.compare(
       loginPhoneDto.password,
       user.password,
@@ -605,52 +354,73 @@ export class AuthService {
       throw new UnauthorizedException('Invalid phone number or password');
     }
 
-    // 5️⃣ Load profile based on role
-    let profile: any;
+    return this.buildLoginResponse(user);
+  }
 
-    switch (user.role) {
-      case 'generator':
-        profile = await this.generatorModel.findOne({ user: new Types.ObjectId(user._id) });
-        break;
+  // ─── Verify email ────────────────────────────────────────────────────────────
 
-      case 'factory':
-        profile = await this.factoryModel.findOne({ user: new Types.ObjectId(user._id) });
-        break;
+  async verifyEmail(verifyEmailDto: VerifyEmailDto): Promise<{ message: string }> {
+    const email = verifyEmailDto.email.toLowerCase().trim();
 
-      case 'driver':
-        profile = await this.driverModel.findOne({ user: new Types.ObjectId(user._id) });
-        break;
-      case 'admin':
-        profile = { type: 'admin' };
-        break;
+    const user = await this.userModel.findOne({ email });
+    if (!user) {
+      throw new BadRequestException('User not found');
     }
 
-    if (!profile) {
-      throw new UnauthorizedException('User profile not found');
+    if (!user.verificationCode) {
+      throw new BadRequestException('No verification code found. Please request a new one.');
     }
 
-    // 6️⃣ Generate token
-    const payload = {
-      sub: user._id.toString(),
-      email: user.email,
-      role: user.role,
-    };
+    if (user.verificationCodeExpiresAt < new Date()) {
+      user.verificationCode = undefined;
+      user.verificationCodeExpiresAt = undefined;
+      await user.save();
+      throw new BadRequestException('Verification code has expired. Please request a new one.');
+    }
 
-    const accessToken = this.jwtService.sign(payload);
+    if (user.verificationCode !== verifyEmailDto.code) {
+      throw new BadRequestException('Invalid verification code');
+    }
 
-    // 7️⃣ Remove password
-    const { password, ...userWithoutPassword } = user.toObject();
+    user.isVerified = true;
+    user.verificationCode = undefined;
+    user.verificationCodeExpiresAt = undefined;
+    await user.save();
 
-    // 8️⃣ Unified response
-    return {
-      success: true,
-      message: 'Login successful',
-      data: {
-        user: userWithoutPassword,
-        profile,
-        accessToken,
-      },
-    };
+    return { message: 'Email verified successfully' };
+  }
+
+  // ─── Verify phone ────────────────────────────────────────────────────────────
+
+  async verifyPhone(verifyPhoneDto: VerifyPhoneDto): Promise<{ message: string }> {
+    const phone = verifyPhoneDto.phone.trim();
+
+    const user = await this.userModel.findOne({ phone });
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    if (!user.verificationCode) {
+      throw new BadRequestException('No verification code found. Please request a new one.');
+    }
+
+    if (user.verificationCodeExpiresAt < new Date()) {
+      user.verificationCode = undefined;
+      user.verificationCodeExpiresAt = undefined;
+      await user.save();
+      throw new BadRequestException('Verification code has expired. Please request a new one.');
+    }
+
+    if (user.verificationCode !== verifyPhoneDto.code) {
+      throw new BadRequestException('Invalid verification code');
+    }
+
+    user.isVerified = true;
+    user.verificationCode = undefined;
+    user.verificationCodeExpiresAt = undefined;
+    await user.save();
+
+    return { message: 'Phone verified successfully' };
   }
 
 
@@ -869,78 +639,6 @@ export class AuthService {
       message: 'Password has been reset successfully',
     };
   }
-
-  async verifyEmail(verifyEmailDto: VerifyEmailDto): Promise<{ message: string }> {
-    const email = verifyEmailDto.email.toLowerCase().trim();
-    const code = verifyEmailDto.code;
-
-    const user = await this.userModel.findOne({ email });
-    if (!user) {
-      throw new BadRequestException('User not found');
-    }
-
-    const verificationData = this.emailVerificationCodes.get(email);
-
-    if (!verificationData) {
-      throw new BadRequestException('Invalid or expired verification code');
-    }
-
-    if (verificationData.expiresAt < new Date()) {
-      this.emailVerificationCodes.delete(email);
-      throw new BadRequestException('Verification code has expired');
-    }
-
-    if (verificationData.code !== code) {
-      throw new BadRequestException('Invalid verification code');
-    }
-
-    // Mark code as verified
-    verificationData.verified = true;
-    user.isVerified = true;
-    await user.save();
-    this.emailVerificationCodes.set(email, verificationData);
-
-
-    return {
-      message: 'Email verified successfully',
-    };
-  }
-
-  async verifyPhone(verifyPhoneDto: VerifyPhoneDto): Promise<{ message: string }> {
-    const phone = verifyPhoneDto.phone.trim();
-    const code = verifyPhoneDto.code;
-
-    const user = await this.userModel.findOne({ phone });
-    if (!user) {
-      throw new BadRequestException('User not found');
-    }
-
-    const verificationData = this.phoneVerificationCodes.get(phone);
-
-    if (!verificationData) {
-      throw new BadRequestException('Invalid or expired verification code');
-    }
-
-    if (verificationData.expiresAt < new Date()) {
-      this.phoneVerificationCodes.delete(phone);
-      throw new BadRequestException('Verification code has expired');
-    }
-
-    if (verificationData.code !== code) {
-      throw new BadRequestException('Invalid verification code');
-    }
-
-    // Mark code as verified
-    verificationData.verified = true;
-    user.isVerified = true;
-    await user.save();
-    this.phoneVerificationCodes.set(phone, verificationData);
-
-    return {
-      message: 'Phone verified successfully',
-    };
-  }
-
   private cleanupExpiredCodes(): void {
     const now = new Date();
     for (const [email, data] of this.resetCodes.entries()) {
@@ -950,22 +648,22 @@ export class AuthService {
     }
   }
 
-  private cleanupExpiredEmailVerificationCodes(): void {
-    const now = new Date();
-    for (const [email, data] of this.emailVerificationCodes.entries()) {
-      if (data.expiresAt < now) {
-        this.emailVerificationCodes.delete(email);
-      }
-    }
-  }
+  // private cleanupExpiredEmailVerificationCodes(): void {
+  //   const now = new Date();
+  //   for (const [email, data] of this.emailVerificationCodes.entries()) {
+  //     if (data.expiresAt < now) {
+  //       this.emailVerificationCodes.delete(email);
+  //     }
+  //   }
+  // }
 
-  private cleanupExpiredPhoneVerificationCodes(): void {
-    const now = new Date();
-    for (const [phone, data] of this.phoneVerificationCodes.entries()) {
-      if (data.expiresAt < now) {
-        this.phoneVerificationCodes.delete(phone);
-      }
-    }
-  }
+  // private cleanupExpiredPhoneVerificationCodes(): void {
+  //   const now = new Date();
+  //   for (const [phone, data] of this.phoneVerificationCodes.entries()) {
+  //     if (data.expiresAt < now) {
+  //       this.phoneVerificationCodes.delete(phone);
+  //     }
+  //   }
+  // }
 
 }

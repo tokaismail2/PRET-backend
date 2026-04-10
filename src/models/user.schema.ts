@@ -42,6 +42,12 @@ export class User {
   @Prop()
   profilePicture?: string;
 
+  @Prop()
+  verificationCode?: string;
+
+  @Prop()
+  verificationCodeExpiresAt?: Date;
+
   @Prop({ select: false })
   __v: number;
 
