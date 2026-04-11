@@ -19,8 +19,18 @@ export class MaterialService {
     return createdMaterial.save();
   }
 
-  async findAll(): Promise<MaterialDocument[]> {
-    return this.materialModel.find().exec();
+  async findAll(page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.materialModel.find().skip(skip).limit(limit).exec(),
+      this.materialModel.countDocuments(),
+    ]);
+
+    return {
+      data,
+      total,
+    };
   }
 
   async findOne(id: string): Promise<MaterialDocument> {

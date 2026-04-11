@@ -157,11 +157,13 @@ export class AuctionService {
   }
 
   //get all auctions with bids 
-  async getAllAuctionsWithBids() {
-    return this.auctionModel.aggregate([
+  async getAllAuctionsWithBids(page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+
+    const data = await this.auctionModel.aggregate([
       {
         $lookup: {
-          from: 'auctionbids', // اسم collection في MongoDB
+          from: 'auctionbids',
           localField: '_id',
           foreignField: 'auction_id',
           as: 'bids',
@@ -190,7 +192,27 @@ export class AuctionService {
           highestBid: { $max: '$bids.total_price' },
         },
       },
+
+      // ✅ pagination steps
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
     ]);
+
+    const totalResult = await this.auctionModel.aggregate([
+      {
+        $count: "total",
+      },
+    ]);
+
+    const total = totalResult[0]?.total || 0;
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+    };
   }
 
   async getActiveAuctions(materialName?: string) {

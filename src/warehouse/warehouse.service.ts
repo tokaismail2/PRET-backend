@@ -17,14 +17,33 @@ export class WarehouseService {
     return warehouse.save();
   }
 
-  async findAll(filters: { isActive?: boolean }): Promise<Warehouse[]> {
+
+  async findAll(
+    filters: { isActive?: boolean },
+    page: number,
+    limit: number,
+  ) {
     const query: Record<string, any> = {};
 
     if (filters.isActive !== undefined) {
       query.is_active = filters.isActive;
     }
 
-    return this.warehouseModel.find(query).lean().exec();
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.warehouseModel
+        .find(query)
+        .lean()
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+
+      this.warehouseModel.countDocuments(query),
+    ]);
+
+    return { data, total };
+
   }
 
   async findOne(id: string): Promise<Warehouse> {

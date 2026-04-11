@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { MaterialService } from './material.service';
 import { CreateMaterialDto } from './dto/add-material.dto';
@@ -30,12 +31,27 @@ export class MaterialController {
   create(@Body() createMaterialDto: CreateMaterialDto) {
     return this.materialService.create(createMaterialDto);
   }
-
   @Get()
-  findAll() {
-    return this.materialService.findAll();
-  }
+  async findAll(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+  ) {
+    const pageNumber = Math.max(1, parseInt(page, 10) || 1);
+    const limitNumber = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
 
+    const result = await this.materialService.findAll(pageNumber, limitNumber);
+
+    return {
+      message: 'Materials fetched successfully',
+      data: result.data,
+      pagination: {
+        total: result.total,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages: Math.ceil(result.total / limitNumber),
+      },
+    };
+  }
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.materialService.findOne(id);

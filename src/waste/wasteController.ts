@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { WasteService } from './wasteService';
 import { CreateWasteDto } from './dto/create';
@@ -36,8 +37,14 @@ export class WasteController {
 
   // 2️⃣ Get all waste
   @Get()
-  findAll() {
-    return this.wasteService.findAll();
+  findAll(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+  ) {
+    const pageNumber = Math.max(1, parseInt(page, 10) || 1);
+    const limitNumber = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+
+    return this.wasteService.findAll(pageNumber, limitNumber);
   }
 
   // 3️⃣ Get waste by id

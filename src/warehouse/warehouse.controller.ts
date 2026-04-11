@@ -21,7 +21,7 @@ import { UseInterceptors } from '@nestjs/common';
 
 @Controller('warehouses')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@authorize(UserRole.ADMIN , UserRole.DRIVER)
+@authorize(UserRole.ADMIN, UserRole.DRIVER)
 export class WarehouseController {
   constructor(private readonly warehouseService: WarehouseService) { }
 
@@ -41,19 +41,34 @@ export class WarehouseController {
   @Get()
   async findAll(
     @Query('isActive') isActive?: string,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
   ) {
-    const warehouses = await this.warehouseService.findAll({
-      isActive:
-        isActive === 'true'
-          ? true
-          : isActive === 'false'
-            ? false
-            : undefined,
-    });
+    const pageNumber = Math.max(1, parseInt(page, 10) || 1);
+    const limitNumber = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+
+    const result = await this.warehouseService.findAll(
+      {
+        isActive:
+          isActive === 'true'
+            ? true
+            : isActive === 'false'
+              ? false
+              : undefined,
+      },
+      pageNumber,
+      limitNumber,
+    );
 
     return {
       message: 'Warehouses fetched successfully',
-      data: warehouses,
+      data: result.data,
+      pagination: {
+        total: result.total,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages: Math.ceil(result.total / limitNumber),
+      },
     };
   }
 

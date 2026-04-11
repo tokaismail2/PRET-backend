@@ -22,11 +22,12 @@ export class WasteService {
 
   // استلام الويست من الوير هاوس 
   async create(createWasteDto: CreateWasteDto): Promise<any> {
-    const waste = new this.wasteModel({ ...createWasteDto,
-    warehouse_id: new Types.ObjectId(createWasteDto.warehouse_id),
-    material_id: new Types.ObjectId(createWasteDto.material_id),
-     });
-    
+    const waste = new this.wasteModel({
+      ...createWasteDto,
+      warehouse_id: new Types.ObjectId(createWasteDto.warehouse_id),
+      material_id: new Types.ObjectId(createWasteDto.material_id),
+    });
+
     await waste.save();
 
     // minus price from admin wallet (driver take the action)
@@ -51,11 +52,31 @@ export class WasteService {
   }
 
   // READ ALL
-  async findAll(): Promise<Waste[]> {
-    return this.wasteModel.find()
-      .populate('warehouse_id', 'name contract_number')
-      .populate('material_id', 'name')
-      .sort({ createdAt: -1 }).exec();
+  async findAll(page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.wasteModel
+        .find()
+        .populate('warehouse_id', 'name contract_number')
+        .populate('material_id', 'name')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+
+      this.wasteModel.countDocuments(),
+    ]);
+
+    return {
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   // READ ONE
