@@ -10,7 +10,7 @@ import { map } from 'rxjs/operators';
 export interface Response<T> {
     success: boolean;
     message: string;
-    data: T;
+    [key: string]: any;
 }
 
 @Injectable()
@@ -22,31 +22,21 @@ export class TransformInterceptor<T>
     ): Observable<Response<T>> {
         return next.handle().pipe(
             map((data) => {
-                // If the data already has the format, return it as is
-                // This is for backward compatibility or if some services still return this format
                 if (data && typeof data === 'object' && 'success' in data && 'data' in data) {
                     return data;
                 }
 
-                // Handle case where data might have a message and the rest is data
                 let message = 'Operation successful';
-                let resultData = data;
-
                 if (data && typeof data === 'object' && 'message' in data) {
                     message = data.message;
-                    // If there's a 'data' field, use it, otherwise use the rest of the object without the message field
-                    if ('data' in data) {
-                        resultData = data.data;
-                    } else {
-                        const { message: _, ...rest } = data;
-                        resultData = rest;
-                    }
                 }
+
+                const { message: _, ...rest } = data ?? {};
 
                 return {
                     success: true,
                     message,
-                    data: resultData,
+                    ...rest,
                 };
             }),
         );
