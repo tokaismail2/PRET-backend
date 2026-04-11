@@ -15,7 +15,7 @@ import { AppService } from './app.service';
 import { PaymobModule } from "./paymob/paymob.module";
 import { AdminModule } from "./admin/admin.module";
 import { WasteModule } from './waste/wasteModule';
-// import { AuditLogModule } from "./audit-log/audit-log.module";
+import { AuditLogModule } from "./audit-log/audit-log.module";
 import { WarehouseModule } from "./warehouse/warehouse.module"
 import { MaterialModule } from './materialType/material.module';
 import { AuctionModule } from './auction/module';
@@ -52,7 +52,7 @@ import { MongooseModule } from '@nestjs/mongoose';
     UsersModule,
     PaymobModule,
     AdminModule,
-    // AuditLogModule,
+    AuditLogModule,
     WarehouseModule,
     MaterialModule,
     AuctionModule,

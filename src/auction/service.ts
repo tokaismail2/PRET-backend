@@ -160,7 +160,7 @@ export class AuctionService {
   async getAllAuctionsWithBids(page: number = 1, limit: number = 10) {
     const skip = (page - 1) * limit;
 
-    const data = await this.auctionModel.aggregate([
+    const result = await this.auctionModel.aggregate([
       {
         $lookup: {
           from: 'auctionbids',
@@ -187,25 +187,29 @@ export class AuctionService {
         },
       },
       { $unwind: { path: '$winnerFactory', preserveNullAndEmptyArrays: true } },
+
       {
         $addFields: {
           highestBid: { $max: '$bids.total_price' },
         },
       },
 
-      // ✅ pagination steps
-      { $sort: { createdAt: -1 } },
-      { $skip: skip },
-      { $limit: limit },
-    ]);
-
-    const totalResult = await this.auctionModel.aggregate([
       {
-        $count: "total",
+        $facet: {
+          data: [
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          totalCount: [
+            { $count: 'total' },
+          ],
+        },
       },
     ]);
 
-    const total = totalResult[0]?.total || 0;
+    const data = result[0]?.data || [];
+    const total = result[0]?.totalCount?.[0]?.total || 0;
 
     return {
       data,
