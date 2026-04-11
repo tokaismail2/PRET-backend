@@ -18,7 +18,7 @@ export class AuditLogService {
             query.role = role;
         }
         const auditLogs = await this.auditLogModel.find(query).sort({ createdAt: -1 })
-        .populate('user_id', 'name role')
+        .populate('user', 'name role')
         .skip(skip).limit(limit).lean();
         return auditLogs;
     }
