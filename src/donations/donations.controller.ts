@@ -149,11 +149,11 @@ export class DonationsController {
   )
   async assignDonation(
     @Param('id') id: string,
-    @Body() body: { charity: string },
+    @Body() body: { charityId: string },
   ) {
     const donation = await this.donationsService.assignDonation(
       id,
-      body.charity,
+      body.charityId,
     );
     return {
       message: 'Donation assigned successfully',

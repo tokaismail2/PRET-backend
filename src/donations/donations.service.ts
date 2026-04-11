@@ -111,12 +111,17 @@ export class DonationsService {
     return donation;
   }
 
-  async assignDonation(donationId: string, charity: string) {
+  async assignDonation(donationId: string, charityId: string) {
     const donation = await this.donationModel.findById(donationId);
     if (!donation) {
       throw new NotFoundException('Donation not found');
     }
-    donation.charity = charity;
+    const charity = await this.userModel.findById(charityId);
+    if (!charity) {
+      throw new NotFoundException('Charity not found');
+    }
+    //convert to object id
+    donation.charity = new Types.ObjectId(charityId);
     donation.status = DonationStatus.ACCEPTED;
     await donation.save();
     return donation;

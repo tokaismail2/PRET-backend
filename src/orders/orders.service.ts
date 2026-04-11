@@ -105,6 +105,8 @@ export class OrdersService {
     return order.save();
   }
 
+
+  // make it paginated
   async getAllOrders(filters: {
     status?: string;
     generatorId?: string;
@@ -112,6 +114,8 @@ export class OrdersService {
     factoryId?: string;
     startDate?: string;
     endDate?: string;
+    page?: number;
+    limit?: number;
   }) {
     // Initialize an empty query object
     const query: any = {};
@@ -156,6 +160,8 @@ export class OrdersService {
       .populate('generatorId', 'name email phone')
       .populate('materialTypeId', 'name price')
       .sort({ createdAt: -1 })
+      .skip((filters.page - 1) * filters.limit)
+      .limit(filters.limit)
       .lean();
 
     // Get all user IDs in one shot
@@ -761,6 +767,10 @@ export class OrdersService {
     if (route.driver.toString() !== driverUserId.toString())
       throw new ConflictException(`Driver is not assigned to route ${routeId}`);
     return route;
+  }
+
+  async getOrderCount() {
+    return this.orderModel.countDocuments();
   }
   // Helper
   private haversineDistance(

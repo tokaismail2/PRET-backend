@@ -12,10 +12,10 @@ export enum DonationStatus {
 @Schema({ timestamps: true })
 export class Donation {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  generator: Types.ObjectId | User;
+  generator: Types.ObjectId ;
 
-  @Prop({ type: String })
-  charity?: string;
+  @Prop({ type: Types.ObjectId, ref: 'Charity' })
+  charity?: Types.ObjectId ;
 
   @Prop({ type: String })
   notes?: string;
