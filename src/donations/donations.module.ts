@@ -6,6 +6,7 @@ import { Donation, DonationSchema } from '../models/donation.schema';
 import { User, UserSchema } from '../models/user.schema';
 import { ImageKitModule } from '../imagekit/imagekit.module';
 import { AuditLog, AuditLogSchema } from '../models/auditLog.schema';
+import { Charity, CharitySchema } from '../models/charity.schema';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { AuditLog, AuditLogSchema } from '../models/auditLog.schema';
       { name: Donation.name, schema: DonationSchema },
       { name: User.name, schema: UserSchema },
       { name: AuditLog.name, schema: AuditLogSchema },
+      { name: Charity.name, schema: CharitySchema },
     ]),
     ImageKitModule,
   ],

@@ -14,11 +14,13 @@ import {
 import { User, UserDocument, UserRole } from '../models/user.schema';
 import { CreateDonationDto } from './dto/create-donation.dto';
 import { Types } from 'mongoose';
+import { Charity, CharityDocument } from '../models/charity.schema';
 @Injectable()
 export class DonationsService {
   constructor(
     @InjectModel(Donation.name) private donationModel: Model<DonationDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Charity.name) private charityModel: Model<CharityDocument>,
   ) {}
 
   async createDonation(userId: string, createDonationDto: CreateDonationDto) {
@@ -116,8 +118,7 @@ export class DonationsService {
     if (!donation) {
       throw new NotFoundException('Donation not found');
     }
-    const charity_id = new Types.ObjectId(charityId);
-    const charity = await this.userModel.findById(charity_id);
+    const charity = await this.charityModel.findById(charityId);
     if (!charity) {
       throw new NotFoundException('Charity not found');
     }
