@@ -10,9 +10,16 @@ export class AuditLogService {
     constructor(
         @InjectModel(AuditLog.name) private readonly auditLogModel: Model<AuditLogDocument>,
     ) { }
-
-    async getAdminAuditLogs(skip: number, limit: number) {
-        const auditLogs = await this.auditLogModel.find().sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
+     
+    //add filter by role 
+    async getAdminAuditLogs(skip: number, limit: number , role?: string) {
+        const query: Record<string, any> = {};
+        if(role){
+            query.role = role;
+        }
+        const auditLogs = await this.auditLogModel.find(query).sort({ createdAt: -1 })
+        .populate('user_id', 'name role')
+        .skip(skip).limit(limit).lean();
         return auditLogs;
     }
 

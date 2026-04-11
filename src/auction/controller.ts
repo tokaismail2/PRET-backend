@@ -41,20 +41,17 @@ export class AuctionController {
 
     return this.auctionService.createAuction(dto);
   }
-
+ 
   @Get()
   @authorize(UserRole.ADMIN)
   async getAll(
-    @Query('page') page: string = '1',
-    @Query('limit') limit: string = '10',
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    const pageNumber = Math.max(1, parseInt(page, 10) || 1);
-    const limitNumber = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+    const pageNumber = Math.max(1, parseInt(page ?? '1', 10) || 1);
+    const limitNumber = Math.min(100, Math.max(1, parseInt(limit ?? '10', 10) || 10));
 
-    const result = await this.auctionService.getAllAuctionsWithBids(
-      pageNumber,
-      limitNumber,
-    );
+    const result = await this.auctionService.getAllAuctionsWithBids(pageNumber, limitNumber);
 
     return {
       message: 'Auctions fetched successfully',

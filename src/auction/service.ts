@@ -156,65 +156,59 @@ export class AuctionService {
 
   }
 
-  //get all auctions with bids 
   async getAllAuctionsWithBids(page: number = 1, limit: number = 10) {
     const skip = (page - 1) * limit;
 
-  const result = await this.auctionModel.aggregate([
+    const basePipeline = [
+      {
+        $lookup: {
+          from: 'auctionbids',
+          localField: '_id',
+          foreignField: 'auction_id',
+          as: 'bids',
+        },
+      },
+      {
+        $lookup: {
+          from: 'wastes',
+          localField: 'waste_id',
+          foreignField: '_id',
+          as: 'waste',
+        },
+      },
+      { $unwind: { path: '$waste', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'factories',
+          localField: 'winnerFactory',
+          foreignField: '_id',
+          as: 'winnerFactory',
+        },
+      },
+      { $unwind: { path: '$winnerFactory', preserveNullAndEmptyArrays: true } },
+      {
+        $addFields: {
+          highestBid: { $max: '$bids.total_price' },
+        },
+      },
+    ];
 
-  {
-    $lookup: {
-      from: 'auctionbids',
-      localField: '_id',
-      foreignField: 'auction_id',
-      as: 'bids',
-    },
-  },
-  {
-    $lookup: {
-      from: 'wastes',
-      localField: 'waste_id',
-      foreignField: '_id',
-      as: 'waste',
-    },
-  },
-  { $unwind: { path: '$waste', preserveNullAndEmptyArrays: true } },
-  {
-    $lookup: {
-      from: 'factories',
-      localField: 'winnerFactory',
-      foreignField: '_id',
-      as: 'winnerFactory',
-    },
-  },
-  { $unwind: { path: '$winnerFactory', preserveNullAndEmptyArrays: true } },
-
-  {
-    $addFields: {
-      highestBid: { $max: '$bids.total_price' },
-    },
-  },
-
-  {
-    $facet: {
-      data: [
+    const [dataResult, countResult] = await Promise.all([
+      this.auctionModel.aggregate([
+        ...basePipeline,
         { $sort: { createdAt: -1 } },
         { $skip: skip },
         { $limit: limit },
-      ],
-      totalCount: [
+      ]),
+      this.auctionModel.aggregate([
+        ...basePipeline,
         { $count: 'total' },
-      ],
-    },
-  },
-]);
-
-    const data = result[0]?.data || [];
-    const total = result[0]?.totalCount?.[0]?.total || 0;
+      ]),
+    ]);
 
     return {
-      data,
-      total,
+      data: dataResult,
+      total: countResult[0]?.total || 0,
       page,
       limit,
     };

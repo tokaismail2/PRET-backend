@@ -41,20 +41,18 @@ export class WarehouseController {
   @Get()
   async findAll(
     @Query('isActive') isActive?: string,
-    @Query('page') page: string = '1',
-    @Query('limit') limit: string = '10',
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    const pageNumber = Math.max(1, parseInt(page, 10) || 1);
-    const limitNumber = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+    const pageNumber = Math.max(1, parseInt(page ?? '1', 10) || 1);
+    const limitNumber = Math.min(100, Math.max(1, parseInt(limit ?? '10', 10) || 10));
 
     const result = await this.warehouseService.findAll(
       {
         isActive:
-          isActive === 'true'
-            ? true
-            : isActive === 'false'
-              ? false
-              : undefined,
+          isActive === 'true' ? true :
+            isActive === 'false' ? false :
+              undefined,
       },
       pageNumber,
       limitNumber,
