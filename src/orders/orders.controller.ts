@@ -194,6 +194,7 @@ export class OrdersController {
   ) {
     const pageNumber = Math.max(1, parseInt(page, 10) || 1);
     const limitNumber = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+
     const orders = await this.ordersService.getAllOrders({
       status,
       generatorId,
@@ -204,12 +205,12 @@ export class OrdersController {
       page: pageNumber,
       limit: limitNumber,
     });
+
     return {
       message: 'Orders retrieved successfully',
       pagination: {
-        total: await this.ordersService.getOrderCount(),
-        page,
-        limit,
+        page: pageNumber,
+        limit: limitNumber,
       },
       data: orders,
     };

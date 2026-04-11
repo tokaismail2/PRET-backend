@@ -155,13 +155,18 @@ export class OrdersService {
       }
     }
 
+    // ✅ fix pagination هنا
+    const page = filters.page || 1;
+    const limit = filters.limit || 10;
+    const skip = (page - 1) * limit;
+
     const orders = await this.orderModel
       .find(query)
       .populate('generatorId', 'name email phone')
       .populate('materialTypeId', 'name price')
       .sort({ createdAt: -1 })
-      .skip((filters.page - 1) * filters.limit)
-      .limit(filters.limit)
+      .skip(skip)
+      .limit(limit)
       .lean();
 
     // Get all user IDs in one shot
