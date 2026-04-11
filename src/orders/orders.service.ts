@@ -322,24 +322,28 @@ export class OrdersService {
     return updatedOrder;
   }
 
-  async deleteOrder(orderId: string, userId: string) {
+  async deleteOrder(orderId: string, userId: string, userRole: string) {
+    if (!Types.ObjectId.isValid(orderId)) {
+      throw new NotFoundException('Order not found');
+    }
+
     const order = await this.orderModel.findById(orderId);
 
     if (!order) {
       throw new NotFoundException('Order not found');
     }
 
-    // Check if user is the generator who created the order
-    if (order.generatorId.toString() !== userId.toString()) {
+    const isAdmin = userRole === UserRole.ADMIN;
+    const isOwner = order.generatorId.toString() === userId.toString();
+
+    if (!isAdmin && !isOwner) {
       throw new UnauthorizedException('You do not have permission to delete this order');
     }
 
-    // Check if order is in a state that can be deleted
     if (order.status !== OrderStatus.PENDING) {
       throw new ConflictException('Order cannot be deleted as it is not in PENDING status');
     }
 
-    // Delete the order
     await this.orderModel.findByIdAndDelete(orderId);
 
     return { message: 'Order deleted successfully' };

@@ -166,6 +166,7 @@ async getMyOrdersHistory(
     limitNumber,
   );
 
+  // ✅ نفس structure بتاع AuditLogs اللي شغال
   return {
     pagination: {
       total: orders.total,
@@ -305,7 +306,7 @@ async deleteOrder(
   @Param('id') orderId: string,
   @CurrentUser() user: any,
 ) {
-  return this.ordersService.deleteOrder(orderId, user.userId);
+  return this.ordersService.deleteOrder(orderId, user.userId, user.role);
 }
 
 }
