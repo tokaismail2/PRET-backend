@@ -160,53 +160,54 @@ export class AuctionService {
   async getAllAuctionsWithBids(page: number = 1, limit: number = 10) {
     const skip = (page - 1) * limit;
 
-    const result = await this.auctionModel.aggregate([
-      {
-        $lookup: {
-          from: 'auctionbids',
-          localField: '_id',
-          foreignField: 'auction_id',
-          as: 'bids',
-        },
-      },
-      {
-        $lookup: {
-          from: 'wastes',
-          localField: 'waste_id',
-          foreignField: '_id',
-          as: 'waste',
-        },
-      },
-      { $unwind: { path: '$waste', preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: 'factories',
-          localField: 'winnerFactory',
-          foreignField: '_id',
-          as: 'winnerFactory',
-        },
-      },
-      { $unwind: { path: '$winnerFactory', preserveNullAndEmptyArrays: true } },
+  const result = await this.auctionModel.aggregate([
 
-      {
-        $addFields: {
-          highestBid: { $max: '$bids.total_price' },
-        },
-      },
+  {
+    $lookup: {
+      from: 'auctionbids',
+      localField: '_id',
+      foreignField: 'auction_id',
+      as: 'bids',
+    },
+  },
+  {
+    $lookup: {
+      from: 'wastes',
+      localField: 'waste_id',
+      foreignField: '_id',
+      as: 'waste',
+    },
+  },
+  { $unwind: { path: '$waste', preserveNullAndEmptyArrays: true } },
+  {
+    $lookup: {
+      from: 'factories',
+      localField: 'winnerFactory',
+      foreignField: '_id',
+      as: 'winnerFactory',
+    },
+  },
+  { $unwind: { path: '$winnerFactory', preserveNullAndEmptyArrays: true } },
 
-      {
-        $facet: {
-          data: [
-            { $sort: { createdAt: -1 } },
-            { $skip: skip },
-            { $limit: limit },
-          ],
-          totalCount: [
-            { $count: 'total' },
-          ],
-        },
-      },
-    ]);
+  {
+    $addFields: {
+      highestBid: { $max: '$bids.total_price' },
+    },
+  },
+
+  {
+    $facet: {
+      data: [
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+      ],
+      totalCount: [
+        { $count: 'total' },
+      ],
+    },
+  },
+]);
 
     const data = result[0]?.data || [];
     const total = result[0]?.totalCount?.[0]?.total || 0;
