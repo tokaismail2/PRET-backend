@@ -159,6 +159,7 @@ export class OrdersService {
     const page = filters.page || 1;
     const limit = filters.limit || 10;
     const skip = (page - 1) * limit;
+    const total = await this.orderModel.countDocuments(query);
 
     const orders = await this.orderModel
       .find(query)
@@ -186,13 +187,18 @@ export class OrdersService {
     );
 
     // Enrich orders with generator data
-    return orders.map((order) => {
-      const userId = (order.generatorId as any)?._id?.toString();
-      return {
-        ...order,
-        generator: generatorMap.get(userId) || null,
-      };
-    });
+    return {
+      data: orders.map((order) => {
+        const userId = (order.generatorId as any)?._id?.toString();
+        return {
+          ...order,
+          generator: generatorMap.get(userId) || null,
+        };
+      }),
+      total,
+      page,
+      limit,
+    };
   }
 
 
