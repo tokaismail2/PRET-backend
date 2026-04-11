@@ -116,7 +116,8 @@ export class DonationsService {
     if (!donation) {
       throw new NotFoundException('Donation not found');
     }
-    const charity = await this.userModel.findById(charityId);
+    const charity_id = new Types.ObjectId(charityId);
+    const charity = await this.userModel.findById(charity_id);
     if (!charity) {
       throw new NotFoundException('Charity not found');
     }
