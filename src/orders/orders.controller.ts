@@ -207,12 +207,13 @@ export class OrdersController {
     });
 
     return {
+      success: true,
       message: 'Orders retrieved successfully',
       pagination: {
         total: result.total,
         page: result.page,
         limit: result.limit,
-        totalPages: Math.ceil(result.total / result.limit), // 🔥
+        totalPages: Math.ceil(result.total / result.limit),
       },
       data: result.data,
     };
