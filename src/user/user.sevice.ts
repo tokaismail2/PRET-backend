@@ -108,7 +108,6 @@ export class UsersService {
 
     const users = await this.userModel.find(filter).select('-password').skip(skip).limit(limit).lean(); // exclude password
     const usersWithProfile = users.map(async user => {
-      const userObj = user.toObject();
       let profile = null;
 
       if (user.role === UserRole.GENERATOR) {
@@ -120,7 +119,7 @@ export class UsersService {
       }
 
       return {
-        ...userObj,
+        ...user,
         profile: profile ? profile.toObject() : null
       };
     });
