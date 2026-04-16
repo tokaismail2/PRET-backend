@@ -110,15 +110,7 @@ export class DonationsController {
       page,
       limit,
     );
-    return {
-      message: 'Donations retrieved successfully',
-      pagination: {
-        total: await this.donationsService.getDonationCount(),
-        page,
-        limit,
-      },
-      donations,
-    };
+    return donations;
   }
 
   @Get('get')
@@ -129,14 +121,7 @@ export class DonationsController {
     const page = Math.max(1, parseInt(query.page) || 1);
     const limit = Math.max(1, parseInt(query.limit) || 10);
 
-    return {
-      pagination: {
-        total: await this.donationsService.getDonationCount(),
-        page,
-        limit,
-      },
-      data: await this.donationsService.getAllDonations(page, limit),
-    };
+    return this.donationsService.getAllDonations(page, limit);
   }
 
   //assign donation to charity

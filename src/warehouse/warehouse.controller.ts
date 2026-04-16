@@ -58,16 +58,7 @@ export class WarehouseController {
       limitNumber,
     );
 
-    return {
-      message: 'Warehouses fetched successfully',
-      data: result.data,
-      pagination: {
-        total: result.total,
-        page: pageNumber,
-        limit: limitNumber,
-        totalPages: Math.ceil(result.total / limitNumber),
-      },
-    };
+    return result;
   }
 
   @Get(':id')

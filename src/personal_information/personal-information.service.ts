@@ -243,7 +243,15 @@ export class PersonalInformationService {
         .lean(),
       this.usersProblemsModel.countDocuments(),
     ]);
-    return { data, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      message: 'Problems fetched successfully',
+      data: {
+        problems: data,
+        pagination: { total, page, limit, totalPages },
+      },
+    };
   }
   async getMyWallet(userId: string): Promise<any> {
     const wallet = await this.userWalletModel.findOne({ userId: userId }).select('balance').lean();

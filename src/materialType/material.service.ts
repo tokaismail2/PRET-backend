@@ -27,9 +27,13 @@ export class MaterialService {
       this.materialModel.countDocuments(),
     ]);
 
+    const totalPages = Math.ceil(total / limit);
     return {
-      data,
-      total,
+      message: 'materials fetched successfully',
+      data: {
+        materials: data,
+        pagination: { total, page, limit, totalPages },
+      },
     };
   }
 

@@ -21,15 +21,7 @@ export class CharityController {
     const page = parseInt(query.page) || 1;
     const limit = parseInt(query.limit) || 10;
     const skip = (page - 1) * limit;
-    return {
-      pagination: {
-        total: await this.charityService.getCharityCount(),
-        page,
-        limit,
-      },
-      data: await this.charityService.getCharity(skip, limit),
-    };
+    return this.charityService.getCharity(skip, limit);
+
   }
-
-
 }

@@ -55,7 +55,7 @@ export class UsersController {
     const pageNumber = Math.max(1, parseInt(page ?? '1', 10) || 1);
     const limitNumber = Math.min(100, Math.max(1, parseInt(limit ?? '10', 10) || 10));
     const users = await this.usersService.getAllUsers(req, pageNumber, limitNumber);
-    return { message: 'Users retrieved successfully', users };
+    return users;
   }
 
   // ---------------- GET USER BY ID ----------------

@@ -34,13 +34,13 @@ export class PaymentService {
       this.paymentModel.countDocuments(filter),
     ]);
 
+    const totalPages = Math.ceil(total / limit);
+
     return {
-      data,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+      message: 'Payments fetched successfully',
+      data: {
+        payments: data,
+        pagination: { total, page, limit, totalPages },
       },
     };
   }

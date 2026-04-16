@@ -167,10 +167,7 @@ export class PersonalInformationController {
     const pageNumber = Math.max(1, parseInt(page ?? '1', 10) || 1);
     const limitNumber = Math.min(100, Math.max(1, parseInt(limit ?? '10', 10) || 10));
     const usersProblems = await this.personalInformationService.getProblem(pageNumber, limitNumber);
-    return {
-      message: 'Problem retrieved successfully',
-      usersProblems,
-    };
+    return usersProblems;
   }
 
   @Put('location')

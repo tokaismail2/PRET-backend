@@ -21,15 +21,20 @@ export class AuditLogController {
     const limit = parseInt(query.limit) || 10;
     const role = query.role;
     const skip = (page - 1) * limit;
-   
+
+    const total = await this.auditLogService.getAdminAuditLogsCount();
+    const totalPages = Math.ceil(total / limit);
+
     return {
-      pagination: {
-        total: await this.auditLogService.getAdminAuditLogsCount(),
-        page,
-        limit,
+      message: 'Audit logs fetched successfully',
+      data: {
+        auditLogs: await this.auditLogService.getAdminAuditLogs(skip, limit,role),
+        pagination: { total, page, limit, totalPages },
       },
-      data: await this.auditLogService.getAdminAuditLogs(skip, limit,role),
-    }
-}
+    };
+
+   
+
+  }
 }
 

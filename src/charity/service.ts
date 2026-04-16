@@ -22,7 +22,18 @@ export class CharityService {
 
   //get paginated charity for admin
   async getCharity(skip: number, limit: number) {
-    return this.charityModel.find().skip(skip).limit(limit).lean();
+    const total = await this.charityModel.countDocuments().lean();
+    const dataResult = await this.charityModel.find().skip(skip).limit(limit).lean();
+    const totalPages = Math.ceil(total / limit);
+    const page = skip / limit + 1;
+
+    return {
+      message: 'charity fetched successfully',
+      data: {
+        charities: dataResult,
+        pagination: { total, page, limit, totalPages },
+      },
+    };
   }
 
   async getCharityCount() {

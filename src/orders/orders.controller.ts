@@ -167,15 +167,7 @@ export class OrdersController {
     );
 
     // ✅ نفس structure بتاع AuditLogs اللي شغال
-    return {
-      pagination: {
-        total: orders.total,
-        page: pageNumber,
-        limit: limitNumber,
-        totalPages: orders.totalPages,
-      },
-      data: orders.data,
-    };
+    return orders;
   }
 
   @Get('all')
@@ -206,17 +198,7 @@ export class OrdersController {
       limit: limitNumber,
     });
 
-    return {
-      success: true,
-      message: 'Orders retrieved successfully',
-      pagination: {
-        total: result.total,
-        page: result.page,
-        limit: result.limit,
-        totalPages: Math.ceil(result.total / result.limit),
-      },
-      data: result.data,
-    };
+    return result;
   }
 
     @Get('pending-routes')

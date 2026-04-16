@@ -53,16 +53,7 @@ export class AuctionController {
 
     const result = await this.auctionService.getAllAuctionsWithBids(pageNumber, limitNumber);
 
-    return {
-      message: 'Auctions fetched successfully',
-      data: result.data,
-      pagination: {
-        total: result.total,
-        page: result.page,
-        limit: result.limit,
-        totalPages: Math.ceil(result.total / result.limit),
-      },
-    };
+    return result
   }
 
   @Get('active')

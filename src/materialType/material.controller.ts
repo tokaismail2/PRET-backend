@@ -41,16 +41,7 @@ export class MaterialController {
 
     const result = await this.materialService.findAll(pageNumber, limitNumber);
 
-    return {
-      message: 'Materials fetched successfully',
-      data: result.data,
-      pagination: {
-        total: result.total,
-        page: pageNumber,
-        limit: limitNumber,
-        totalPages: Math.ceil(result.total / limitNumber),
-      },
-    };
+    return result;
   }
   @Get(':id')
   findOne(@Param('id') id: string) {

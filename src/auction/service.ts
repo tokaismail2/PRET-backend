@@ -205,13 +205,17 @@ export class AuctionService {
         { $count: 'total' },
       ]),
     ]);
+    const total = countResult.length;
+    const totalPages = Math.ceil(total / limit);
 
     return {
-      data: dataResult,
-      total: countResult[0]?.total || 0,
-      page,
-      limit,
+      message: 'Auctions fetched successfully',
+      data: {
+        auctions: dataResult,
+        pagination: { total, page, limit, totalPages },
+      },
     };
+
   }
 
   async getActiveAuctions(materialName?: string) {

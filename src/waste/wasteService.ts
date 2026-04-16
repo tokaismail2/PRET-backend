@@ -68,13 +68,13 @@ export class WasteService {
       this.wasteModel.countDocuments(),
     ]);
 
+    const totalPages = Math.ceil(total / limit);
+
     return {
-      data,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+      message: 'Wastes fetched successfully',
+      data: {
+        wastes: data,
+        pagination: { total, page, limit, totalPages },
       },
     };
   }

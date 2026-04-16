@@ -21,7 +21,7 @@ export class DonationsService {
     @InjectModel(Donation.name) private donationModel: Model<DonationDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Charity.name) private charityModel: Model<CharityDocument>,
-  ) {}
+  ) { }
 
   async createDonation(userId: string, createDonationDto: CreateDonationDto) {
     // Find user by ID
@@ -82,16 +82,16 @@ export class DonationsService {
 
   async getDonationById(donationId: string, userId: string) {
     userId = userId.toString();
-  
+
     const donation = await this.donationModel
       .findById(donationId)
       .populate('generator', 'name email phone')
       .exec();
-  
+
     if (!donation) {
       throw new NotFoundException('Donation not found');
     }
-  
+
     // Extract IDs safely
     const generatorId =
       donation.generator instanceof Types.ObjectId
@@ -99,17 +99,17 @@ export class DonationsService {
         : (donation.generator as any)?._id?.toString();
 
     const user = await this.userModel.findById(userId);
-  
+
     // Allow access if: Admin OR donor
     if (
       user.role !== UserRole.ADMIN &&
-      generatorId !== userId 
+      generatorId !== userId
     ) {
       throw new UnauthorizedException(
         'You do not have access to this donation',
       );
     }
-  
+
     return donation;
   }
 
@@ -128,7 +128,7 @@ export class DonationsService {
     await donation.save();
     return donation;
   }
-  
+
   //paginate all donations for admin
   async getAllDonations(page: number, limit: number) {
     const donations = await this.donationModel
@@ -137,13 +137,22 @@ export class DonationsService {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .exec();
-    return donations;
+      .lean();
+
+    const total = await this.donationModel.countDocuments();
+    const totalPages = Math.ceil(total / limit);
+    return {
+      message: 'donations fetched successfully',
+      data: {
+        donations: donations,
+        pagination: { total, page, limit, totalPages },
+      },
+    };
   }
 
   async getDonationCount() {
-    return this.donationModel.countDocuments().lean();
-  }
+  return this.donationModel.countDocuments().lean();
+}
   
 }
 

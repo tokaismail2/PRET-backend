@@ -91,9 +91,9 @@ export class UsersService {
 
     return user;
   }
- 
+
   //make it with pagination
-  async getAllUsers(req: Request, page: number = 1, limit: number = 10): Promise<User[]> {
+  async getAllUsers(req: Request, page: number = 1, limit: number = 10): Promise<any> {
     const skip = (page - 1) * limit;
     let filter: any = {
       role: {
@@ -107,7 +107,10 @@ export class UsersService {
     }
 
     const users = await this.userModel.find(filter).select('-password').skip(skip).limit(limit).lean(); // exclude password
-    const usersWithProfile = users.map(async user => {
+    const total = await this.userModel.countDocuments(filter);
+    
+
+    const usersWithProfile = users.map(async (user) => {
       let profile = null;
 
       if (user.role === UserRole.GENERATOR) {
@@ -117,22 +120,22 @@ export class UsersService {
       } else if (user.role === UserRole.DRIVER) {
         profile = await this.driverModel.findOne({ user: user._id as any });
       }
-     
-      //pagination
-      const total = await this.userModel.countDocuments(filter);
-      const totalPages = Math.ceil(total / limit);
+
       return {
         ...user,
         profile: profile ? profile.toObject() : null,
-        pagination: {
-          total,
-          page,
-          limit,
-          totalPages,
-        },
       };
     });
-    return Promise.all(usersWithProfile);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      message: 'Users retrieved successfully',
+      data: {
+        users: await Promise.all(usersWithProfile),
+        pagination: { total, page, limit, totalPages },
+      },
+    };
   }
 
   // ---------------- READ BY ID ----------------
