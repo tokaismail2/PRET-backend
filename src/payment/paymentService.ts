@@ -15,17 +15,25 @@ export class PaymentService {
   ) { }
 
   // READ ALL
-  async findAll(page: number = 1, limit: number = 10): Promise<any> {
+  async findAll(req: any, page: number = 1, limit: number = 10): Promise<any> {
     const skip = (page - 1) * limit;
+
+    let filter: any = {};
+
+    if (req.user.role !== 'admin') {
+      filter.user_id = req.user.userId;
+    }
+
     const [data, total] = await Promise.all([
-      this.paymentModel.find()
+      this.paymentModel.find(filter)
         .populate('user_id', 'name')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
-      this.paymentModel.countDocuments(),
+      this.paymentModel.countDocuments(filter),
     ]);
+
     return {
       data,
       pagination: {
@@ -70,7 +78,7 @@ export class PaymentService {
       admin = await this.userModel.findById(user._id).lean();
       if (!admin) throw new NotFoundException('Admin not found');
     }
-    
+
     const mergedData = {
       ...payment,
       user,
