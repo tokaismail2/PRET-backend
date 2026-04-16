@@ -15,10 +15,26 @@ export class PaymentService {
   ) { }
 
   // READ ALL
-  async findAll(): Promise<Payment[]> {
-    return this.paymentModel.find()
-      .populate('user_id')
-      .sort({ createdAt: -1 }).exec();
+  async findAll(page: number = 1, limit: number = 10): Promise<any> {
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      this.paymentModel.find()
+        .populate('user_id', 'name')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      this.paymentModel.countDocuments(),
+    ]);
+    return {
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
 }
