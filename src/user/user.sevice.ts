@@ -117,10 +117,19 @@ export class UsersService {
       } else if (user.role === UserRole.DRIVER) {
         profile = await this.driverModel.findOne({ user: user._id as any });
       }
-
+     
+      //pagination
+      const total = await this.userModel.countDocuments(filter);
+      const totalPages = Math.ceil(total / limit);
       return {
         ...user,
-        profile: profile ? profile.toObject() : null
+        profile: profile ? profile.toObject() : null,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages,
+        },
       };
     });
     return Promise.all(usersWithProfile);
