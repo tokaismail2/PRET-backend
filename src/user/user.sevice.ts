@@ -131,7 +131,6 @@ export class UsersService {
     const user = await this.userModel.findById(userId).select('-password');
     if (!user) throw new NotFoundException('User not found');
 
-    const userObj = user.toObject();
     let roleData = null;
 
     if (user.role === UserRole.GENERATOR) {
@@ -143,7 +142,7 @@ export class UsersService {
     }
 
     return {
-      ...userObj,
+      ...user,
       roleData: roleData ? roleData.toObject() : null
     };
   }
