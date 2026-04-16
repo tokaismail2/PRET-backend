@@ -140,22 +140,22 @@ export class UsersService {
 
   // ---------------- READ BY ID ----------------
   async getUserById(userId: string): Promise<any> {
-    const user = await this.userModel.findById(userId).select('-password');
+    const user = await this.userModel.findById(userId).select('-password').lean();
     if (!user) throw new NotFoundException('User not found');
 
     let roleData = null;
 
     if (user.role === UserRole.GENERATOR) {
-      roleData = await this.generatorModel.findOne({ user: userId as any });
+      roleData = await this.generatorModel.findOne({ user: userId as any }).lean();
     } else if (user.role === UserRole.FACTORY) {
-      roleData = await this.factoryModel.findOne({ user: userId as any });
+      roleData = await this.factoryModel.findOne({ user: userId as any }).lean();
     } else if (user.role === UserRole.DRIVER) {
-      roleData = await this.driverModel.findOne({ user: userId as any });
+      roleData = await this.driverModel.findOne({ user: userId as any }).lean();
     }
 
     return {
       ...user,
-      roleData: roleData ? roleData.toObject() : null
+      roleData: roleData ? roleData : null
     };
   }
 
