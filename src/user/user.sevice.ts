@@ -108,7 +108,7 @@ export class UsersService {
 
     const users = await this.userModel.find(filter).select('-password').skip(skip).limit(limit).lean(); // exclude password
     const total = await this.userModel.countDocuments(filter);
-    
+
 
     const usersWithProfile = users.map(async (user) => {
       let profile = null;
@@ -164,19 +164,31 @@ export class UsersService {
     const user = await this.userModel.findById(userId);
     if (!user) throw new NotFoundException('User not found');
 
-    // If password is being updated, hash it
+    // Remove fields that should never be updated
     const updateData: any = { ...updateUserDto };
+    delete updateData._id;
+    delete updateData.__v;
+    delete updateData.createdAt;
+    delete updateData.updatedAt;
+    delete updateData.role;
 
+    // If password is being updated, hash it
     if (updateData.password) {
       updateData.password = await bcrypt.hash(updateData.password, 10);
     }
 
-    // Update User model fields
-    Object.assign(user, updateData);
-    await user.save();
+    // Update User using findByIdAndUpdate for safer casting
+    const updatedUser = await this.userModel.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      { new: true, runValidators: true },
+    );
 
-    // Prepare address object for profiles if updated
+    if (!updatedUser) throw new NotFoundException('User not found');
+
+    // Prepare profile update object
     const profileUpdate: any = {};
+
     if (updateUserDto.address) {
       profileUpdate.address = {
         street: updateUserDto.address.street,
@@ -193,21 +205,29 @@ export class UsersService {
 
     // Update profile based on role
     if (Object.keys(profileUpdate).length > 0) {
-      if (user.role === UserRole.GENERATOR) {
-        await this.generatorModel.findOneAndUpdate({ user: user._id as any }, profileUpdate);
-      } else if (user.role === UserRole.FACTORY) {
-        await this.factoryModel.findOneAndUpdate({ user: user._id as any }, profileUpdate);
-      } else if (user.role === UserRole.DRIVER) {
-        // Driver specific: map coordinates to top level if provided
+      if (updatedUser.role === UserRole.GENERATOR) {
+        await this.generatorModel.findOneAndUpdate(
+          { user: updatedUser._id as any },
+          profileUpdate,
+        );
+      } else if (updatedUser.role === UserRole.FACTORY) {
+        await this.factoryModel.findOneAndUpdate(
+          { user: updatedUser._id as any },
+          profileUpdate,
+        );
+      } else if (updatedUser.role === UserRole.DRIVER) {
         if (profileUpdate.address?.coordinates) {
           profileUpdate.latitude = profileUpdate.address.coordinates.latitude;
           profileUpdate.longitude = profileUpdate.address.coordinates.longitude;
         }
-        await this.driverModel.findOneAndUpdate({ user: user._id as any }, profileUpdate);
+        await this.driverModel.findOneAndUpdate(
+          { user: updatedUser._id as any },
+          profileUpdate,
+        );
       }
     }
 
-    return user;
+    return updatedUser;
   }
 
   // ---------------- DELETE ----------------
