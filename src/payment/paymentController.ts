@@ -37,5 +37,10 @@ export class PaymentController {
     return this.paymentService.findAll(req, pageNumber, limitNumber);
   }
 
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.paymentService.findOne(id);
+  }
+
 
 }
