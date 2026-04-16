@@ -91,11 +91,10 @@ export class UsersService {
 
     return user;
   }
-
-  // ---------------- READ ALL ----------------
-  async getAllUsers(req: Request): Promise<User[]> {
-
-
+ 
+  //make it with pagination
+  async getAllUsers(req: Request, page: number = 1, limit: number = 10): Promise<User[]> {
+    const skip = (page - 1) * limit;
     let filter: any = {
       role: {
         $ne: UserRole.ADMIN,
@@ -107,7 +106,7 @@ export class UsersService {
       filter.role = req.query.role;
     }
 
-    const users = await this.userModel.find(filter).select('-password').exec(); // exclude password
+    const users = await this.userModel.find(filter).select('-password').skip(skip).limit(limit).lean(); // exclude password
     const usersWithProfile = users.map(async user => {
       const userObj = user.toObject();
       let profile = null;

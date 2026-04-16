@@ -37,4 +37,48 @@ export class PaymentService {
     };
   }
 
+
+  async findOne(id: string): Promise<Payment> {
+    const payment = await this.paymentModel.findById(id)
+      .populate('user_id', 'name role')
+      .lean();
+    if (!payment) throw new NotFoundException('Payment not found');
+
+    const user = await this.userModel.findById(payment.user_id._id).lean();
+    if (!user) throw new NotFoundException('User not found');
+
+    let factory = null;
+    if (user.role === 'factory') {
+      factory = await this.userModel.findById(user._id).lean();
+      if (!factory) throw new NotFoundException('Factory not found');
+    }
+
+    let driver = null;
+    if (user.role === 'driver') {
+      driver = await this.userModel.findById(user._id).lean();
+      if (!driver) throw new NotFoundException('Driver not found');
+    }
+
+    let generator = null;
+    if (user.role === 'generator') {
+      generator = await this.userModel.findById(user._id).lean();
+      if (!generator) throw new NotFoundException('Generator not found');
+    }
+
+    let admin = null;
+    if (user.role === 'admin') {
+      admin = await this.userModel.findById(user._id).lean();
+      if (!admin) throw new NotFoundException('Admin not found');
+    }
+    
+    const mergedData = {
+      ...payment,
+      user,
+      factory,
+      driver,
+      generator,
+      admin,
+    };
+    return mergedData;
+  }
 }

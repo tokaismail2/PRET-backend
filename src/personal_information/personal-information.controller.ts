@@ -11,6 +11,7 @@ import {
   BadRequestException,
   Get,
   Put,
+  Query,
   Delete
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -133,6 +134,7 @@ export class PersonalInformationController {
     };
   }
 
+
   @Post('problem')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
@@ -158,8 +160,13 @@ export class PersonalInformationController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @authorize(UserRole.ADMIN)
-  async getProblem() {
-    const usersProblems = await this.personalInformationService.getProblem();
+  async getProblem(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNumber = Math.max(1, parseInt(page ?? '1', 10) || 1);
+    const limitNumber = Math.min(100, Math.max(1, parseInt(limit ?? '10', 10) || 10));
+    const usersProblems = await this.personalInformationService.getProblem(pageNumber, limitNumber);
     return {
       message: 'Problem retrieved successfully',
       usersProblems,

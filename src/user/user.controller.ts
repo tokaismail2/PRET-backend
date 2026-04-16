@@ -13,6 +13,7 @@ import {
   Req,
   Put,
   UseInterceptors,
+  Query,  
 } from '@nestjs/common';
 import { UsersService } from './user.sevice';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -40,12 +41,20 @@ export class UsersController {
     const user = await this.usersService.createUser(createUserDto);
     return { message: 'User created successfully', user };
   }
+ 
 
+  //make it with pagination
   @Get()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async getAllUsers(@Req() req: Request) {
-    const users = await this.usersService.getAllUsers(req);
+  async getAllUsers(
+    @Req() req: Request,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNumber = Math.max(1, parseInt(page ?? '1', 10) || 1);
+    const limitNumber = Math.min(100, Math.max(1, parseInt(limit ?? '10', 10) || 10));
+    const users = await this.usersService.getAllUsers(req, pageNumber, limitNumber);
     return { message: 'Users retrieved successfully', users };
   }
 

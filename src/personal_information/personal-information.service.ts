@@ -230,13 +230,20 @@ export class PersonalInformationService {
       usersProblems,
     };
   }
-
-  async getProblem(): Promise<any> {
-
-    const usersProblems = await this.usersProblemsModel.find()
-      .populate('userId', 'name email phone')
-      .lean();
-    return usersProblems;
+ 
+  //make it with pagination
+  async getProblem(page: number = 1, limit: number = 10): Promise<any> {
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      this.usersProblemsModel.find()
+        .populate('userId', 'name email phone')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      this.usersProblemsModel.countDocuments(),
+    ]);
+    return { data, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } };
   }
   async getMyWallet(userId: string): Promise<any> {
     const wallet = await this.userWalletModel.findOne({ userId: userId }).select('balance').lean();
