@@ -84,7 +84,7 @@ export class WasteService {
     const waste = await this.wasteModel.findById(id)
       .populate('warehouse_id', 'name contract_number')
       .populate('material_id', 'name')
-      .exec();
+      .lean();
     if (!waste) throw new NotFoundException('Waste not found');
     return waste;
   }
