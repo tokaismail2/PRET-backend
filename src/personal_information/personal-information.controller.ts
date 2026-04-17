@@ -195,12 +195,8 @@ export class PersonalInformationController {
   @HttpCode(HttpStatus.OK)
   @authorize(UserRole.DRIVER, UserRole.FACTORY, UserRole.GENERATOR)
   async getWallet(@CurrentUser() user: any) {
-    const { wallet, walletTransactions } = await this.personalInformationService.getMyWallet(user.userId);
-    return {
-      message: 'Wallet retrieved successfully',
-      wallet,
-      walletTransactions,
-    };
+    const getMyWallet = await this.personalInformationService.getMyWallet(user.userId);
+    return getMyWallet;
   }
 
 

@@ -74,9 +74,18 @@ export class DonationsService {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .exec();
+      .lean();
 
-    return donations;
+    const total = await this.donationModel.countDocuments({ generator: userId });
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      message: 'Donations retrieved successfully',
+      data: {
+        donations: donations,
+        pagination: { total, page, limit, totalPages },
+      },
+    };
   }
 
 
@@ -151,8 +160,8 @@ export class DonationsService {
   }
 
   async getDonationCount() {
-  return this.donationModel.countDocuments().lean();
-}
-  
+    return this.donationModel.countDocuments().lean();
+  }
+
 }
 

@@ -230,7 +230,7 @@ export class PersonalInformationService {
       usersProblems,
     };
   }
- 
+
   //make it with pagination
   async getProblem(page: number = 1, limit: number = 10): Promise<any> {
     const skip = (page - 1) * limit;
@@ -253,14 +253,19 @@ export class PersonalInformationService {
       },
     };
   }
-  async getMyWallet(userId: string): Promise<any> {
-    const wallet = await this.userWalletModel.findOne({ userId: userId }).select('balance').lean();
+  //make it with pagination
+  async getMyWallet(userId: string, page: number = 1, limit: number = 10): Promise<any> {
+    const skip = (page - 1) * limit;
+    const wallet = await this.userWalletModel.findOne({ userId: userId }).select('balance')
+      .lean();
     if (!wallet) {
       throw new BadRequestException('Wallet not found');
     }
 
     const walletTransactions = await this.walletTransactionsModel
       .find({ walletId: wallet._id })
+      .skip(skip)
+      .limit(limit)
       .populate({
         path: 'orderId',
         select: 'photos quantity unit price totalPrice createdAt materialTypeId',  // include both fields
@@ -271,9 +276,17 @@ export class PersonalInformationService {
       .sort({ createdAt: -1 })
       .lean();
 
+    const total = await this.walletTransactionsModel.countDocuments({ walletId: wallet._id });
+    const totalPages = Math.ceil(total / limit);
+
+
     return {
-      wallet,
-      walletTransactions,
+      message: 'walletTransactions retrieved successfully',
+      data: {
+        wallet,
+        walletTransactions: await Promise.all(walletTransactions),
+        pagination: { total, page, limit, totalPages },
+      },
     };
   }
 
