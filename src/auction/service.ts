@@ -121,6 +121,7 @@ export class AuctionService {
     //create wallet transaction 
     const walletTransaction = new this.walletTransactionModel({
       walletId: wallet._id,
+      userId: wallet.userId,   
       type: 'deposit',
       amount: highestBid.total_price,
       description: `Deposit for auction ${auction._id} for admin`,
@@ -139,6 +140,7 @@ export class AuctionService {
     //create wallet transaction 
     const factoryWalletTransaction = new this.walletTransactionModel({
       walletId: factoryWallet._id,
+      userId: wallet.userId,   
       type: 'withdrawal',
       amount: highestBid.total_price,
       description: `Withdrawal for auction ${auction._id} from factory`,
