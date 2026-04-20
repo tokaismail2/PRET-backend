@@ -218,7 +218,13 @@ export class AuctionService {
 
   }
 
-  async getActiveAuctions(materialName?: string) {
+  async getActiveAuctions(
+    materialName?: string,
+    page: number = 1,
+    limit: number = 10
+  ) {
+    const skip = (page - 1) * limit;
+
     const pipeline: any[] = [
       { $match: { status: 'open' } },
 
@@ -244,29 +250,75 @@ export class AuctionService {
       },
       { $unwind: '$waste.material' },
 
-      ...(materialName ? [{
-        $match: { 'waste.material.name': materialName }
-      }] : []),
+      ...(materialName
+        ? [{ $match: { 'waste.material.name': materialName } }]
+        : []),
+
+      {
+        $facet: {
+          data: [
+            { $skip: skip },
+            { $limit: limit }
+          ],
+          totalCount: [
+            { $count: 'count' }
+          ]
+        }
+      }
     ];
 
-    return this.auctionModel.aggregate(pipeline);
+
+    const result = await this.auctionModel.aggregate(pipeline);
+
+    const total = result[0].totalCount[0]?.count || 0;
+
+    return {
+      message: 'auctions retrieved successfully',
+      data: {
+        auctions: result[0].data,
+        pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      },
+    };
   }
 
-  async getWasteAuctions(status?: 'open' | 'closed') {
-    const query: any = {};
+  async getWasteAuctions(
+    status?: 'open' | 'closed',
+    page: number = 1,
+    limit: number = 10
+  ) {
+    const skip = (page - 1) * limit;
 
+    const query: any = {};
     if (status) {
       query.status = status;
     }
-    return this.auctionModel.find(query)
+
+    const data = await this.auctionModel.find(query)
       .populate({
         path: 'waste_id',
         populate: {
-          path: 'material_id'
-        }
+          path: 'material_id',
+        },
       })
+      .skip(skip)
+      .limit(limit)
       .sort({ createdAt: -1 })
       .lean();
+
+    const total = await this.auctionModel.countDocuments(query);
+
+    return {
+      message: 'auctions retrieved successfully',
+      data: {
+        auctions: data,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      },
+    };
   }
 
   // Get auction by ID with populated fields
@@ -436,8 +488,7 @@ export class AuctionService {
       auctionQuery.status = 'closed';
 
     } else {
-      //  my bids: مزادات شغالة شارك فيها
-      auctionQuery.status = 'open';
+      //  my bids: مزادات  شارك فيها
     }
 
     // Step 3: Count + fetch

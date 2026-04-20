@@ -232,9 +232,9 @@ export class OrdersService {
 
     const totalPages = Math.ceil(total / limit);
     return {
-      message: 'donations fetched successfully',
+      message: 'orders fetched successfully',
       data: {
-        donations: orders,
+        orders: orders,
         pagination: { total, page, limit, totalPages },
       },
     };

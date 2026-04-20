@@ -122,7 +122,7 @@ export class AuthService {
     try {
       await this.createRoleSpecificRecord(role, user._id.toString(), registerDto);
     } catch (err) {
-      console.error('❌ createRoleSpecificRecord failed:', err.message); // ← أضف دي
+      console.error('❌ createRoleSpecificRecord failed:', err.message); 
       const hasProfile = await this.profileExists(role, user._id.toString());
       if (!hasProfile) {
         await this.userModel.deleteOne({ _id: user._id });
@@ -132,9 +132,9 @@ export class AuthService {
       );
     }
 
-    // ─── Driver: auto-verify and return ──────────────────────────────────────
+    // ─── Driver: verification by admin ──────────────────────────────────────
     if (role === UserRole.DRIVER) {
-      user.isVerified = true;
+      user.isVerified = false;
       await user.save();
 
       const userObj = user.toObject();

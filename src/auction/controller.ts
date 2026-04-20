@@ -41,7 +41,7 @@ export class AuctionController {
 
     return this.auctionService.createAuction(dto);
   }
- 
+
   @Get()
   @authorize(UserRole.ADMIN)
   async getAll(
@@ -58,16 +58,25 @@ export class AuctionController {
 
   @Get('active')
   @authorize(UserRole.FACTORY)
-  getActiveAuctions(@Query('material') material?: string) {
-    return this.auctionService.getActiveAuctions(material);
+  getActiveAuctions(@Query('material') material?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    return this.auctionService.getActiveAuctions(material, pageNum, limitNum);
   }
 
   @Get('wastes')
   @authorize(UserRole.FACTORY)
   getWasteAuctions(
     @Query('status') status?: 'open' | 'closed',
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.auctionService.getWasteAuctions(status);
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    return this.auctionService.getWasteAuctions(status, pageNum, limitNum);
   }
 
   @Get('my-waste-auctions')
