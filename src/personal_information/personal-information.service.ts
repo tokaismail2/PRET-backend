@@ -152,7 +152,10 @@ export class PersonalInformationService {
 
     await user.save();
 
+
     if (updateProfileDto.profile) {
+
+      JSON.parse(JSON.stringify(updateProfileDto.profile))
       switch (user.role) {
         case UserRole.DRIVER:
           await this.driverModel.findOneAndUpdate(

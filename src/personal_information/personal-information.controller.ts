@@ -128,6 +128,7 @@ export class PersonalInformationController {
       user.userId,
       updateProfileDto,
     );
+
     return {
       message: 'Profile updated successfully',
       user: updatedUser,
