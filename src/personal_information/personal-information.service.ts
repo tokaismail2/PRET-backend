@@ -126,7 +126,7 @@ export class PersonalInformationService {
     }
 
     if (!user.isActive) {
-      throw new UnauthorizeodException('Account is inactive');
+      throw new UnauthorizedException('Account is inactive');
     }
 
     // ── Email uniqueness check ───────────────────────────────────────────────
