@@ -94,8 +94,8 @@ export function defineAuctionJobs(agenda: Agenda, auctionModel: Model<AuctionDoc
   });
 
   // ─── Schedule ─────────────────────────────────────────────────────
-  // Runs every day at midnight
-  agenda.every('0 0 * * *', 'check-expired-auctions');
+  // Runs every 5 minutes
+  agenda.every('*/5 * * * *', 'check-expired-auctions');
 }
 
 export const AuctionSchema = SchemaFactory.createForClass(Auction);
