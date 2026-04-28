@@ -14,7 +14,6 @@ export function AuditLogInterceptorFactory(action: string): Type<NestInterceptor
     ) {}
 
     intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-      console.log('AUDIT INTERCEPTOR HIT');
 
       const ctx = context.switchToHttp();
       const req = ctx.getRequest();

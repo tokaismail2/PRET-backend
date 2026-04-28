@@ -13,7 +13,7 @@ export class PaymobController {
   @HttpCode(200)
   async webhook(@Body() payload: any, @Res() res: Response) {
     if (!this.paymobService.verifyWebhook(payload)) {
-      console.warn('❌ Invalid webhook signature');
+      console.warn('Invalid webhook signature');
       return res.status(400).send('Invalid webhook');
     }
 
@@ -24,11 +24,11 @@ export class PaymobController {
 
   @Get('callback')
   async callback(@Query() query: any, @Res() res: Response) {
-    console.log('📥 Paymob Callback received');
-    console.log(`✅ Success          : ${query.success}`);
-    console.log(`🔑 Merchant Order ID: ${query.merchant_order_id}`);
-    console.log(`💰 Amount           : ${Number(query.amount_cents) / 100} EGP`);
-    console.log(`💳 Card             : ${query['source_data.pan']} (${query['source_data.sub_type']})`);
+    console.log('Paymob Callback received');
+    console.log(`Success          : ${query.success}`);
+    console.log(`Merchant Order ID: ${query.merchant_order_id}`);
+    console.log(`Amount           : ${Number(query.amount_cents) / 100} EGP`);
+    console.log(`Card             : ${query['source_data.pan']} (${query['source_data.sub_type']})`);
 
     const isSuccess = query.success === 'true';
     const merchantOrderId = query.merchant_order_id;
@@ -39,7 +39,7 @@ export class PaymobController {
 
 
     const frontendUrl = isSuccess
-      ? `http://localhost:4000/payment-success`
+      ? `https://pret-proj.vercel.app/dashboard`
       : `http://localhost:4000/payment-failed`;
 
     return res.redirect(frontendUrl);

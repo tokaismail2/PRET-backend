@@ -13,10 +13,6 @@ export class ImageKitService implements OnModuleInit {
     const privateKey = this.configService.get<string>('IMAGEKIT_PRIVATE_KEY');
     const urlEndpoint = this.configService.get<string>('IMAGEKIT_URL_ENDPOINT');
 
-    console.log('PUBLIC:', publicKey);
-    console.log('PRIVATE:', privateKey);
-    console.log('ENDPOINT:', urlEndpoint);
-
     if (!publicKey || !privateKey || !urlEndpoint) {
       console.warn(
         'ImageKit not initialized. Please set IMAGEKIT_PUBLIC_KEY, IMAGEKIT_PRIVATE_KEY, and IMAGEKIT_URL_ENDPOINT environment variables.',

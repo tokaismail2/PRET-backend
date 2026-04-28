@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import axios from 'axios';
 import * as crypto from 'crypto';
-import { Payment } from '../models/payment.schema'; // ← عدلي الـ path
+import { Payment } from '../models/payment.schema';
 
 @Injectable()
 export class PaymobService {
@@ -95,15 +95,15 @@ export class PaymobService {
     const obj = payload?.obj;
 
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('📥 Paymob Webhook Received');
-    console.log(`🔁 Transaction ID   : ${obj?.id}`);
-    console.log(`📦 Paymob Order ID  : ${obj?.order?.id}`);
-    console.log(`🔑 Merchant Order ID: ${obj?.order?.merchant_order_id}`);
-    console.log(`💰 Amount           : ${obj?.amount_cents / 100} EGP`);
-    console.log(`✅ Success          : ${obj?.success}`);
-    console.log(`⏳ Pending          : ${obj?.pending}`);
-    console.log(`❌ Error Occurred   : ${obj?.error_occured}`);
-    console.log(`💳 Card             : ${obj?.source_data?.pan} (${obj?.source_data?.sub_type})`);
+    console.log('Paymob Webhook Received');
+    console.log(`Transaction ID   : ${obj?.id}`);
+    console.log(`Paymob Order ID  : ${obj?.order?.id}`);
+    console.log(`Merchant Order ID: ${obj?.order?.merchant_order_id}`);
+    console.log(`Amount           : ${obj?.amount_cents / 100} EGP`);
+    console.log(`Success          : ${obj?.success}`);
+    console.log(`Pending          : ${obj?.pending}`);
+    console.log(`Error Occurred   : ${obj?.error_occured}`);
+    console.log(`Card             : ${obj?.source_data?.pan} (${obj?.source_data?.sub_type})`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
     const merchantOrderId = this.extractMerchantOrderId(payload);
@@ -113,9 +113,9 @@ export class PaymobService {
       await this.paymentModel.findByIdAndUpdate(merchantOrderId, {
         status: 'completed',
       });
-      console.log(`✅ Payment ${merchantOrderId} marked as completed`);
+      console.log(`Payment ${merchantOrderId} marked as completed`);
     } else {
-      console.warn(`⚠️ Payment not successful | merchantOrderId: ${merchantOrderId}`);
+      console.warn(`Payment not successful | merchantOrderId: ${merchantOrderId}`);
     }
   }
   
@@ -123,7 +123,7 @@ export class PaymobService {
     await this.paymentModel.findByIdAndUpdate({paymob_order_id : merchantOrderId}, {
       status: 'completed',
     });
-    console.log(`✅ Callback: Payment ${merchantOrderId} marked as completed`);
+    console.log(`Callback: Payment ${merchantOrderId} marked as completed`);
   }
 }
 

@@ -9,7 +9,6 @@ import { User, UserSchema, Order, OrderSchema } from '../models';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
         const mongoUri = configService.get<string>('MONGO_URI')?.trim();
-        console.log('MONGO_URI FROM ENV:', JSON.stringify(mongoUri));
 
         if (!mongoUri) {
           throw new Error(

@@ -66,10 +66,10 @@ async function bootstrap(): Promise<void> {
   const host = configService.get<string>('HOST') || 'localhost';
 
   await app.listen(port);
-  console.log(`🚀 Application is running on: http://${host}:${port}`);
+  console.log(`Application is running on: http://${host}:${port}`);
 }
 
 bootstrap().catch((error) => {
-  console.error('❌ Error starting application:', error);
+  console.error('Error starting application:', error);
   process.exit(1);
 });
