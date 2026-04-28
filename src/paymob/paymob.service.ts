@@ -16,7 +16,7 @@ export class PaymobService {
 
   constructor(
     @InjectModel(Payment.name) private readonly paymentModel: Model<any>,
-  ) {}
+  ) { }
 
   async getAuthToken(): Promise<string> {
     const res = await axios.post('https://accept.paymob.com/api/auth/tokens', {
@@ -118,9 +118,10 @@ export class PaymobService {
       console.warn(`Payment not successful | merchantOrderId: ${merchantOrderId}`);
     }
   }
-  
+
+
   async handleCallback(merchantOrderId: string): Promise<void> {
-    await this.paymentModel.findByIdAndUpdate({paymob_order_id : merchantOrderId}, {
+    await this.paymentModel.findByIdAndUpdate(merchantOrderId, {  
       status: 'completed',
     });
     console.log(`Callback: Payment ${merchantOrderId} marked as completed`);

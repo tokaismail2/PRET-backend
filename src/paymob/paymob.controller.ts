@@ -1,47 +1,34 @@
-import { Controller, Post, Get, Query, Body, Res, HttpCode, Logger } from '@nestjs/common';
-import { PaymobService } from './paymob.service';
+import { Controller, Post, Get, Query, Body, Res } from '@nestjs/common';
 import { Response } from 'express';
+import { PaymobService } from './paymob.service';
 
 @Controller('paymob')
 export class PaymobController {
-  private readonly logger = new Logger(PaymobController.name);
 
   constructor(private readonly paymobService: PaymobService) {}
 
-
+  // Webhook POST (server-to-server)
   @Post('webhook')
-  @HttpCode(200)
-  async webhook(@Body() payload: any, @Res() res: Response) {
-    if (!this.paymobService.verifyWebhook(payload)) {
-      console.warn('Invalid webhook signature');
-      return res.status(400).send('Invalid webhook');
-    }
-
+  async webhook(@Body() payload: any) {
+    if (!this.paymobService.verifyWebhook(payload)) return { status: 'invalid' };
     await this.paymobService.processPayment(payload);
-    return res.status(200).send('OK');
+    return { status: 'ok' };
   }
 
+  // Callback GET (browser redirect after payment)
+  @Get('webhook')
+  async callback(
+    @Query('success') success: string,
+    @Query('merchant_order_id') merchantOrderId: string,
+    @Res() res: Response,
+  ) {
+    const frontendUrl = process.env.FRONTEND_URL;
 
-  @Get('callback')
-  async callback(@Query() query: any, @Res() res: Response) {
-    console.log('Paymob Callback received');
-    console.log(`Success          : ${query.success}`);
-    console.log(`Merchant Order ID: ${query.merchant_order_id}`);
-    console.log(`Amount           : ${Number(query.amount_cents) / 100} EGP`);
-    console.log(`Card             : ${query['source_data.pan']} (${query['source_data.sub_type']})`);
-
-    const isSuccess = query.success === 'true';
-    const merchantOrderId = query.merchant_order_id;
-
-    if (isSuccess && merchantOrderId) {
+    if (success === 'true' && merchantOrderId) {
       await this.paymobService.handleCallback(merchantOrderId);
+      return res.redirect(`${frontendUrl}/?payment=success`);
     }
 
-
-    const frontendUrl = isSuccess
-      ? `https://pret-proj.vercel.app/dashboard`
-      : `http://localhost:4000/payment-failed`;
-
-    return res.redirect(frontendUrl);
+    return res.redirect(`${frontendUrl}/?payment=failed`);
   }
 }
