@@ -106,7 +106,7 @@ export class UsersService {
       filter.role = req.query.role;
     }
 
-    const users = await this.userModel.find(filter).select('-password').skip(skip).limit(limit).lean(); // exclude password
+    const users = await this.userModel.find(filter).select('-password').skip(skip).limit(limit).lean().sort({createdAt: -1}); // exclude password
     const total = await this.userModel.countDocuments(filter);
 
 

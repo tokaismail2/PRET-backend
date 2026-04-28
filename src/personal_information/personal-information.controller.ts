@@ -194,7 +194,7 @@ export class PersonalInformationController {
   @Get('wallet')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @authorize(UserRole.DRIVER, UserRole.FACTORY, UserRole.GENERATOR)
+  @authorize(UserRole.DRIVER, UserRole.FACTORY, UserRole.GENERATOR , UserRole.ADMIN)
   async getWallet(@CurrentUser() user: any) {
     const getMyWallet = await this.personalInformationService.getMyWallet(user.userId);
     return getMyWallet;

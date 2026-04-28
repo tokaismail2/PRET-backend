@@ -23,7 +23,7 @@ export class MaterialService {
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
-      this.materialModel.find().skip(skip).limit(limit).exec(),
+      this.materialModel.find().skip(skip).limit(limit).sort({createdAt: -1}).lean(),
       this.materialModel.countDocuments(),
     ]);
 
