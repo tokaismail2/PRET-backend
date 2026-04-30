@@ -498,12 +498,9 @@ export class OrdersService {
       } as any);
 
 
-      // await this.agendaService.getAgenda().schedule('in 1 hour', 'cancel-order-if-not-received', {
-      //   orderId: order._id,
-      // });
 
       await this.agendaService.getAgenda().schedule(
-        new Date(Date.now() + 5 * 60 * 1000),
+        new Date(Date.now() + 60 * 60 * 1000),
         'cancel-order-if-not-received',
         {
           orderId: order._id,
