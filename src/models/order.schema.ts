@@ -14,6 +14,7 @@ export enum OrderStatus {
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
   IN_TRANSIT = 'in_transit',
+  AWAITING_PICKUP_CONFIRMATION = 'awaiting_pickup_confirmation',
 
 }
 @Schema({ timestamps: true })
@@ -73,6 +74,9 @@ export class Order {
 
   @Prop({ type: String, required: false })
   address?: string;
+
+  @Prop({ type: Date, required: false })
+  pickupFailedAt?: Date;
 
   createdAt?: Date;
   updatedAt?: Date;

@@ -15,6 +15,7 @@ import { Generator, GeneratorSchema } from '../models/generator.schema';
 import { MaterialModule } from '../materialType/material.module';
 import { Material, MaterialSchema } from '../models/material.schema';
 import { Route, RouteSchema } from '../models/route.schema';
+import { AgendaModule } from '../common/agenda/agenda.module';
 
 
 @Module({
@@ -35,6 +36,7 @@ import { Route, RouteSchema } from '../models/route.schema';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     ImageKitModule,
     MaterialModule,
+    AgendaModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService],

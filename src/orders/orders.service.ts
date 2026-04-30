@@ -19,6 +19,7 @@ import { Generator, GeneratorDocument } from '../models/generator.schema';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { Material, MaterialDocument } from '../models/material.schema';
 import { Route, RouteDocument } from '../models/route.schema';
+import { AgendaService } from '../common/agenda/agenda.service';
 
 @Injectable()
 export class OrdersService {
@@ -32,6 +33,7 @@ export class OrdersService {
     @InjectModel(Generator.name) private generatorModel: Model<GeneratorDocument>,
     @InjectModel(Material.name) private materialModel: Model<MaterialDocument>,
     @InjectModel(Route.name) private routeModel: Model<RouteDocument>,
+    private readonly agendaService: AgendaService,
   ) { }
 
 
@@ -414,7 +416,12 @@ export class OrdersService {
       throw new NotFoundException(`Order ${orderId} not found`);
     }
 
-    if (order.status !== OrderStatus.IN_TRANSIT) {
+    if (
+      ![
+        OrderStatus.IN_TRANSIT,
+        OrderStatus.AWAITING_PICKUP_CONFIRMATION
+      ].includes(order.status)
+    ) {
       throw new ConflictException(`Order ${orderId} status is ${order.status}`);
     }
 
@@ -471,13 +478,37 @@ export class OrdersService {
       });
       await adminWalletTransaction.save();
     } else {
-
       if (order_code) {
         throw new ConflictException(`Order code should not be provided`);
       }
 
-      order.is_received_from_generator = false;
-      order.status = OrderStatus.CANCELLED;
+
+      if (order.status === OrderStatus.AWAITING_PICKUP_CONFIRMATION) {
+        return { order };
+      }
+
+      order.status = OrderStatus.AWAITING_PICKUP_CONFIRMATION;
+      order.pickupFailedAt = new Date();
+
+      await order.save();
+
+      await this.agendaService.getAgenda().cancel({
+        name: 'cancel-order-if-not-received',
+        'data.orderId': order._id,
+      } as any);
+
+
+      // await this.agendaService.getAgenda().schedule('in 1 hour', 'cancel-order-if-not-received', {
+      //   orderId: order._id,
+      // });
+
+      await this.agendaService.getAgenda().schedule(
+        new Date(Date.now() + 5 * 60 * 1000),
+        'cancel-order-if-not-received',
+        {
+          orderId: order._id,
+        }
+      );
     }
 
     await order.save();
