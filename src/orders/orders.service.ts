@@ -400,6 +400,19 @@ export class OrdersService {
       }),
     );
 
+    const objectIds = orderIds.map((id) => new Types.ObjectId(id));
+
+    await this.routeModel.findOneAndUpdate(
+      {
+        'orderIds.id': { $all: objectIds },
+      },
+      {
+        driver: new Types.ObjectId(driverUserId),
+        status: 'assigned',
+        $set: { 'orderIds.$[].status': 'assigned' }
+      },
+    );
+
     return { orders: result };
   }
 
@@ -437,6 +450,11 @@ export class OrdersService {
 
       order.is_received_from_generator = true;
       order.status = OrderStatus.RECEIVED;
+
+      await this.routeModel.updateOne(
+        { 'orderIds.id': new Types.ObjectId(orderId) },
+        { $set: { 'orderIds.$.status': 'completed' } }
+      );
 
       //create wallet transaction for generator
       const generator = await this.userModel.findById(order.generatorId);
@@ -566,17 +584,26 @@ export class OrdersService {
       warehouse.location.coordinates.longitude,
     );
 
-    // ✅ الروت مرة واحدة بره الـ map
-    const route = await this.routeModel.create({
-      driver: new Types.ObjectId(driverUserId),
-      orderIds: orderIds.map(id => new Types.ObjectId(id)),
-      destination: new Types.ObjectId(warehouseId),
-      startPoint: {
-        latitude: generator.address.coordinates.latitude,
-        longitude: generator.address.coordinates.longitude,
+
+    const orderObjectIds = orderIds.map((id) => new Types.ObjectId(id));
+
+    const route = await this.routeModel.findOneAndUpdate(
+      {
+        driver: new Types.ObjectId(driverUserId),
+        'orderIds.id': { $all: orderObjectIds },
       },
-      distance,
-    });
+      {
+        $set: {
+          destination: new Types.ObjectId(warehouseId),
+          startPoint: {
+            latitude: generator.address.coordinates.latitude,
+            longitude: generator.address.coordinates.longitude,
+          },
+          distance,
+        },
+      },
+      { new: true },
+    );
 
     const result = await Promise.all(
       foundOrders.map(async (order) => {
@@ -774,22 +801,48 @@ export class OrdersService {
         totalWeight = newWeight;
       }
 
+      const orderIds = route.map((o) => ({
+        id: o._id,
+        status: 'pending',
+      }));
+
+      const orderIdObjects = route.map((o) => o._id);
+
+      const existingRoute = await this.routeModel.findOne({
+        'orderIds.id': { $in: orderIdObjects },
+      });
+
+      if (existingRoute) {
+        await this.routeModel.findByIdAndUpdate(existingRoute._id, {
+          orderIds,
+          startPoint: { latitude: route[0].lat, longitude: route[0].lng },
+        });
+      } else {
+        await this.routeModel.create({
+          orderIds,
+          startPoint: { latitude: route[0].lat, longitude: route[0].lng },
+        });
+      }
       routes[`route${routeIndex}`] = route;
       routeIndex++;
     }
 
     return routes;
   }
-  async getMyHistoryRoutes(driverUserId: string) {
+  async getMyHistoryRoutes(driverUserId: string, status?: string) {
+    const filter: any = { driver: new Types.ObjectId(driverUserId) };
+
+    if (status === 'completed') {
+      filter['orderIds.status'] = 'completed';
+    }
+
     const routes = await this.routeModel
-      .find({ driver: new Types.ObjectId(driverUserId) })
+      .find(filter)
       .populate('destination', 'name')
       .sort({ createdAt: -1 })
       .lean();
 
-    const totalRoutesCount = await this.routeModel.countDocuments({
-      driver: new Types.ObjectId(driverUserId)
-    });
+    const totalRoutesCount = await this.routeModel.countDocuments(filter);
 
     const walletBalance = await this.userWalletModel.findOne({ userId: driverUserId });
     const balance = walletBalance?.balance || 0;
@@ -800,14 +853,47 @@ export class OrdersService {
     const route = await this.routeModel
       .findById(routeId)
       .populate('destination', 'name')
-      .populate('orderIds')
       .lean();
+
     if (!route) throw new NotFoundException(`Route ${routeId} not found`);
     if (route.driver.toString() !== driverUserId.toString())
       throw new ConflictException(`Driver is not assigned to route ${routeId}`);
-    return route;
-  }
 
+    const orderIds = route.orderIds.map(o => o.id);
+
+    const orders = await this.orderModel
+      .find({ _id: { $in: orderIds } })
+      .populate('materialTypeId', 'name')
+      .lean();
+
+    const ordersWithStatus = orders.map(order => {
+      const routeOrder = route.orderIds.find(
+        o => o.id.toString() === order._id.toString()
+      );
+
+      return {
+        _id: order._id,
+        status: routeOrder?.status,
+
+
+        material: order.materialTypeId,
+        quantity: order.quantity,
+        unit: order.unit,
+      };
+    });
+
+    const completedOrdersCount = ordersWithStatus.filter(
+      o => o.status === 'completed'
+    ).length;
+
+    const completedOrdersTotalQuantity = ordersWithStatus.reduce(
+      (acc, o) => o.status === 'completed' ? acc + (o.quantity || 0) : acc,
+      0
+    );
+
+
+    return { ...route, orderIds: ordersWithStatus, completedOrdersCount, completedOrdersTotalQuantity };
+  }
   async getOrderCount() {
     return this.orderModel.countDocuments();
   }

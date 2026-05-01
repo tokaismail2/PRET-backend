@@ -118,6 +118,8 @@ export class OrdersController {
     return this.ordersService.assignDriverToRoute(body.orders, user.userId);
   }
 
+
+
   @Post('arrive-warehouse')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
