@@ -874,25 +874,31 @@ export class OrdersService {
       return {
         _id: order._id,
         status: routeOrder?.status,
-
-
         material: order.materialTypeId,
         quantity: order.quantity,
         unit: order.unit,
       };
     });
 
-    const completedOrdersCount = ordersWithStatus.filter(
+ 
+    const completedOrders = ordersWithStatus.filter(
       o => o.status === 'completed'
-    ).length;
+    );
 
-    const completedOrdersTotalQuantity = ordersWithStatus.reduce(
-      (acc, o) => o.status === 'completed' ? acc + (o.quantity || 0) : acc,
+    const completedOrdersCount = completedOrders.length;
+
+    const completedOrdersTotalQuantity = completedOrders.reduce(
+      (acc, o) => acc + (o.quantity || 0),
       0
     );
 
-
-    return { ...route, orderIds: ordersWithStatus, completedOrdersCount, completedOrdersTotalQuantity };
+ 
+    return {
+      ...route,
+      orderIds: completedOrders,
+      completedOrdersCount,
+      completedOrdersTotalQuantity
+    };
   }
   async getOrderCount() {
     return this.orderModel.countDocuments();
