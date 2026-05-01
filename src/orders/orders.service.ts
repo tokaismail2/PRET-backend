@@ -413,7 +413,11 @@ export class OrdersService {
       },
     );
 
-    return { orders: result };
+    const route = await this.routeModel.findOne({
+      'orderIds.id': { $all: objectIds },
+    });
+
+    return { orders: result , route_id : route._id };
   }
 
   //recive order from generator or not 
@@ -895,7 +899,7 @@ export class OrdersService {
  
     return {
       ...route,
-      orderIds: completedOrders,
+      orderIds: ordersWithStatus,
       completedOrdersCount,
       completedOrdersTotalQuantity
     };
