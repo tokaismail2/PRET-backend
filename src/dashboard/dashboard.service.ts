@@ -12,6 +12,7 @@ import mongoose from "mongoose";
 import { AuctionBid, AuctionBidDocument } from "../models/auctionBids.schema";
 import { Auction, AuctionDocument } from "../models/auction.schema";
 import { Donation, DonationDocument } from "../models/donation.schema";
+import { Payment, PaymentDocument } from "../models/payment.schema";
 
 export class DashboardService {
     constructor(
@@ -23,17 +24,24 @@ export class DashboardService {
         @InjectModel(AuctionBid.name) private bidModel: Model<AuctionBidDocument>,
         @InjectModel(Auction.name) private auctionModel: Model<AuctionDocument>,
         @InjectModel(Donation.name) private donationModel: Model<DonationDocument>,
+        @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
     ) { }
 
-    async getGeneratorDashboard(userId: string) {
+    async getGeneratorDashboard(userId: string, startDate?: string, endDate?: string) {
         const user = await this.userModel.findById(userId);
         if (!user) {
             throw new NotFoundException('User not found');
         }
-
         const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+        const startOfMonth = startDate
+            ? new Date(startDate)
+            : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
+        const endOfMonth = endDate
+            ? new Date(new Date(endDate).setUTCHours(23, 59, 59, 999))
+            : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999));
+
         const userObjectId = new mongoose.Types.ObjectId(userId);
 
         //Total Orders this month
@@ -116,11 +124,71 @@ export class DashboardService {
             { $sort: { totalQuantity: -1 } },
         ]);
 
+        //number of orders 
+        const numberOfOrdersChart = await this.orderModel.aggregate([
+            {
+                $match: {
+                    generatorId: userObjectId,
+                    createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+                },
+            },
+            {
+                $group: {
+                    _id: {
+                        $cond: {
+                            if: { $gt: [{ $subtract: [endOfMonth, startOfMonth] }, 1000 * 60 * 60 * 24 * 31] },
+                            then: { $month: '$createdAt' },
+                            else: { $dayOfMonth: '$createdAt' },
+                        },
+                    },
+                    label: {
+                        $first: {
+                            $cond: {
+                                if: { $gt: [{ $subtract: [endOfMonth, startOfMonth] }, 1000 * 60 * 60 * 24 * 31] },
+                                then: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+                                else: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                            },
+                        },
+                    },
+                    totalOrders: { $sum: 1 },
+                },
+            },
+            {
+                $project: {
+                    _id: 0,
+                    date: '$label',
+                    totalOrders: 1,
+                },
+            },
+            { $sort: { date: 1 } },
+
+            {
+                $group: {
+                    _id: null,
+                    items: { $push: '$$ROOT' },
+                },
+            },
+            {
+                $project: {
+                    _id: 0,
+                    items: {
+                        $cond: {
+                            if: { $gt: [{ $subtract: [endOfMonth, startOfMonth] }, 1000 * 60 * 60 * 24 * 31] },
+                            then: { $slice: ['$items', 2] },
+                            else: '$items',
+                        },
+                    },
+                },
+            },
+            { $unwind: '$items' },
+            { $replaceRoot: { newRoot: '$items' } },
+        ]);
+
         const totalKg = materialChartData.reduce((sum, item) => sum + item.totalQuantity, 0);
         const chartData = materialChartData.map((item) => ({
             name: item.materialName,
             quantity: item.totalQuantity,
-            percentage: totalKg > 0 ? Math.round((item.totalQuantity / totalKg) * 100) : 0,
+            percentage: totalKg > 0 ? parseFloat(((item.totalQuantity / totalKg) * 100).toFixed(1)) : 0,
         }));
 
         //Last 5 Audit Logs
@@ -137,19 +205,28 @@ export class DashboardService {
                 totalKg,
                 materials: chartData,
             },
+
+            numberOfOrdersChart,
             recentActivity,
+
         };
     }
 
-    async getFactoryDashboard(userId: string) {
+    async getFactoryDashboard(userId: string, startDate?: string, endDate?: string) {
         const user = await this.userModel.findById(userId);
         if (!user) {
             throw new NotFoundException('User not found');
         }
-
         const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+        const startOfMonth = startDate
+            ? new Date(startDate)
+            : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
+        const endOfMonth = endDate
+            ? new Date(new Date(endDate).setUTCHours(23, 59, 59, 999))
+            : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999));
+
         const userObjectId = new mongoose.Types.ObjectId(userId);
 
         const totalBidsAtCurrentMonth = await this.bidModel.countDocuments({
@@ -225,6 +302,52 @@ export class DashboardService {
             .find({ user: userObjectId })
             .sort({ createdAt: -1 })
             .limit(5);
+
+        //last 5 payments 
+        const recentPayments = await this.paymentModel.find({
+            user_id: userObjectId,
+        }).sort({ createdAt: -1 }).limit(5);
+
+        //each matrial and weight 
+        const materialChartData = await this.auctionModel.aggregate([
+            {
+                $match: {
+                    winnerFactory: userObjectId,
+                    status: 'closed',
+                    createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+                },
+            },
+            {
+                $lookup: {
+                    from: 'wastes',
+                    localField: 'waste_id',
+                    foreignField: '_id',
+                    as: 'waste',
+                },
+            },
+            {
+                $unwind: '$waste',
+            },
+            {
+                $lookup: {
+                    from: 'materials',
+                    localField: 'waste.material_id',
+                    foreignField: '_id',
+                    as: 'material',
+                },
+            },
+            {
+                $unwind: '$material',
+            },
+            {
+                $group: {
+                    _id: '$waste.material_id',
+                    materialName: { $first: '$material.name' },
+                    totalWeight: { $sum: '$waste.total_weight' },
+                },
+            },
+        ]);
+
         return {
             totalBidsAtCurrentMonth,
             totalWinsAtAuctions,
@@ -232,22 +355,31 @@ export class DashboardService {
             totalWeightOfWaste: totalWeightOfWaste.reduce((sum, item) => sum + item.totalWeight, 0),
             totalSpentAtCurrentMonth,
             recentActivity,
+            recentPayments,
+            materialChartData,
         };
+
 
 
 
 
     }
 
-    async getDriverDashboard(userId: string) {
+    async getDriverDashboard(userId: string, startDate?: string, endDate?: string) {
         const user = await this.userModel.findById(userId);
         if (!user) {
             throw new NotFoundException('User not found');
         }
-
         const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+        const startOfMonth = startDate
+            ? new Date(startDate)
+            : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
+        const endOfMonth = endDate
+            ? new Date(new Date(endDate).setUTCHours(23, 59, 59, 999))
+            : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999));
+
         const userObjectId = new mongoose.Types.ObjectId(userId);
 
         const totalOrdersAtCurrentMonth = await this.orderModel.countDocuments({
@@ -266,14 +398,42 @@ export class DashboardService {
             {
                 $match: {
                     userId: userObjectId,
-                    type: 'deposit',
+                    type: 'withdrawal',
+                    createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+                },
+            },
+            {
+                $project: {
+                    _id: 0,
+                    amount: 1,
+                    createdAt: 1,
+                },
+            },
+        ]);
+
+        const ordersPerDay = await this.orderModel.aggregate([
+            {
+                $match: {
+                    driverId: userObjectId,
                     createdAt: { $gte: startOfMonth, $lte: endOfMonth },
                 },
             },
             {
                 $group: {
-                    _id: null,
-                    totalRevenue: { $sum: '$amount' },
+                    _id: {
+                        $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+                    },
+                    count: { $sum: 1 },
+                },
+            },
+            {
+                $sort: { _id: 1 },
+            },
+            {
+                $project: {
+                    _id: 0,
+                    date: "$_id",
+                    count: 1,
                 },
             },
         ]);
@@ -288,14 +448,19 @@ export class DashboardService {
             totalOrdersAtCurrentMonth,
             totalCompletedOrdersAtCurrentMonth,
             totalRevenueAtCurrentMonth,
+             ordersPerDay,
             recentActivity,
         };
     }
 
     async getAdminDashboard(startDate?: Date, endDate?: Date) {
         const now = new Date();
-        const startOfMonth = startDate ?? new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = endDate ?? new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        const startOfMonth = startDate
+            ? new Date(startDate)
+            : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+        const endOfMonth = endDate
+            ? new Date(new Date(endDate).setUTCHours(23, 59, 59, 999))
+            : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999));
 
         const filter = { createdAt: { $gte: startOfMonth, $lte: endOfMonth } };
 
@@ -338,6 +503,81 @@ export class DashboardService {
                 },
             },
         ]);
+
+
+        // generators with number of orders
+        const generatorData = await this.orderModel.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+                },
+            },
+            {
+                $group: {
+                    _id: '$generatorId',
+                    totalOrders: { $sum: 1 },
+                },
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'generator',
+                },
+            },
+            {
+                $unwind: '$generator',
+            },
+            {
+                $project: {
+                    _id: 1,
+                    totalOrders: 1,
+                    generatorName: '$generator.name',
+                },
+            },
+            {
+                $sort: { totalOrders: -1 },
+            },
+        ]);
+
+        // factories with number of auctions they won
+        const factoriesData = await this.auctionModel.aggregate([
+            {
+                $match: {
+                    winnerFactory: { $exists: true, $ne: null },
+                    status: 'closed',
+                    createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+                },
+            },
+            {
+                $group: {
+                    _id: '$winnerFactory',
+                    totalWins: { $sum: 1 },
+                },
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'factory',
+                },
+            },
+            {
+                $unwind: '$factory',
+            },
+            {
+                $project: {
+                    _id: 1,
+                    totalWins: 1,
+                    factoryName: '$factory.name',
+                },
+            },
+            {
+                $sort: { totalWins: -1 },
+            },
+        ]);
         return {
             totalUsers,
             totalDrivers,
@@ -347,6 +587,9 @@ export class DashboardService {
             totalOrders,
             totalCompletedOrders,
             totalRevenue,
+            generatorData,
+            factoriesData,
+
         };
     }
 }

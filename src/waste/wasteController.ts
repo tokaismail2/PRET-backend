@@ -24,7 +24,6 @@ import { UseInterceptors } from '@nestjs/common';
 export class WasteController {
   constructor(private readonly wasteService: WasteService) { }
 
-  // 1️⃣ Create waste
   @Post()
   @authorize(UserRole.ADMIN)
   @UseGuards(AuthGuard('jwt'))
@@ -35,25 +34,26 @@ export class WasteController {
     return this.wasteService.create(createWasteDto);
   }
 
-  // 2️⃣ Get all waste
+
   @Get()
   findAll(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
+    @Query('status') status?: string ,
   ) {
     const pageNumber = Math.max(1, parseInt(page, 10) || 1);
     const limitNumber = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
 
-    return this.wasteService.findAll(pageNumber, limitNumber);
+    return this.wasteService.findAll(pageNumber, limitNumber , status);
   }
 
-  // 3️⃣ Get waste by id
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.wasteService.findOne(id);
   }
 
-  // 4️⃣ Update waste
+
   @Patch(':id')
   @UseInterceptors(
     AuditLogInterceptorFactory('update_waste'),

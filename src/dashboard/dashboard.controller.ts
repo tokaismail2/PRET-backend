@@ -17,8 +17,12 @@ export class DashboardController {
 
     @Get('generator')
     @HttpCode(HttpStatus.OK)
-    async getGeneratorDashboard(@CurrentUser() user: any) {
-        const dashboard = await this.dashboardService.getGeneratorDashboard(user.userId);
+    async getGeneratorDashboard(
+        @CurrentUser() user: any,
+        @Query('startDate') startDate?: string,
+        @Query('endDate') endDate?: string,
+    ) {
+        const dashboard = await this.dashboardService.getGeneratorDashboard(user.userId, startDate, endDate);
         return {
             message: 'Generator dashboard data retrieved successfully',
             dashboard,
@@ -27,8 +31,12 @@ export class DashboardController {
 
     @Get('factory')
     @HttpCode(HttpStatus.OK)
-    async getFactoryDashboard(@CurrentUser() user: any) {
-        const dashboard = await this.dashboardService.getFactoryDashboard(user.userId);
+    async getFactoryDashboard(
+        @CurrentUser() user: any,
+        @Query('startDate') startDate?: string,
+        @Query('endDate') endDate?: string,
+    ) {
+        const dashboard = await this.dashboardService.getFactoryDashboard(user.userId, startDate, endDate);
         return {
             message: 'Factory dashboard data retrieved successfully',
             dashboard,
@@ -37,8 +45,12 @@ export class DashboardController {
 
     @Get('driver')
     @HttpCode(HttpStatus.OK)
-    async getDriverDashboard(@CurrentUser() user: any) {
-        const dashboard = await this.dashboardService.getDriverDashboard(user.userId);
+    async getDriverDashboard(
+        @CurrentUser() user: any,
+        @Query('startDate') startDate?: string,
+        @Query('endDate') endDate?: string,
+    ) {
+        const dashboard = await this.dashboardService.getDriverDashboard(user.userId, startDate, endDate);
         return {
             message: 'Driver dashboard data retrieved successfully',
             dashboard,

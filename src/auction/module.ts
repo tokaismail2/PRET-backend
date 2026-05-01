@@ -9,9 +9,9 @@ import { User, UserSchema } from '../models/user.schema';
 import { UserWallet, UserWalletSchema } from '../models/userWallet.schema';
 import { WalletTransaction, WalletTransactionSchema } from '../models/walletTransactions.schema';
 import { ImageKitModule } from '../imagekit/imagekit.module';
-import { AuditLog, AuditLogSchema } from '../models/auditLog.schema';
 import { Payment, PaymentSchema } from '../models/payment.schema';
 import { PaymobService } from '../paymob/paymob.service';
+import { AuditLog, AuditLogSchema } from '../models/auditLog.schema';
 
 @Module({
   imports: [
@@ -24,6 +24,8 @@ import { PaymobService } from '../paymob/paymob.service';
       { name: WalletTransaction.name, schema: WalletTransactionSchema },
       { name: AuditLog.name, schema: AuditLogSchema },
       { name: Payment.name, schema: PaymentSchema },
+      { name: AuditLog.name, schema: AuditLogSchema },
+
     ]),
     ImageKitModule,
   ],

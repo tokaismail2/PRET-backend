@@ -105,6 +105,10 @@ export class AuctionController {
   @Post(':id/bid')
   @authorize(UserRole.FACTORY)
   @UseGuards(AuthGuard('jwt'))
+  @UseInterceptors(
+    AuditLogInterceptorFactory('bid_on_auction'),
+  )
+  
   bid(@Param('id') id: string, @Body() dto: CreateBidDto, @Req() req) {
     return this.auctionService.placeBid(id, dto.total_price, req.user.userId);
   }
@@ -119,6 +123,9 @@ export class AuctionController {
   @Put('sign-is-finished/:id')
   @authorize(UserRole.FACTORY)
   @UseGuards(AuthGuard('jwt'))
+  @UseInterceptors(
+    AuditLogInterceptorFactory('make_payment'),
+  )
   signIsFinished(@Param('id') id: string, @Req() req: any) {
     return this.auctionService.signIsFinished(id, req.user.userId, req.body.payment_method);
   }

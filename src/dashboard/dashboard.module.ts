@@ -10,6 +10,7 @@ import { WalletTransaction, WalletTransactionSchema } from '../models/walletTran
 import { AuditLog, AuditLogSchema } from '../models/auditLog.schema';
 import { AuctionBid, AuctionBidSchema } from '../models/auctionBids.schema';
 import { Auction, AuctionSchema } from '../models/auction.schema';
+import { Payment, PaymentSchema } from '../models/payment.schema';
 
 @Module({
     imports: [
@@ -22,6 +23,7 @@ import { Auction, AuctionSchema } from '../models/auction.schema';
             { name: AuditLog.name, schema: AuditLogSchema },
             { name: AuctionBid.name, schema: AuctionBidSchema },
             { name: Auction.name, schema: AuctionSchema },
+            { name: Payment.name, schema: PaymentSchema },
         ]),
     ],
     controllers: [DashboardController],

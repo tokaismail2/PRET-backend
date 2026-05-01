@@ -635,7 +635,7 @@ export class OrdersService {
           userId: driverUserId,
           type: 'withdrawal',
           amount: deliveryFee,
-          description: `trip_fee for order ${order._id}`,
+          description: `trip_fee for order ${order.orderCode}`,
         });
 
         //update admin wallet
@@ -651,7 +651,7 @@ export class OrdersService {
           userId: admin._id,
           type: 'deposit',
           amount: deliveryFee,
-          description: `trip_fee for order ${order._id}`,
+          description: `trip_fee for order ${order.orderCode}`,
         });
 
         return { order, warehouseReceipt };
