@@ -4,6 +4,7 @@ import { tap } from 'rxjs/operators';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AuditLog, AuditLogDocument } from '../models/auditLog.schema';
+import { emitNotification } from '../common/utils/notifications.system';
 
 export function AuditLogInterceptorFactory(action: string): Type<NestInterceptor> {
   @Injectable()
@@ -11,7 +12,7 @@ export function AuditLogInterceptorFactory(action: string): Type<NestInterceptor
     constructor(
       @InjectModel(AuditLog.name)
       private readonly auditLogModel: Model<AuditLogDocument>,
-    ) {}
+    ) { }
 
     intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
 
@@ -33,6 +34,19 @@ export function AuditLogInterceptorFactory(action: string): Type<NestInterceptor
                 });
 
                 console.log('AUDIT SAVED');
+
+                //emit notification
+                emitNotification('audit-log-tracked', {
+                  user_name: req.user?.name,
+                  user_role: req.user?.role,
+                  action: action,
+                });
+                console.log('Audit log saved successfully');
+                console.log('Audit log',  {
+                  user_name: req.user?.name,
+                  user_role: req.user?.role,
+                  action: action,
+                });
               }
             } catch (err) {
               console.error('Error saving audit log:', err);

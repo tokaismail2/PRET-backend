@@ -48,6 +48,9 @@ export class User {
   @Prop()
   verificationCodeExpiresAt?: Date;
 
+  @Prop()
+  device_token?: string;
+
   @Prop({ select: false })
   __v: number;
 

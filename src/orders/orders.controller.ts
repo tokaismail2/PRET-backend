@@ -148,7 +148,7 @@ export class OrdersController {
       body.order_code,
       body.is_received_from_generator,
     );
-  }// ✅ Orders Controller - نفس pattern الـ AuditLogs
+  }
   @Get('history')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
@@ -168,7 +168,7 @@ export class OrdersController {
       limitNumber,
     );
 
-    // ✅ نفس structure بتاع AuditLogs اللي شغال
+
     return orders;
   }
 
@@ -203,109 +203,112 @@ export class OrdersController {
     return result;
   }
 
-    @Get('pending-routes')
-    @HttpCode(HttpStatus.OK)
-    @UseGuards(JwtAuthGuard)
-    @authorize(UserRole.DRIVER)
-    async getPendingRoutes() {
-      const orders = await this.ordersService.getPendingRoutes();
-      return {
-        message: 'Pending routes retrieved successfully',
-        data: orders,
-      };
-    }
+  @Get('pending-routes')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @authorize(UserRole.DRIVER)
+  async getPendingRoutes() {
+    const orders = await this.ordersService.getPendingRoutes();
+    return {
+      message: 'Pending routes retrieved successfully',
+      data: orders,
+    };
+  }
 
-    @Get('my-history-routes')
-    @HttpCode(HttpStatus.OK)
-    @UseGuards(JwtAuthGuard)
-    @authorize(UserRole.DRIVER)
-    async getMyHistoryRoutes(@CurrentUser() user: any) {
-      return this.ordersService.getMyHistoryRoutes(user.userId);
-    }
+  @Get('my-history-routes')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @authorize(UserRole.DRIVER)
+  async getMyHistoryRoutes(@CurrentUser() user: any) {
+    return this.ordersService.getMyHistoryRoutes(user.userId);
+  }
 
-    @Get('route/:id')
-    @HttpCode(HttpStatus.OK)
-    @UseGuards(JwtAuthGuard)
-    @authorize(UserRole.DRIVER)
-    async getRouteById(
-      @Param('id') routeId: string,
-      @CurrentUser() user: any,
-    ) {
-      return this.ordersService.getRouteById(routeId, user.userId);
-    }
+  @Get('route/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @authorize(UserRole.DRIVER)
+  async getRouteById(
+    @Param('id') routeId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.ordersService.getRouteById(routeId, user.userId);
+  }
 
-    @Put('cancell/:id')
-    @HttpCode(HttpStatus.OK)
-    @UseGuards(JwtAuthGuard)
-    @UseInterceptors(AuditLogInterceptorFactory('cancel_order'))
-    async cancelOrder(
-      @Param('id') orderId: string,
-      @CurrentUser() user: any,
-      @Body() body: any,
-    ) {
-      return this.ordersService.cancelOrder(orderId, user.userId, body.reason);
-    }
+  @Put('cancell/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuditLogInterceptorFactory('cancel_order'))
+  async cancelOrder(
+    @Param('id') orderId: string,
+    @CurrentUser() user: any,
+    @Body() body: any,
+  ) {
+    return this.ordersService.cancelOrder(orderId, user.userId, body.reason);
+  }
 
-    @Get(':id')
-    @UseGuards(JwtAuthGuard)
-    @HttpCode(HttpStatus.OK)
-    async getOrderById(
-      @Param('id') id: string,
-      @CurrentUser() user: any,
-    ) {
-      const order = await this.ordersService.getOrderById(id, user.userId.toString());
-      return {
-        message: 'Order retrieved successfully',
-        data: order,
-      };
-    }
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getOrderById(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+  ) {
+    const order = await this.ordersService.getOrderById(id, user.userId.toString());
+    return {
+      message: 'Order retrieved successfully',
+      data: order,
+    };
+  }
 
-    @Put(':id')
-    @HttpCode(HttpStatus.OK)
-    @UseGuards(JwtAuthGuard)
-    @UseInterceptors(
-      FilesInterceptor('photos', 3, multerConfig),
-      AuditLogInterceptorFactory('update_order'),
-    )
-    async updateOrderById(
-      @Param('id') orderId: string,
-      @Body() updateData: UpdateOrderDto,
-      @UploadedFiles() files ?: MulterFile[],
-    ) {
-      let photoUrls: string[] = [];
-      if (files && files.length > 0) {
-        if (files.length > 5) {
-          throw new BadRequestException('Maximum 5 photos allowed');
-        }
-
-        photoUrls = await Promise.all(
-          files.map((file) =>
-            this.imageKitService
-              .uploadFile(
-                file,
-                'orders/photos',
-                `order-${Date.now()}-${file.originalname}`,
-              )
-              .then((result) => result.url),
-          ),
-        );
+  @Put(':id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FilesInterceptor('photos', 3, multerConfig),
+    AuditLogInterceptorFactory('update_order'),
+  )
+  async updateOrderById(
+    @Param('id') orderId: string,
+    @Body() updateData: UpdateOrderDto,
+    @UploadedFiles() files?: MulterFile[],
+  ) {
+    let photoUrls: string[] = [];
+    if (files && files.length > 0) {
+      if (files.length > 5) {
+        throw new BadRequestException('Maximum 5 photos allowed');
       }
 
-      const orderData = {
-        ...updateData,
-        photos: photoUrls.length > 0 ? photoUrls : updateData.photos,
-      };
-      return this.ordersService.updateOrderById(orderId, orderData);
+      photoUrls = await Promise.all(
+        files.map((file) =>
+          this.imageKitService
+            .uploadFile(
+              file,
+              'orders/photos',
+              `order-${Date.now()}-${file.originalname}`,
+            )
+            .then((result) => result.url),
+        ),
+      );
     }
 
-    @Delete(':id')
-    @HttpCode(HttpStatus.OK)
-    @UseGuards(JwtAuthGuard)
-    async deleteOrder(
-      @Param('id') orderId: string,
-      @CurrentUser() user: any,
-    ) {
-      return this.ordersService.deleteOrder(orderId, user.userId, user.role);
-    }
-
+    const orderData = {
+      ...updateData,
+      photos: photoUrls.length > 0 ? photoUrls : updateData.photos,
+    };
+    return this.ordersService.updateOrderById(orderId, orderData);
   }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    AuditLogInterceptorFactory('delete_order'),
+  )
+  async deleteOrder(
+    @Param('id') orderId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.ordersService.deleteOrder(orderId, user.userId, user.role);
+  }
+
+}
