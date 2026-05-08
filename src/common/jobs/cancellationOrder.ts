@@ -2,6 +2,7 @@
 import { Agenda } from 'agenda';
 import { Model } from 'mongoose';
 import { OrderDocument, OrderStatus } from '../../models/order.schema';
+import { emitNotification } from '../utils/notifications.system';
 
 export const defineOrderJobs = (
   agenda: Agenda,
@@ -21,8 +22,12 @@ export const defineOrderJobs = (
       { new: true }
     );
 
+    //emit to socket
+    emitNotification(`orderStatus.${order.generatorId}`, {
+      orderId: order._id.toString(),
+      orderStatus: order.status,
+    })
     if (!order) return;
-
     // optional: logs / notifications
     console.log(`Order ${orderId} auto-cancelled`);
   });

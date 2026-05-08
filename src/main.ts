@@ -5,6 +5,7 @@ import responseTime from 'response-time';
 import { AppModule } from './app.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { initSocket } from './common/config/socketManager';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
@@ -67,6 +68,10 @@ async function bootstrap(): Promise<void> {
 
   await app.listen(port);
   console.log(`Application is running on: http://${host}:${port}`);
+
+  const server = app.getHttpServer();
+  initSocket(server);
+  console.log('Socket server initialized');
 }
 
 bootstrap().catch((error) => {

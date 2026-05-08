@@ -17,9 +17,6 @@ export function initSocket(server: HTTPServer) {
   io.on('connection', (socket: Socket) => {
     console.log('🔌 Socket connected:', socket.id);
 
-
-
-
     socket.on('disconnect', (reason) => {
       console.log('🔌 Socket disconnected:', socket.id, 'Reason:', reason);
     });

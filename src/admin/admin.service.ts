@@ -9,6 +9,7 @@ import { Order, OrderDocument } from '../models/order.schema';
 import { UpdateOrderDto } from '../orders/dto/update-order.dto';
 import { User, UserDocument } from 'src/models';
 import { Driver, DriverDocument } from 'src/models/driver.schema';
+import { emitNotification } from 'src/common/utils/notifications.system';
 
 @Injectable()
 export class AdminService {
@@ -31,6 +32,14 @@ export class AdminService {
     if (!order) {
       throw new NotFoundException('Order not found');
     }
+
+
+    emitNotification(`orderStatus.${order.generatorId}`, {
+      orderId: order._id,
+      orderStatus: order.status,
+    })
+
+
 
     return { success: true, message: "update order successfully", data: order };
   }

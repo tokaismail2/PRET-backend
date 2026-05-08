@@ -8,8 +8,8 @@ export class WarehouseReceipt {
   @Prop({ type: Types.ObjectId, ref: 'Warehouse', required: true })
   warehouse_id: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Order', required: true })
-  order_id: Types.ObjectId;
+  @Prop({ type: [Types.ObjectId], ref: 'Order', required: true })
+  order_id: Types.ObjectId[];
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true }) 
   driver_id: Types.ObjectId;

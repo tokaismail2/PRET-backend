@@ -20,6 +20,7 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 import { Material, MaterialDocument } from '../models/material.schema';
 import { Route, RouteDocument } from '../models/route.schema';
 import { AgendaService } from '../common/agenda/agenda.service';
+import { emitNotification } from 'src/common/utils/notifications.system';
 
 @Injectable()
 export class OrdersService {
@@ -249,6 +250,7 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
 
+    // if order status is not pending throw error
     if (order.status !== OrderStatus.PENDING) {
       throw new BadRequestException('Order cannot be cancelled');
     }
@@ -256,6 +258,13 @@ export class OrdersService {
     order.status = OrderStatus.CANCELLED;
     order.reason = reason;
     await order.save();
+
+
+    emitNotification(`orderStatus.${order.generatorId}`, {
+      orderId: order._id.toString(),
+      orderStatus: order.status,
+    })
+
 
     return order;
   }
@@ -338,6 +347,12 @@ export class OrdersService {
       { new: true },
     );
 
+
+    emitNotification(`orderStatus.${order.generatorId}`, {
+      orderId: order._id.toString(),
+      orderStatus: order.status,
+    })
+
     return updatedOrder;
   }
 
@@ -413,11 +428,23 @@ export class OrdersService {
       },
     );
 
+
+    for (const order of result) {
+      emitNotification(`orderStatus.${order.generatorId}`, {
+        orderId: order._id.toString(),
+        orderStatus: order.status,
+      })
+      console.log("order status updated successfully", `orderStatus.${order.generatorId}`, {
+        orderId: order._id.toString(),
+        orderStatus: order.status,
+      })
+    }
+
     const route = await this.routeModel.findOne({
       'orderIds.id': { $all: objectIds },
     });
 
-    return { orders: result , route_id : route._id };
+    return { orders: result, route_id: route._id };
   }
 
   //recive order from generator or not 
@@ -455,6 +482,11 @@ export class OrdersService {
       order.is_received_from_generator = true;
       order.status = OrderStatus.RECEIVED;
 
+      emitNotification(`orderStatus.${order.generatorId}`, {
+        orderId: order._id.toString(),
+        orderStatus: order.status,
+      })
+
       await this.routeModel.updateOne(
         { 'orderIds.id': new Types.ObjectId(orderId) },
         { $set: { 'orderIds.$.status': 'completed' } }
@@ -479,6 +511,15 @@ export class OrdersService {
         orderId: order._id,
       });
       await walletTransaction.save();
+
+
+      emitNotification(`walletTransaction.${order.generatorId}`, {
+        walletTransactionId: walletTransaction._id.toString(),
+        amount: walletTransaction.amount,
+        type: walletTransaction.type,
+        description: walletTransaction.description,
+        orderId: walletTransaction.orderId,
+      })
 
       //update wallet of admin 
       const admin = await this.userModel.findOne({ role: UserRole.ADMIN });
@@ -514,13 +555,6 @@ export class OrdersService {
 
       await order.save();
 
-      await this.agendaService.getAgenda().cancel({
-        name: 'cancel-order-if-not-received',
-        'data.orderId': order._id,
-      } as any);
-
-
-
       await this.agendaService.getAgenda().schedule(
         new Date(Date.now() + 60 * 60 * 1000),
         'cancel-order-if-not-received',
@@ -543,6 +577,11 @@ export class OrdersService {
     driverUserId: string
   ) {
 
+    const verificationCode = '123456';
+    if (otp !== verificationCode)
+      throw new ConflictException(`Invalid or expired OTP`);
+
+
     const foundOrders = await Promise.all(
       orderIds.map(async (orderId) => {
         const order = await this.orderModel.findById(orderId);
@@ -560,23 +599,18 @@ export class OrdersService {
         if (existingReceipt)
           throw new ConflictException(`Warehouse receipt already created for order ${orderId}`);
 
-        const verificationCode = '123456';
-        const expiresAt = new Date();
-        expiresAt.setMinutes(expiresAt.getMinutes() + 5);
-
-        if (otp !== verificationCode || new Date() > expiresAt)
-          throw new ConflictException(`Invalid or expired OTP for order ${orderId}`);
-
         return order;
       })
     );
 
+
     const warehouse = await this.warehouseModel.findById(warehouseId);
     if (!warehouse) throw new NotFoundException(`Warehouse ${warehouseId} not found`);
 
+
     const firstOrder = foundOrders[0];
     const generator = await this.generatorModel.findOne({
-      user: firstOrder.generatorId
+      user: firstOrder.generatorId,
     } as any);
     if (!generator) throw new NotFoundException(`Generator not found`);
 
@@ -590,7 +624,6 @@ export class OrdersService {
 
 
     const orderObjectIds = orderIds.map((id) => new Types.ObjectId(id));
-
     const route = await this.routeModel.findOneAndUpdate(
       {
         driver: new Types.ObjectId(driverUserId),
@@ -609,54 +642,60 @@ export class OrdersService {
       { new: true },
     );
 
-    const result = await Promise.all(
+    const updatedOrders = await Promise.all(
       foundOrders.map(async (order) => {
-        const warehouseReceipt = await this.warehouseReceiptModel.create({
-          warehouse_id: new Types.ObjectId(warehouseId),
-          order_id: order._id,
-          driver_id: new Types.ObjectId(driverUserId),
-          received_weight: order.quantity,
-          price_per_kg: order.price,
-          total_amount: order.totalPrice,
-        });
-
         order.status = OrderStatus.COMPLETED;
         order.warehouseId = new Types.ObjectId(warehouseId);
         await order.save();
-
-        // Driver wallet logic
-        const deliveryFee = order.totalPrice * 0.1;
-        const driverWallet = await this.userWalletModel.findOne({ userId: driverUserId });
-        driverWallet.balance += deliveryFee;
-        await driverWallet.save();
-
-        await this.walletTransactionModel.create({
-          walletId: driverWallet._id,
-          userId: driverUserId,
-          type: 'withdrawal',
-          amount: deliveryFee,
-          description: `trip_fee for order ${order.orderCode}`,
-        });
-
-        //update admin wallet
-        const admin = await this.userModel.findOne({ role: UserRole.ADMIN });
-        if (!admin) throw new NotFoundException(`Admin not found`);
-
-        const adminWallet = await this.userWalletModel.findOne({ userId: admin._id });
-        adminWallet.balance -= deliveryFee;
-        await adminWallet.save();
-
-        await this.walletTransactionModel.create({
-          walletId: adminWallet._id,
-          userId: admin._id,
-          type: 'deposit',
-          amount: deliveryFee,
-          description: `trip_fee for order ${order.orderCode}`,
-        });
-
-        return { order, warehouseReceipt };
+        return order;
       })
     );
+
+    const warehouseReceipt = await this.warehouseReceiptModel.create({
+      warehouse_id: new Types.ObjectId(warehouseId),
+      order_id: orderIds.map((id) => new Types.ObjectId(id)),
+      driver_id: new Types.ObjectId(driverUserId),
+      total_amount: foundOrders.reduce((sum, order) => sum + order.totalPrice, 0),
+    });
+
+    const result = { orders: updatedOrders, warehouseReceipt };
+
+    const totalDeliveryFee = foundOrders.reduce(
+      (sum, order) => sum + order.totalPrice * 0.1,
+      0,
+    );
+
+    const orderCodes = foundOrders.map((o) => o.orderCode).join(', ');
+
+    const driverWallet = await this.userWalletModel.findOne({ userId: driverUserId });
+    if (!driverWallet) throw new NotFoundException(`Driver wallet not found`);
+    driverWallet.balance += totalDeliveryFee;
+    await driverWallet.save();
+
+    await this.walletTransactionModel.create({
+      walletId: driverWallet._id,
+      userId: driverUserId,
+      type: 'credit',
+      amount: totalDeliveryFee,
+      description: `trip_fee for orders [${orderCodes}]`,
+    });
+
+
+    const admin = await this.userModel.findOne({ role: UserRole.ADMIN });
+    if (!admin) throw new NotFoundException(`Admin not found`);
+
+    const adminWallet = await this.userWalletModel.findOne({ userId: admin._id });
+    if (!adminWallet) throw new NotFoundException(`Admin wallet not found`);
+    adminWallet.balance -= totalDeliveryFee;
+    await adminWallet.save();
+
+    await this.walletTransactionModel.create({
+      walletId: adminWallet._id,
+      userId: admin._id,
+      type: 'debit',
+      amount: totalDeliveryFee,
+      description: `trip_fee for orders [${orderCodes}]`,
+    });
 
     return { orders: result, route };
   }
@@ -884,7 +923,7 @@ export class OrdersService {
       };
     });
 
- 
+
     const completedOrders = ordersWithStatus.filter(
       o => o.status === 'completed'
     );
@@ -896,7 +935,7 @@ export class OrdersService {
       0
     );
 
- 
+
     return {
       ...route,
       orderIds: ordersWithStatus,
