@@ -10,7 +10,7 @@ import { UserWallet, UserWalletDocument } from '../models/userWallet.schema';
 import { WalletTransaction, WalletTransactionDocument } from '../models/walletTransactions.schema';
 import { Payment, PaymentDocument } from '../models/payment.schema';
 import { PaymobService } from '../paymob/paymob.service';
-
+import { emitNotification } from '../common/utils/notifications.system';
 @Injectable()
 export class AuctionService {
   constructor(
@@ -38,6 +38,18 @@ export class AuctionService {
 
     waste.status = 'in_auction';
     await waste.save();
+
+    emitNotification('auction-opened', {
+      auction_id: savedAuction._id.toString(),
+      waste_id: waste._id.toString(),
+      current_price: savedAuction.current_price,
+    })
+
+    console.log("auction opened notification", {
+      auction_id: savedAuction._id.toString(),
+      waste_id: waste._id.toString(),
+      current_price: savedAuction.current_price,
+    })
 
     return savedAuction;
   }
@@ -112,6 +124,18 @@ export class AuctionService {
       { status: 'sold' }
     );
 
+    emitNotification('auction-closed', {
+      auction_id: auctionId.toString(),
+      final_price: highestBid.total_price,
+      winnerFactory: highestBid.factory_id.toString(),
+    });
+
+    console.log("auction closed notification", {
+      auction_id: auctionId.toString(),
+      final_price: highestBid.total_price,
+      winnerFactory: highestBid.factory_id.toString(),
+    })
+
     // add price to admin wallet (driver take the action)
     const wallet = await this.userWalletModel.findOne({ userId: new Types.ObjectId(adminId) })
     if (!wallet) throw new NotFoundException(`admin wallet not found ${adminId}`);
@@ -121,7 +145,7 @@ export class AuctionService {
     //create wallet transaction 
     const walletTransaction = new this.walletTransactionModel({
       walletId: wallet._id,
-      userId: wallet.userId,   
+      userId: wallet.userId,
       type: 'deposit',
       amount: highestBid.total_price,
       description: `Deposit for auction ${auction._id} for admin`,
@@ -140,7 +164,7 @@ export class AuctionService {
     //create wallet transaction 
     const factoryWalletTransaction = new this.walletTransactionModel({
       walletId: factoryWallet._id,
-      userId: wallet.userId,   
+      userId: wallet.userId,
       type: 'withdrawal',
       amount: highestBid.total_price,
       description: `Withdrawal for auction ${auction._id} from factory`,
