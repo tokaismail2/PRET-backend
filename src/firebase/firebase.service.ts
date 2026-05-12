@@ -1,51 +1,45 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as admin from 'firebase-admin';
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
   private firebaseApp: admin.app.App;
+  private readonly logger = new Logger(FirebaseService.name);
 
-  constructor(private configService: ConfigService) {}
+  constructor(private configService: ConfigService) { }
 
   onModuleInit() {
-    // Initialize Firebase Admin SDK
-    // You can use service account key file or environment variables
-    if (!admin.apps.length) {
-      const projectId = this.configService.get<string>('FIREBASE_PROJECT_ID');
-      const clientEmail = this.configService.get<string>('FIREBASE_CLIENT_EMAIL');
-      const privateKey = this.configService.get<string>('FIREBASE_PRIVATE_KEY');
-      const serviceAccountKey = this.configService.get<string>('FIREBASE_SERVICE_ACCOUNT_KEY');
-
-      if (projectId) {
-        // Initialize using environment variables
-        this.firebaseApp = admin.initializeApp({
-          credential: admin.credential.cert({
-            projectId,
-            clientEmail,
-            privateKey: privateKey?.replace(/\\n/g, '\n'),
-          }),
-        });
-      } else if (serviceAccountKey) {
-        // Initialize using service account key file path
-        const serviceAccount = require(serviceAccountKey);
-        this.firebaseApp = admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
-        });
-      } else {
-        // Try to use default credentials (for Google Cloud environments)
-        try {
-          this.firebaseApp = admin.initializeApp({
-            credential: admin.credential.applicationDefault(),
-          });
-        } catch (error) {
-          console.warn(
-            'Firebase Admin SDK not initialized. Please set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY environment variables.',
-          );
-        }
-      }
-    } else {
+    if (admin.apps.length) {
       this.firebaseApp = admin.app();
+      return;
+    }
+
+    const projectId = this.configService.get<string>('FIREBASE_PROJECT_ID');
+    const clientEmail = this.configService.get<string>('FIREBASE_CLIENT_EMAIL');
+    const rawPrivateKey = this.configService.get<string>('FIREBASE_PRIVATE_KEY');
+    const serviceAccountKeyPath = this.configService.get<string>('FIREBASE_SERVICE_ACCOUNT_KEY');
+
+    if (projectId && clientEmail && rawPrivateKey) {
+      // Normalize escaped newlines from .env (e.g. \\n -> \n)
+      const privateKey = rawPrivateKey.replace(/\\n/g, '\n');
+
+      this.firebaseApp = admin.initializeApp({
+        credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
+      });
+
+      this.logger.log(`Firebase Admin SDK initialized for project: ${projectId}`);
+    } else if (serviceAccountKeyPath) {
+      const sa = require(serviceAccountKeyPath);
+      this.firebaseApp = admin.initializeApp({
+        credential: admin.credential.cert(sa),
+      });
+      this.logger.log('Firebase Admin SDK initialized via service account key file');
+    } else {
+      this.logger.error(
+        'Firebase Admin SDK NOT initialized. ' +
+        'Please set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY in your .env file.',
+      );
     }
   }
 

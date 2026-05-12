@@ -509,8 +509,7 @@ export class AuthService {
       };
       const accessToken = this.jwtService.sign(payload);
 
-      // Return user without password and token
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
       const { password, ...userWithoutPassword } = user.toObject();
       return {
         user: userWithoutPassword,
@@ -521,6 +520,7 @@ export class AuthService {
         throw error;
       }
       // Firebase verification errors
+      console.log(error);
       throw new UnauthorizedException('Invalid Google ID token');
     }
   }
