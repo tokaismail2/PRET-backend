@@ -77,6 +77,4 @@ export function getFirebaseAdmin(): any {
 }
 
 // Initialize on module load
-const adminInstance = initializeFirebaseAdmin();
-
-export default adminInstance;
+export default null;
