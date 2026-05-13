@@ -309,10 +309,6 @@ export class AuthService {
       throw new UnauthorizedException('Account is inactive');
     }
 
-    if (!user.password || user.authProvider === 'google') {
-      throw new UnauthorizedException('Please sign in with Google');
-    }
-
     // const isPasswordValid = await bcrypt.compare(
     //   loginEmailDto.password,
     //   user.password,
@@ -339,10 +335,6 @@ export class AuthService {
 
     if (!user.isActive) {
       throw new UnauthorizedException('Account is inactive');
-    }
-
-    if (!user.password || user.authProvider === 'google') {
-      throw new UnauthorizedException('Please sign in with Google');
     }
 
     const isPasswordValid = await bcrypt.compare(
