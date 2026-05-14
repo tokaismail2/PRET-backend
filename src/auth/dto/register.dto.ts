@@ -63,10 +63,10 @@ export class RegisterDto {
   phone?: string;
 
   @IsOptional()
-  @IsIn(['generator', 'factory', 'driver'], {
-    message: 'Invalid role. Must be one of: generator, factory, driver',
+  @IsIn(['generator', 'factory'], {
+    message: 'Invalid role. Must be one of: generator, factory',
   })
-  role?: 'generator' | 'factory' | 'driver';
+  role?: 'generator' | 'factory';
 
   @ValidateIf((o) => o.role === 'generator')
   @IsEnum(GeneratorType, {

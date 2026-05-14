@@ -34,28 +34,11 @@ interface ResetCodeData {
   verified: boolean;
 }
 
-interface EmailVerificationCodeData {
-  code: string;
-  expiresAt: Date;
-  email: string;
-  verified: boolean;
-}
-
-interface PhoneVerificationCodeData {
-  code: string;
-  expiresAt: Date;
-  phone: string;
-  verified: boolean;
-}
 
 @Injectable()
 export class AuthService {
-  // In-memory store for reset codes (consider using Redis in production)
+
   private resetCodes = new Map<string, ResetCodeData>();
-  // // In-memory store for email verification codes (consider using Redis in production)
-  // private emailVerificationCodes = new Map<string, EmailVerificationCodeData>();
-  // // In-memory store for phone verification codes (consider using Redis in production)
-  // private phoneVerificationCodes = new Map<string, PhoneVerificationCodeData>();
 
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
@@ -69,8 +52,6 @@ export class AuthService {
     // Clean up expired codes every 5 minutes
     setInterval(() => {
       this.cleanupExpiredCodes();
-      // this.cleanupExpiredEmailVerificationCodes();
-      // this.cleanupExpiredPhoneVerificationCodes();
     }, 5 * 60 * 1000);
   }
 
@@ -84,28 +65,24 @@ export class AuthService {
       (registerDto.role as unknown as UserRole) || UserRole.GENERATOR;
 
     if (
-      ![UserRole.GENERATOR, UserRole.FACTORY, UserRole.DRIVER].includes(role)
+      ![UserRole.GENERATOR, UserRole.FACTORY].includes(role)
     ) {
       throw new BadRequestException(
-        'Invalid role. Must be generator, factory, or driver',
+        'Invalid role. Must be generator, factory',
       );
     }
 
     this.validateRoleSpecificFields(role, registerDto);
 
-    // ─── Find existing user ───────────────────────────────────────────────────
     let user = await this.userModel.findOne({ email });
 
     if (!user && phone) {
       user = await this.userModel.findOne({ phone });
     }
-
-    // ─── Already verified → reject ───────────────────────────────────────────
     if (user?.isVerified) {
       throw new ConflictException('User already exists');
     }
 
-    // ─── Create user if new ──────────────────────────────────────────────────
     if (!user) {
       const hashedPassword = await bcrypt.hash(registerDto.password, 10);
       user = new this.userModel({
@@ -130,16 +107,6 @@ export class AuthService {
       throw new InternalServerErrorException(
         'Failed to create profile. Please try again.',
       );
-    }
-
-    // ─── Driver: verification by admin ──────────────────────────────────────
-    if (role === UserRole.DRIVER) {
-      user.isVerified = false;
-      await user.save();
-
-      const userObj = user.toObject();
-      delete userObj.password;
-      return userObj;
     }
 
     // ─── Non-driver: send verification ───────────────────────────────────────
@@ -182,8 +149,6 @@ export class AuthService {
         return !!(await this.generatorModel.exists({ user: id }));
       case UserRole.FACTORY:
         return !!(await this.factoryModel.exists({ user: id }));
-      case UserRole.DRIVER:
-        return !!(await this.driverModel.exists({ user: id }));
       default:
         return false;
     }
@@ -226,25 +191,6 @@ export class AuthService {
           address: dto.address, // required in schema — validated before this call
         });
         await factory.save();
-      }
-    } else if (role === UserRole.DRIVER) {
-      const exists = await this.driverModel.exists({ user: id });
-      if (!exists) {
-        const driver = new this.driverModel({
-          user: id,
-          latitude: dto.address?.coordinates?.latitude,
-          longitude: dto.address?.coordinates?.longitude,
-          address: dto.address
-            ? {
-              street: dto.address.street,
-              city: dto.address.city,
-              state: dto.address.state,
-              zipCode: dto.address.zipCode,
-              country: dto.address.country,
-            }
-            : undefined,
-        });
-        await driver.save();
       }
     }
   }
@@ -457,8 +403,8 @@ export class AuthService {
         const role: UserRole = (googleSignupDto.role as unknown as UserRole) || UserRole.GENERATOR;
 
         // Ensure role is one of the allowed registration roles
-        if (![UserRole.GENERATOR, UserRole.FACTORY, UserRole.DRIVER].includes(role)) {
-          throw new BadRequestException('Invalid role. Must be one of: generator, factory, driver');
+        if (![UserRole.GENERATOR, UserRole.FACTORY].includes(role)) {
+          throw new BadRequestException('Invalid role. Must be one of: generator, factory');
         }
 
         // Prepare Register-like object for validation and record creation
@@ -639,23 +585,5 @@ export class AuthService {
       }
     }
   }
-
-  // private cleanupExpiredEmailVerificationCodes(): void {
-  //   const now = new Date();
-  //   for (const [email, data] of this.emailVerificationCodes.entries()) {
-  //     if (data.expiresAt < now) {
-  //       this.emailVerificationCodes.delete(email);
-  //     }
-  //   }
-  // }
-
-  // private cleanupExpiredPhoneVerificationCodes(): void {
-  //   const now = new Date();
-  //   for (const [phone, data] of this.phoneVerificationCodes.entries()) {
-  //     if (data.expiresAt < now) {
-  //       this.phoneVerificationCodes.delete(phone);
-  //     }
-  //   }
-  // }
 
 }
