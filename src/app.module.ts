@@ -21,12 +21,8 @@ import { MaterialModule } from './materialType/material.module';
 import { AuctionModule } from './auction/module';
 import { CharityModule } from './charity/module';
 import { PaymentModule } from './payment/paymentModule';
+import { AdsModule } from './advertisements/ads.modules';
 import { MongooseModule } from '@nestjs/mongoose';
-
-
-
-
-
 
 
 
@@ -59,6 +55,7 @@ import { MongooseModule } from '@nestjs/mongoose';
     AuctionModule,
     CharityModule,
     PaymentModule,
+    AdsModule
   ],
   controllers: [AppController],
   providers: [AppService],

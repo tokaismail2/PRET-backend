@@ -1,7 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import {Agenda} from 'agenda';
-import mongoose, { Model } from 'mongoose';
 export type AuctionDocument = Auction & Document;
 
 @Schema({ timestamps: true })
