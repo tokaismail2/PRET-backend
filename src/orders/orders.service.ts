@@ -574,7 +574,8 @@ export class OrdersService {
     orderIds: string[],
     warehouseId: string,
     otp: string,
-    driverUserId: string
+    driverUserId: string,
+    price_per_kg: number
   ) {
 
     const verificationCode = '123456';
@@ -651,11 +652,16 @@ export class OrdersService {
       })
     );
 
+    const parsedPricePerKg = Number(price_per_kg);
+    const actualReceivedWeight = foundOrders.reduce((sum, order) => sum + order.quantity, 0);
+
     const warehouseReceipt = await this.warehouseReceiptModel.create({
       warehouse_id: new Types.ObjectId(warehouseId),
       order_id: orderIds.map((id) => new Types.ObjectId(id)),
       driver_id: new Types.ObjectId(driverUserId),
-      total_amount: foundOrders.reduce((sum, order) => sum + order.totalPrice, 0),
+      total_amount: parsedPricePerKg * actualReceivedWeight,
+      price_per_kg: parsedPricePerKg,
+      received_weight: actualReceivedWeight,
     });
 
     const result = { orders: updatedOrders, warehouseReceipt };
@@ -675,7 +681,7 @@ export class OrdersService {
     await this.walletTransactionModel.create({
       walletId: driverWallet._id,
       userId: driverUserId,
-      type: 'credit',
+      type: 'deposit',
       amount: totalDeliveryFee,
       description: `trip_fee for orders [${orderCodes}]`,
     });
@@ -692,7 +698,7 @@ export class OrdersService {
     await this.walletTransactionModel.create({
       walletId: adminWallet._id,
       userId: admin._id,
-      type: 'debit',
+      type: 'withdrawal',
       amount: totalDeliveryFee,
       description: `trip_fee for orders [${orderCodes}]`,
     });
@@ -946,6 +952,29 @@ export class OrdersService {
   async getOrderCount() {
     return this.orderModel.countDocuments();
   }
+
+  //get all warehouse receipts paginated
+  async getAllWarehouseReceipts(page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+    const warehouseReceipts = await this.warehouseReceiptModel.find()
+      .populate('warehouseId', 'name')
+      .populate('materialId', 'name')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+    const total = await this.warehouseReceiptModel.countDocuments();
+    const totalPages = Math.ceil(total / limit);
+    return {
+      success: true,
+      data: {
+        warehouseReceipts,
+        pagination: { total, page, limit, totalPages },
+      },
+    };
+  }
+
+
   // Helper
   private haversineDistance(
     lat1: number, lon1: number,
@@ -961,5 +990,7 @@ export class OrdersService {
       Math.sin(dLon / 2) * Math.sin(dLon / 2);
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
+
+
 }
 

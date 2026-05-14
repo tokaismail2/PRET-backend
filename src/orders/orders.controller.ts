@@ -125,13 +125,14 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard)
   async arriveToWarehouse(
     @CurrentUser() user: any,
-    @Body() body: { orderIds: string[]; warehouseId: string; otp: string },
+    @Body() body: { orderIds: string[]; warehouseId: string; otp: string, price_per_kg: number, received_weight: number},
   ) {
     return this.ordersService.arriveToWarehouse(
       body.orderIds,
       body.warehouseId,
       body.otp,
       user.userId,
+      body.price_per_kg
     );
   }
 
