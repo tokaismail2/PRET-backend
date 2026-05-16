@@ -37,10 +37,10 @@ export class GoogleSignupDto {
   idToken: string;
 
   @IsOptional()
-  @IsIn(['generator', 'factory', 'driver'], {
-    message: 'Invalid role. Must be one of: generator, factory, driver',
+  @IsIn(['generator', 'factory'], {
+    message: 'Invalid role. Must be one of: generator, factory',
   })
-  role?: 'generator' | 'factory' | 'driver';
+  role?: 'generator' | 'factory';
 
   @IsOptional()
   @IsEnum(GeneratorType, {

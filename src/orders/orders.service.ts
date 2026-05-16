@@ -957,8 +957,9 @@ export class OrdersService {
   async getAllWarehouseReceipts(page: number = 1, limit: number = 10) {
     const skip = (page - 1) * limit;
     const warehouseReceipts = await this.warehouseReceiptModel.find()
-      .populate('warehouseId', 'name')
-      .populate('materialId', 'name')
+      .populate('warehouse_id', 'name')
+      .populate('order_id', 'materialTypeId quantity unit generatorId')
+      .populate('driver_id','name')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -972,6 +973,19 @@ export class OrdersService {
         pagination: { total, page, limit, totalPages },
       },
     };
+  }
+
+  //get warehouse receipt by id
+  async getWarehouseReceiptById(id: string) {
+    const warehouseReceipt = await this.warehouseReceiptModel.findById(id)
+      .populate('warehouse_id', 'name')
+      .populate('order_id', 'materialTypeId quantity unit generatorId')
+      .populate('driver_id','name')
+      .lean();
+    if (!warehouseReceipt) {
+      throw new NotFoundException(`Warehouse receipt with ID "${id}" not found`);
+    }
+    return { success: true, data: warehouseReceipt };
   }
 
 

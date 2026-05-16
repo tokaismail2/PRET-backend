@@ -118,6 +118,31 @@ export class OrdersController {
     return this.ordersService.assignDriverToRoute(body.orders, user.userId);
   }
 
+  @Get('warehouse-receipts')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getWarehouseReceipts(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+  ) {
+    const pageNumber = Math.max(1, parseInt(page, 10) || 1);
+    const limitNumber = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+
+    const orders = await this.ordersService.getAllWarehouseReceipts(pageNumber, limitNumber);
+
+
+    return orders;
+  }
+
+  @Get('warehouse-receipt/:id')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getWarehouseReceiptById(
+    @Param('id') id: string,
+  ) {
+    return this.ordersService.getWarehouseReceiptById(id);
+  }
+
 
 
   @Post('arrive-warehouse')
