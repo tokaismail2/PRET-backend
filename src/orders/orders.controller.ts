@@ -70,7 +70,7 @@ export class OrdersController {
           : undefined,
       };
     } catch (error) {
-      throw new BadRequestException('Invalid request data format');
+      throw new BadRequestException(error.message);
     }
 
     let photoUrls: string[] = [];
@@ -156,8 +156,7 @@ export class OrdersController {
       body.orderIds,
       body.warehouseId,
       body.otp,
-      user.userId,
-      body.price_per_kg
+      user.userId
     );
   }
 

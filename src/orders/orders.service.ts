@@ -574,8 +574,7 @@ export class OrdersService {
     orderIds: string[],
     warehouseId: string,
     otp: string,
-    driverUserId: string,
-    price_per_kg: number
+    driverUserId: string
   ) {
 
     const verificationCode = '123456';
@@ -652,7 +651,7 @@ export class OrdersService {
       })
     );
 
-    const parsedPricePerKg = Number(price_per_kg);
+    const parsedPricePerKg = foundOrders.reduce((sum, order) => sum + order.price, 0) / foundOrders.length;
     const actualReceivedWeight = foundOrders.reduce((sum, order) => sum + order.quantity, 0);
 
     const warehouseReceipt = await this.warehouseReceiptModel.create({
