@@ -99,7 +99,7 @@ export class AuthService {
     try {
       await this.createRoleSpecificRecord(role, user._id.toString(), registerDto);
     } catch (err) {
-      console.error('❌ createRoleSpecificRecord failed:', err.message); 
+      console.error('❌ createRoleSpecificRecord failed:', err.message);
       const hasProfile = await this.profileExists(role, user._id.toString());
       if (!hasProfile) {
         await this.userModel.deleteOne({ _id: user._id });
@@ -223,12 +223,15 @@ export class AuthService {
     }
 
     const payload = {
-      sub: user._id.toString(),
+      user_id: user._id.toString(),
       email: user.email,
       role: user.role,
     };
 
+    console.log("payload", payload);
+
     const accessToken = this.jwtService.sign(payload);
+    console.log("token", accessToken);
 
     const userObj = user.toObject();
     delete userObj.password;
@@ -264,7 +267,13 @@ export class AuthService {
     //   throw new UnauthorizedException('Invalid email or password');
     // }
 
-    return this.buildLoginResponse(user);
+    console.log('before buildLoginResponse');
+
+    const response = await this.buildLoginResponse(user);
+
+    console.log('after buildLoginResponse');
+
+    return response;
   }
 
   // ─── Login with phone ────────────────────────────────────────────────────────
@@ -441,7 +450,7 @@ export class AuthService {
 
       // Generate JWT token
       const payload = {
-        sub: (user._id as any).toString(),
+        user_id: (user._id as any).toString(),
         email: user.email,
         role: user.role,
       };

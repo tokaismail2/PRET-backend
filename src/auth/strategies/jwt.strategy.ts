@@ -15,12 +15,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: true,
-      secretOrKey: configService.get<string>('JWT_SECRET') || 'your-secret-key-change-in-production',
+      secretOrKey: configService.get<string>('JWT_SECRET'),
     });
   }
-
   async validate(payload: any) {
-    const user = await this.userModel.findById(payload.sub);
+    const user = await this.userModel.findById(payload.user_id);
     if (!user || !user.isActive) {
       throw new UnauthorizedException('User not found or inactive');
     }
@@ -28,4 +27,5 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     
   }
 }
+
 
