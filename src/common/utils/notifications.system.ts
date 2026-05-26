@@ -32,6 +32,8 @@ export async function sendDeviceNotification(device_token: string, title: string
 
         const response = await admin.messaging().send(message);
 
+        console.log("✅ FCM notification sent:", response);
+
         return { success: true, response };
     } catch (error: any) {
         const STALE_TOKEN_CODES = [

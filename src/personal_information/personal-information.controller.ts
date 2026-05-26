@@ -191,10 +191,30 @@ export class PersonalInformationController {
       user: updatedUser,
     };
   }
+  @Put('device_token')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @authorize(UserRole.ADMIN, UserRole.DRIVER, UserRole.FACTORY, UserRole.GENERATOR)
+  @UseInterceptors(
+    AuditLogInterceptorFactory('update_device_token'),
+  )
+  async updateDeviceToken(
+    @CurrentUser() user: any,
+    @Body() updateDeviceTokenDto: { device_token: string },
+  ) {
+    const updatedUser = await this.personalInformationService.updateDeviceToken(
+      user.userId,
+      updateDeviceTokenDto.device_token,
+    );
+    return {
+      message: 'Device token updated successfully',
+      user: updatedUser,
+    };
+  }
   @Get('wallet')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @authorize(UserRole.DRIVER, UserRole.FACTORY, UserRole.GENERATOR , UserRole.ADMIN)
+  @authorize(UserRole.DRIVER, UserRole.FACTORY, UserRole.GENERATOR, UserRole.ADMIN)
   async getWallet(@CurrentUser() user: any) {
     const getMyWallet = await this.personalInformationService.getMyWallet(user.userId);
     return getMyWallet;

@@ -5,6 +5,7 @@ import Agenda from 'agenda';
 import { Order, OrderDocument } from '../../models/order.schema';
 import { defineOrderJobs } from '../jobs/cancellationOrder';
 import { ConfigService } from '@nestjs/config';
+import { User, UserDocument } from '../../models/user.schema';
 
 @Injectable()
 export class AgendaService implements OnModuleInit, OnModuleDestroy {
@@ -12,6 +13,7 @@ export class AgendaService implements OnModuleInit, OnModuleDestroy {
   private agenda!: Agenda;
 
   constructor(
+    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     @InjectModel(Order.name) private readonly orderModel: Model<OrderDocument>,
     private readonly configService: ConfigService,
   ) { }
@@ -39,7 +41,7 @@ export class AgendaService implements OnModuleInit, OnModuleDestroy {
       this.agenda.once('error', reject);
     });
 
-    defineOrderJobs(this.agenda, this.orderModel);
+    defineOrderJobs(this.agenda, this.userModel, this.orderModel);
 
     await this.agenda.start();
     this.logger.log('Agenda scheduler started');

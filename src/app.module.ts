@@ -28,7 +28,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }), // مهم عشان يقرأ .env
+    ConfigModule.forRoot({ isGlobal: true }), //to access env variables 
     MongooseModule.forRoot(process.env.MONGO_URI),
 
     WasteModule,

@@ -20,7 +20,7 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 import { Material, MaterialDocument } from '../models/material.schema';
 import { Route, RouteDocument } from '../models/route.schema';
 import { AgendaService } from '../common/agenda/agenda.service';
-import { emitNotification } from 'src/common/utils/notifications.system';
+import { emitNotification, sendDeviceNotification } from 'src/common/utils/notifications.system';
 
 @Injectable()
 export class OrdersService {
@@ -265,6 +265,13 @@ export class OrdersService {
       orderStatus: order.status,
     })
 
+    const generator = await this.userModel.findById(order.generatorId);
+
+    sendDeviceNotification(generator.device_token, 'Order changed', JSON.stringify({
+      orderId: order._id.toString(),
+      orderStatus: order.status,
+    }));
+
 
     return order;
   }
@@ -353,6 +360,13 @@ export class OrdersService {
       orderStatus: order.status,
     })
 
+    const generator = await this.userModel.findById(order.generatorId);
+
+    sendDeviceNotification(generator.device_token, 'Order changed', JSON.stringify({
+      orderId: order._id.toString(),
+      orderStatus: order.status,
+    }));
+
     return updatedOrder;
   }
 
@@ -434,10 +448,13 @@ export class OrdersService {
         orderId: order._id.toString(),
         orderStatus: order.status,
       })
-      console.log("order status updated successfully", `orderStatus.${order.generatorId}`, {
+      const generator = await this.userModel.findById(order.generatorId);
+
+      sendDeviceNotification(generator.device_token, 'Order changed', JSON.stringify({
         orderId: order._id.toString(),
         orderStatus: order.status,
-      })
+      }));
+
     }
 
     const route = await this.routeModel.findOne({
@@ -487,13 +504,19 @@ export class OrdersService {
         orderStatus: order.status,
       })
 
+      const generator = await this.userModel.findById(order.generatorId);
+
+      sendDeviceNotification(generator.device_token, 'Order changed', JSON.stringify({
+        orderId: order._id.toString(),
+        orderStatus: order.status,
+      }));
+
       await this.routeModel.updateOne(
         { 'orderIds.id': new Types.ObjectId(orderId) },
         { $set: { 'orderIds.$.status': 'completed' } }
       );
 
       //create wallet transaction for generator
-      const generator = await this.userModel.findById(order.generatorId);
       if (!generator) {
         throw new NotFoundException(`Generator not found for order ${order._id}`);
       }
@@ -520,6 +543,14 @@ export class OrdersService {
         description: walletTransaction.description,
         orderId: walletTransaction.orderId,
       })
+      
+      sendDeviceNotification(generator.device_token, 'new wallet balance', JSON.stringify({
+        walletTransactionId: walletTransaction._id.toString(),
+        amount: walletTransaction.amount,
+        type: walletTransaction.type,
+        description: walletTransaction.description,
+        orderId: walletTransaction.orderId,
+      }));
 
       //update wallet of admin 
       const admin = await this.userModel.findOne({ role: UserRole.ADMIN });
@@ -958,7 +989,7 @@ export class OrdersService {
     const warehouseReceipts = await this.warehouseReceiptModel.find()
       .populate('warehouse_id', 'name')
       .populate('order_id', 'materialTypeId quantity unit generatorId')
-      .populate('driver_id','name')
+      .populate('driver_id', 'name')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -979,7 +1010,7 @@ export class OrdersService {
     const warehouseReceipt = await this.warehouseReceiptModel.findById(id)
       .populate('warehouse_id', 'name')
       .populate('order_id', 'materialTypeId quantity unit generatorId')
-      .populate('driver_id','name')
+      .populate('driver_id', 'name')
       .lean();
     if (!warehouseReceipt) {
       throw new NotFoundException(`Warehouse receipt with ID "${id}" not found`);

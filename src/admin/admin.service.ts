@@ -9,7 +9,7 @@ import { Order, OrderDocument } from '../models/order.schema';
 import { UpdateOrderDto } from '../orders/dto/update-order.dto';
 import { User, UserDocument } from 'src/models';
 import { Driver, DriverDocument } from 'src/models/driver.schema';
-import { emitNotification } from 'src/common/utils/notifications.system';
+import { emitNotification, sendDeviceNotification } from 'src/common/utils/notifications.system';
 
 @Injectable()
 export class AdminService {
@@ -38,6 +38,13 @@ export class AdminService {
       orderId: order._id,
       orderStatus: order.status,
     })
+
+    const generator = await this.userModel.findById(order.generatorId);
+
+    sendDeviceNotification(generator.device_token, 'Order changed', JSON.stringify({
+      orderId: order._id,
+      orderStatus: order.status,
+    }));
 
 
 

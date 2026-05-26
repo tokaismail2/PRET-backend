@@ -6,7 +6,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Advertisement, AdvertisementDocument } from '../models/advertisement.schema';
-import { emitNotification } from 'src/common/utils/notifications.system';
+import { emitNotification, sendTopicNotification } from 'src/common/utils/notifications.system';
 import { AddAdsDto } from './dto/addAds';
 
 
@@ -28,6 +28,13 @@ export class AdsService {
       title: ads.title,
       description: ads.description,
     })
+
+    sendTopicNotification("new_ads", 'new_ads', JSON.stringify({
+      image: ads.image,
+      title: ads.title,
+      description: ads.description,
+    }));
+
     return { success: true, message: "ads created successfully", data: ads };
   }
 

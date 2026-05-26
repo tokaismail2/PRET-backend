@@ -96,6 +96,31 @@ export class PersonalInformationService {
       profilePicture: uploadResult.url,
     };
   }
+
+  async updateDeviceToken(
+    userId: string,
+    device_token: string,
+  ): Promise<Omit<User, 'password'>> {
+    const user = await this.userModel.findById(userId);
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is inactive');
+    }
+
+    // Update user device token
+    user.device_token = device_token;
+    await user.save();
+
+    const { password, ...userWithoutPassword } = user.toObject() as any;
+    return {
+      ...userWithoutPassword,
+      device_token,
+    };
+  }
   async getProfile(userId: string): Promise<Omit<User, 'password'>> {
     const user = await this.userModel.findById(userId).select('name email profilePicture role phone').lean();
     if (!user) {

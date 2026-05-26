@@ -267,11 +267,7 @@ export class AuthService {
     //   throw new UnauthorizedException('Invalid email or password');
     // }
 
-    console.log('before buildLoginResponse');
-
     const response = await this.buildLoginResponse(user);
-
-    console.log('after buildLoginResponse');
 
     return response;
   }
