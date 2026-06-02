@@ -11,6 +11,7 @@ import { WalletTransaction, WalletTransactionDocument } from '../models/walletTr
 import { Payment, PaymentDocument } from '../models/payment.schema';
 import { PaymobService } from '../paymob/paymob.service';
 import { emitNotification, sendTopicNotification } from '../common/utils/notifications.system';
+import { AgendaService } from '../common/agenda/agenda.service';
 @Injectable()
 export class AuctionService {
   constructor(
@@ -25,11 +26,14 @@ export class AuctionService {
     @InjectModel(WalletTransaction.name) private walletTransactionModel: Model<WalletTransactionDocument>,
     @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
     private readonly paymobService: PaymobService,
+    private readonly agendaService: AgendaService,
   ) { }
   async createAuction(dto: CreateAuctionDto) {
     dto.waste_id = new Types.ObjectId(dto.waste_id);
     dto.warehouse_id = new Types.ObjectId(dto.warehouse_id);
 
+
+    //check if is pending 
     const waste = await this.wasteModel.findById(dto.waste_id);
     if (!waste) throw new BadRequestException('Waste not found');
 
@@ -56,7 +60,15 @@ export class AuctionService {
       waste_id: waste._id.toString(),
       current_price: savedAuction.current_price,
     })
-
+    if (savedAuction.ends_at > new Date()) {
+      await this.agendaService.getAgenda().schedule(
+        savedAuction.ends_at,
+        'close-auction-if-not-finished',
+        {
+          auctionId: savedAuction._id,
+        }
+      );
+    }
     return savedAuction;
   }
   async placeBid(auctionId: string, bidAmount: number, factoryId: string) {

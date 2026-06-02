@@ -543,7 +543,7 @@ export class OrdersService {
         description: walletTransaction.description,
         orderId: walletTransaction.orderId,
       })
-      
+
       sendDeviceNotification(generator.device_token, 'new wallet balance', JSON.stringify({
         walletTransactionId: walletTransaction._id.toString(),
         amount: walletTransaction.amount,
@@ -708,13 +708,26 @@ export class OrdersService {
     driverWallet.balance += totalDeliveryFee;
     await driverWallet.save();
 
-    await this.walletTransactionModel.create({
+    const walletTransaction = await this.walletTransactionModel.create({
       walletId: driverWallet._id,
       userId: driverUserId,
       type: 'deposit',
       amount: totalDeliveryFee,
       description: `trip_fee for orders [${orderCodes}]`,
     });
+
+    const driver = await this.userModel.findById(driverUserId);
+    if (!driver) throw new NotFoundException(`Driver not found`);
+
+    sendDeviceNotification(driver.device_token, 'new wallet balance', JSON.stringify({
+      walletTransactionId: walletTransaction._id.toString(),
+      amount: walletTransaction.amount,
+      type: walletTransaction.type,
+      description: walletTransaction.description,
+      orderId: walletTransaction.orderId,
+    }));
+
+
 
 
     const admin = await this.userModel.findOne({ role: UserRole.ADMIN });

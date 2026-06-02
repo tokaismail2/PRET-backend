@@ -12,6 +12,9 @@ import { ImageKitModule } from '../imagekit/imagekit.module';
 import { Payment, PaymentSchema } from '../models/payment.schema';
 import { PaymobService } from '../paymob/paymob.service';
 import { AuditLog, AuditLogSchema } from '../models/auditLog.schema';
+import { AgendaModule } from '../common/agenda/agenda.module';
+
+
 
 @Module({
   imports: [
@@ -28,8 +31,9 @@ import { AuditLog, AuditLogSchema } from '../models/auditLog.schema';
 
     ]),
     ImageKitModule,
+    AgendaModule
   ],
   controllers: [AuctionController],
   providers: [AuctionService, PaymobService],
 })
-export class AuctionModule {}
+export class AuctionModule { }

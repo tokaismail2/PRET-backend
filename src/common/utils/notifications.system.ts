@@ -32,7 +32,7 @@ export async function sendDeviceNotification(device_token: string, title: string
 
         const response = await admin.messaging().send(message);
 
-        console.log("✅ FCM notification sent:", response);
+        console.log("✅ FCM notification sent:", message);
 
         return { success: true, response };
     } catch (error: any) {
@@ -69,6 +69,8 @@ export async function sendTopicNotification(topic: string, title: string, body: 
         };
 
         const response = await admin.messaging().send(message);
+        console.log("topic notification sent:", message);
+
         return response;
     } catch (error: any) {
         console.error("Error sending notification:", error);
