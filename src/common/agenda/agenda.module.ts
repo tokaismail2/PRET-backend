@@ -8,6 +8,7 @@ import { AuctionBid, AuctionBidSchema } from '../../models/auctionBids.schema';
 import { Waste, WasteSchema } from '../../models/waste.schema';
 import { UserWallet, UserWalletSchema } from '../../models/userWallet.schema';
 import { WalletTransaction, WalletTransactionSchema } from '../../models/walletTransactions.schema';
+import { Route, RouteSchema } from '../../models/route.schema';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { WalletTransaction, WalletTransactionSchema } from '../../models/walletT
     MongooseModule.forFeature([{ name: Waste.name, schema: WasteSchema }]),
     MongooseModule.forFeature([{ name: UserWallet.name, schema: UserWalletSchema }]),
     MongooseModule.forFeature([{ name: WalletTransaction.name, schema: WalletTransactionSchema }]),
+    MongooseModule.forFeature([{ name: Route.name, schema: RouteSchema }]),
   ],
   providers: [AgendaService],
   exports: [AgendaService],

@@ -105,7 +105,17 @@ export class OrdersService {
       address,
     });
 
-    return order.save();
+    await order.save();
+
+    await this.agendaService.getAgenda().now(
+      'generate-pending-routes',
+      {
+        orderId: order._id,
+      }
+    );
+
+    return order;
+
   }
 
 
@@ -751,40 +761,27 @@ export class OrdersService {
 
   //return data of generator
 
-  async getPendingRoutes() {
+  async getPendingRoutes(): Promise<Record<string, any[]>> {
     const orders = await this.orderModel.aggregate([
-      {
-        $match: { status: 'pending' }
-      },
-
-      // user (generator)
+      { $match: { status: 'pending' } },
       {
         $lookup: {
           from: 'users',
           localField: 'generatorId',
           foreignField: '_id',
-          as: 'generatorUser'
-        }
+          as: 'generatorUser',
+        },
       },
       { $unwind: '$generatorUser' },
-
-      // generator details
       {
         $lookup: {
           from: 'generators',
           let: { userId: '$generatorUser._id' },
-          pipeline: [
-            { $match: { $expr: { $eq: ['$user', '$$userId'] } } }
-          ],
-          as: 'generatorDetails'
-        }
+          pipeline: [{ $match: { $expr: { $eq: ['$user', '$$userId'] } } }],
+          as: 'generatorDetails',
+        },
       },
-      {
-        $unwind: {
-          path: '$generatorDetails',
-          preserveNullAndEmptyArrays: true
-        }
-      },
+      { $unwind: { path: '$generatorDetails', preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: 'materials',
@@ -799,124 +796,60 @@ export class OrdersService {
                       $cond: {
                         if: { $eq: [{ $type: '$$materialId' }, 'string'] },
                         then: { $toObjectId: '$$materialId' },
-                        else: '$$materialId'
-                      }
-                    }
-                  ]
-                }
-              }
-            }
+                        else: '$$materialId',
+                      },
+                    },
+                  ],
+                },
+              },
+            },
           ],
-          as: 'materialType'
-        }
+          as: 'materialType',
+        },
       },
-      {
-        $unwind: {
-          path: '$materialType',
-          preserveNullAndEmptyArrays: true
-        }
-      },
-
+      { $unwind: { path: '$materialType', preserveNullAndEmptyArrays: true } },
       {
         $project: {
-          _id: 1,
-          quantity: 1,
-          unit: 1,
-          status: 1,
-          createdAt: 1,
-          updatedAt: 1,
-          orderCode: 1,
-          price: 1,
-          totalPrice: 1,
-          photos: 1,
-          lat: 1,
-          lng: 1,
-          address: 1,
-
+          _id: 1, quantity: 1, unit: 1, status: 1, createdAt: 1, updatedAt: 1,
+          orderCode: 1, price: 1, totalPrice: 1, photos: 1, lat: 1, lng: 1, address: 1,
           generator: {
             businessName: '$generatorDetails.businessName',
             generatorType: '$generatorDetails.generatorType',
-            phone: '$generatorUser.phone'
+            phone: '$generatorUser.phone',
           },
-
-
-          material: {
-            _id: '$materialType._id',
-            name: '$materialType.name'
-          }
-        }
+          material: { _id: '$materialType._id', name: '$materialType.name' },
+        },
       },
-
-      { $sort: { createdAt: -1 } }
+      { $sort: { createdAt: -1 } },
     ]);
 
+    // Index enriched orders by _id for O(1) lookup
+    const orderMap = new Map<string, (typeof orders)[number]>();
+    for (const order of orders) {
+      orderMap.set(order._id.toString(), order);
+    }
 
-    const validOrders = orders.filter(
-      (o) => o.lat != null && o.lng != null
-    );
+    // Reconstruct { route1: [...], route2: [...] } from pre-saved Route documents
+    const savedRoutes = await this.routeModel
+      .find({ driver: { $exists: false } }) 
+      .sort({ createdAt: 1 })
+      .lean();
 
-    const MAX_WEIGHT = 200;
-    const MAX_DISTANCE = 30;
-
-    const used = new Set<string>();
     const routes: Record<string, any[]> = {};
     let routeIndex = 1;
 
-    for (let i = 0; i < validOrders.length; i++) {
-      const current = validOrders[i];
-      if (used.has(current._id.toString())) continue;
+    for (const savedRoute of savedRoutes) {
+      const enrichedOrders: any[] = [];
 
-      const route: typeof validOrders = [current];
-      used.add(current._id.toString());
-      let totalWeight = current.quantity ?? 0;
-
-      for (let j = 0; j < validOrders.length; j++) {
-        if (i === j) continue;
-        const candidate = validOrders[j];
-        if (used.has(candidate._id.toString())) continue;
-
-        const newWeight = totalWeight + (candidate.quantity ?? 0);
-        if (newWeight > MAX_WEIGHT) continue;
-
-        const withinDistance = route.every((routeOrder) => {
-          const dist = this.haversineDistance(
-            routeOrder.lat, routeOrder.lng,
-            candidate.lat, candidate.lng,
-          );
-          return dist <= MAX_DISTANCE;
-        });
-
-        if (!withinDistance) continue;
-
-        route.push(candidate);
-        used.add(candidate._id.toString());
-        totalWeight = newWeight;
+      for (const entry of savedRoute.orderIds ?? []) {
+        const enriched = orderMap.get(entry.id?.toString());
+        if (enriched) enrichedOrders.push(enriched);
       }
 
-      const orderIds = route.map((o) => ({
-        id: o._id,
-        status: 'pending',
-      }));
-
-      const orderIdObjects = route.map((o) => o._id);
-
-      const existingRoute = await this.routeModel.findOne({
-        'orderIds.id': { $in: orderIdObjects },
-      });
-
-      if (existingRoute) {
-        await this.routeModel.findByIdAndUpdate(existingRoute._id, {
-          orderIds,
-          startPoint: { latitude: route[0].lat, longitude: route[0].lng },
-        });
-      } else {
-        await this.routeModel.create({
-          orderIds,
-          startPoint: { latitude: route[0].lat, longitude: route[0].lng },
-        });
+      if (enrichedOrders.length > 0) {
+        routes[`route${routeIndex}`] = enrichedOrders;
+        routeIndex++;
       }
-      routes[`route${routeIndex}`] = route;
-      routeIndex++;
     }
 
     return routes;

@@ -5,6 +5,7 @@ import Agenda from 'agenda';
 import { Order, OrderDocument } from '../../models/order.schema';
 import { defineOrderJobs } from '../jobs/cancellationOrder';
 import { defineAuctionJobs } from '../jobs/auctionClosed';
+import { defineGenerateRoutesJob } from '../jobs/generateRoute';
 import { ConfigService } from '@nestjs/config';
 import { User, UserDocument } from '../../models/user.schema';
 import { Auction, AuctionDocument } from '../../models/auction.schema';
@@ -12,6 +13,7 @@ import { AuctionBid, AuctionBidDocument } from '../../models/auctionBids.schema'
 import { Waste, WasteDocument } from '../../models/waste.schema';
 import { UserWallet, UserWalletDocument } from '../../models/userWallet.schema';
 import { WalletTransaction, WalletTransactionDocument } from '../../models/walletTransactions.schema';
+import { Route, RouteDocument } from '../../models/route.schema';
 
 @Injectable()
 export class AgendaService implements OnModuleInit, OnModuleDestroy {
@@ -26,6 +28,7 @@ export class AgendaService implements OnModuleInit, OnModuleDestroy {
     @InjectModel(Waste.name) private readonly wasteModel: Model<WasteDocument>,
     @InjectModel(UserWallet.name) private readonly userWalletModel: Model<UserWalletDocument>,
     @InjectModel(WalletTransaction.name) private readonly walletTransactionModel: Model<WalletTransactionDocument>,
+    @InjectModel(Route.name) private readonly routeModel: Model<RouteDocument>,
     private readonly configService: ConfigService,
   ) { }
 
@@ -65,6 +68,9 @@ export class AgendaService implements OnModuleInit, OnModuleDestroy {
       this.userWalletModel,
       this.walletTransactionModel,
     );
+
+    //register generate pending routes job
+    defineGenerateRoutesJob(this.agenda, this.orderModel, this.routeModel);
 
     await this.agenda.start();
     this.logger.log('Agenda scheduler started');
