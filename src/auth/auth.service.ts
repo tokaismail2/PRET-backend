@@ -461,6 +461,7 @@ export class AuthService {
     } catch (error) {
       if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
         throw error;
+        
       }
       // Firebase verification errors
       console.log(error);

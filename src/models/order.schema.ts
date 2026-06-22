@@ -84,6 +84,12 @@ export class Order {
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
 
+//add index on status
+
+OrderSchema.index({ status: 1 });
+OrderSchema.index({ createdAt: -1 });
+
+
 //create code of order from 6 digits random and unique
 
 OrderSchema.pre('save', async function () {
