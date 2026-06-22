@@ -31,10 +31,9 @@ export default async function handler(req: any, res: any) {
 				transformOptions: {
 					enableImplicitConversion: true,
 				},
-				disableErrorMessages: configService.get('NODE_ENV') === 'production',
+				disableErrorMessages: false,
 			}),
 		);
-
 		app.useGlobalInterceptors(new TransformInterceptor());
 		app.useGlobalFilters(new HttpExceptionFilter());
 
