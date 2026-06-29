@@ -22,6 +22,7 @@ import { AuctionModule } from './auction/module';
 import { CharityModule } from './charity/module';
 import { PaymentModule } from './payment/paymentModule';
 import { AdsModule } from './advertisements/ads.modules';
+import { ThresholdModule } from './threshold/threshold.module';
 import { MongooseModule } from '@nestjs/mongoose';
 
 
@@ -55,7 +56,8 @@ import { MongooseModule } from '@nestjs/mongoose';
     AuctionModule,
     CharityModule,
     PaymentModule,
-    AdsModule
+    AdsModule,
+    ThresholdModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -597,7 +597,7 @@ export class OrdersService {
       await order.save();
 
       await this.agendaService.getAgenda().schedule(
-        new Date(Date.now() + 60 * 60 * 1000),
+        new Date(Date.now() + 15 * 60 * 1000),
         'cancel-order-if-not-received',
         {
           orderId: order._id,
