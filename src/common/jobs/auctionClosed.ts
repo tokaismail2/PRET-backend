@@ -89,10 +89,12 @@ export const defineAuctionJobs = (
         );
 
         // ── Notifications ──────────────────────────────────────────────────
+        const winnerUser = await userModel.findById(highestBid.factory_id).lean();
+        const winnerFactoryName = winnerUser?.name ?? highestBid.factory_id.toString();
         emitNotification('auction-closed', {
             auction_id: auctionId.toString(),
             final_price: highestBid.total_price,
-            winnerFactory: highestBid.factory_id.toString(),
+            winnerFactory: winnerFactoryName,
         });
 
         sendTopicNotification(
@@ -101,7 +103,7 @@ export const defineAuctionJobs = (
             JSON.stringify({
                 auction_id: auctionId.toString(),
                 final_price: highestBid.total_price,
-                winnerFactory: highestBid.factory_id.toString(),
+                winnerFactory: winnerFactoryName,
             }),
         );
 
